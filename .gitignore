@@ -1,0 +1,40 @@
+# Derleme ciktilari
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.csproj.user
+
+# Publish
+[Pp]ublish/
+*.publishsettings
+PublishScripts/
+
+# ReSharper / Rider
+_ReSharper*/
+*.[Rr]e[Ss]harper
+.idea/
+
+# NuGet
+*.nupkg
+packages/
+!packages/build/
+
+# Isletim sistemi
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Gecici
+*.tmp
+*.cache
+*.bak

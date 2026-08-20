@@ -1,0 +1,198 @@
+<Window x:Class="Macria.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Macria"
+        Height="660" Width="1020"
+        MinHeight="500" MinWidth="800"
+        Background="{StaticResource BgBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}"
+        FontFamily="{StaticResource AppFont}"
+        UseLayoutRounding="True"
+        WindowStartupLocation="CenterScreen">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="38"
+                      ResizeBorderThickness="6"
+                      GlassFrameThickness="0"
+                      CornerRadius="0"
+                      UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <Border x:Name="RootShell" Background="{StaticResource BgBrush}">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="Margin" Value="0"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}"
+                                 Value="Maximized">
+                        <!-- WindowChrome tam ekranda kenarlardan tasar; ic bosluk ile telafi -->
+                        <Setter Property="Margin" Value="7"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="38"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- ======== BASLIK CUBUGU ======== -->
+            <Grid Grid.Row="0">
+                <TextBlock Text="Macria" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           VerticalAlignment="Center" Margin="16,0,0,0"/>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                    <Button x:Name="btnMin" Style="{StaticResource WindowButton}"
+                            Content="&#xE921;" Click="btnMin_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True"/>
+                    <Button x:Name="btnMax" Click="btnMax_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource WindowButton}">
+                                <Setter Property="Content" Value="&#xE922;"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                 Value="Maximized">
+                                        <Setter Property="Content" Value="&#xE923;"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button x:Name="btnClose" Style="{StaticResource WindowCloseButton}"
+                            Content="&#xE8BB;" Click="btnClose_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- ======== SAYFA BASLIGI ======== -->
+            <Grid Grid.Row="1" Margin="24,10,24,0">
+                <StackPanel>
+                    <TextBlock Text="Sac Parça Listesi" FontSize="20" FontWeight="SemiBold"
+                               FontFamily="{StaticResource AppFontDisplay}"/>
+                    <TextBlock Text="CATIA Montajındaki Sac Parçaları Tarayın ve DXF Olarak Dışa Aktarın"
+                               FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <CheckBox x:Name="chkOpenAfter" Content="Bitince Dosyayı Aç"
+                              VerticalAlignment="Center" Margin="0,0,16,0"/>
+                    <Button x:Name="btnScan" Style="{StaticResource PrimaryButton}"
+                            Click="btnScan_Click" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="scanSpinner" Text="&#xE72C;"
+                                       FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                       VerticalAlignment="Center" Margin="0,0,8,0"
+                                       Visibility="Collapsed"
+                                       RenderTransformOrigin="0.5,0.5">
+                                <TextBlock.RenderTransform>
+                                    <RotateTransform x:Name="scanSpin"/>
+                                </TextBlock.RenderTransform>
+                            </TextBlock>
+                            <TextBlock x:Name="scanIcon" Text="&#xE721;"
+                                       FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                       VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock x:Name="scanText" Text="CATIA'yı Tara"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="btnExportAll" Style="{StaticResource SuccessButton}"
+                            Click="btnExportAll_Click" VerticalAlignment="Center"
+                            Margin="10,0,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xEDE1;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                       VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="Tümünü DXF Olarak Dışarı Aktar"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- ======== ARAMA ======== -->
+            <TextBox Grid.Row="2" x:Name="txtSearch" Style="{StaticResource SearchBox}"
+                     Width="280" Height="34" HorizontalAlignment="Left"
+                     Margin="24,16,24,10" TextChanged="txtSearch_TextChanged"/>
+
+            <!-- ======== PARCA LISTESI ======== -->
+            <Border Grid.Row="3" Margin="24,0,24,0"
+                    Background="{StaticResource CardBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="6" ClipToBounds="True">
+                <Grid>
+                    <DataGrid x:Name="grid"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              GridLinesVisibility="All"
+                              HeadersVisibility="Column"
+                              PreviewMouseRightButtonDown="grid_PreviewMouseRightButtonDown">
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="DXF Olarak Dışa Aktar" Click="mnuExportDxf_Click"/>
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Ürün Adı"
+                                                Binding="{Binding ProductName}" Width="2*"/>
+                            <DataGridTextColumn Header="Parça Adı"
+                                                Binding="{Binding PartName}" Width="3*"/>
+                            <DataGridTextColumn Header="Kalınlık (mm)"
+                                                Binding="{Binding Thickness}" Width="130"/>
+                            <DataGridTextColumn Header="Adet"
+                                                Binding="{Binding Quantity}" Width="90"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Bos durum -->
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                                IsHitTestVisible="False">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Items.Count, ElementName=grid}" Value="0">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets" FontSize="30"
+                                   Foreground="{StaticResource TextDisabledBrush}"
+                                   HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                        <TextBlock Text="Liste Boş" FontSize="14"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="Sac Parçalarını Listelemek İçin CATIA'yı Tara'ya Basın"
+                                   FontSize="13" Foreground="{StaticResource TextDisabledBrush}"
+                                   HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ======== ALT SERIT ======== -->
+            <!-- ======== KONSOL ======== -->
+            <Border Grid.Row="4" Height="120" Margin="24,10,24,16"
+                    Background="{StaticResource ConsoleBgBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="4" ClipToBounds="True">
+                <ScrollViewer x:Name="logScroll" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled" Padding="10,6">
+                    <ItemsControl x:Name="logList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Text}" Foreground="{Binding Color}"
+                                           FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                                           TextWrapping="Wrap" Margin="0,1"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </Border>
+</Window>
