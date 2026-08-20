@@ -1,0 +1,128 @@
+<Window x:Class="Macria.AboutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Hakkında"
+        Icon="Assets/macria-logo.png"
+        Width="460" SizeToContent="Height"
+        WindowStyle="None" ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BgBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}"
+        FontFamily="{StaticResource AppFont}"
+        UseLayoutRounding="True">
+
+    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+            CornerRadius="4">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="38"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- ======== BASLIK CUBUGU ======== -->
+            <Grid Grid.Row="0" Background="Transparent"
+                  MouseLeftButtonDown="Baslik_MouseLeftButtonDown">
+                <TextBlock Text="Hakkında" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           VerticalAlignment="Center" Margin="16,0,0,0"/>
+                <Button Style="{StaticResource WindowCloseButton}" Content="&#xE8BB;"
+                        HorizontalAlignment="Right" VerticalAlignment="Top"
+                        Click="btnClose_Click"/>
+            </Grid>
+
+            <!-- ======== ICERIK ======== -->
+            <StackPanel Grid.Row="1" Margin="24,4,24,0">
+
+                <!-- Uygulama kimligi -->
+                <StackPanel Orientation="Horizontal">
+                    <Image Source="Assets/macria-logo.png" Width="56" Height="56"
+                           RenderOptions.BitmapScalingMode="HighQuality"
+                           VerticalAlignment="Center"/>
+                    <StackPanel VerticalAlignment="Center" Margin="16,0,0,0">
+                        <TextBlock Text="Macria" FontSize="28" FontWeight="SemiBold"
+                                   FontFamily="{StaticResource AppFontDisplay}"/>
+                        <TextBlock x:Name="txtVersion" Text="Sürüm 1.0.0" FontSize="13"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="0,2,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <TextBlock Text="CATIA / 3DEXPERIENCE montajlarındaki sac parçaları tarar, kalınlık ve adet bilgisiyle listeler ve tek tuşla DXF olarak dışa aktarır."
+                           FontSize="13" TextWrapping="Wrap" LineHeight="20"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="0,14,0,0"/>
+
+                <!-- Gelistiriciler -->
+                <TextBlock Text="Geliştiriciler" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="0,22,0,0"/>
+
+                <Border Background="{StaticResource CardBrush}"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                        CornerRadius="6" Padding="14,12" Margin="0,8,0,0">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE77B;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                       Foreground="{StaticResource AccentBrush}"
+                                       VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <TextBlock Text="Emre Koçak" FontSize="14" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <TextBlock Text="&#xE77B;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                       Foreground="{StaticResource AccentBrush}"
+                                       VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <TextBlock Text="Enes Yeşilöz" FontSize="14" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Sistem bilgileri -->
+                <TextBlock Text="Sistem Bilgileri" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="0,22,0,0"/>
+
+                <Border Background="{StaticResource CardBrush}"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                        CornerRadius="6" Padding="14,12" Margin="0,8,0,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="130"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Çalışma Zamanı" FontSize="12"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="txtRuntime" FontSize="12"
+                                   TextTrimming="CharacterEllipsis"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="İşletim Sistemi" FontSize="12"
+                                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,8,0,0"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="txtOs" FontSize="12"
+                                   Margin="0,8,0,0" TextTrimming="CharacterEllipsis"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Mimari" FontSize="12"
+                                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,8,0,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="txtArch" FontSize="12"
+                                   Margin="0,8,0,0"/>
+                    </Grid>
+                </Border>
+            </StackPanel>
+
+            <!-- ======== ALT SERIT ======== -->
+            <Grid Grid.Row="2" Margin="24,20,24,20">
+                <TextBlock x:Name="txtCopyright" FontSize="12"
+                           Foreground="{StaticResource TextDisabledBrush}"
+                           VerticalAlignment="Center"/>
+                <Button Content="Kapat" Style="{StaticResource SecondaryButton}"
+                        HorizontalAlignment="Right" Click="btnClose_Click"/>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

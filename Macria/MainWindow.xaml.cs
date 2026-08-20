@@ -34,6 +34,7 @@ namespace Macria
         private string _searchText = "";
         private readonly ObservableCollection<LogEntry> _logs = new ObservableCollection<LogEntry>();
         private ExportPipWindow _pip;
+        private ConsoleWindow _logWindow;
         private bool _stopRequested;
 
         private const int TAB_FIRST = 15;   // ilk parca
@@ -42,6 +43,11 @@ namespace Macria
         public MainWindow()
         {
             InitializeComponent();
+            WindowEffects.RoundCorners(this);
+
+            // Pencere kapanirken suren islem durdurulsun
+            Closing += (s, e) => { _stopRequested = true; };
+
             _view = System.Windows.Data.CollectionViewSource.GetDefaultView(_rows);
             _view.Filter = FilterRow;
             grid.ItemsSource = _view;
@@ -97,6 +103,36 @@ namespace Macria
         }
 
         // ================= PENCERE KONTROLLERI =================
+
+        // ================= KONSOL ARACLARI =================
+
+        private void btnClearLog_Click(object sender, RoutedEventArgs e)
+        {
+            _logs.Clear();
+        }
+
+        // Ayni koleksiyonu paylasan genis konsol; ikinci kez acilmaz, one getirilir
+        private void btnPopOutLog_Click(object sender, RoutedEventArgs e)
+        {
+            if (_logWindow != null)
+            {
+                if (_logWindow.WindowState == WindowState.Minimized)
+                    _logWindow.WindowState = WindowState.Normal;
+
+                _logWindow.Activate();
+                return;
+            }
+
+            _logWindow = new ConsoleWindow(_logs) { Owner = this };
+            _logWindow.Closed += (s, ev) => _logWindow = null;
+            _logWindow.Show();
+        }
+
+        private void btnAbout_Click(object sender, RoutedEventArgs e)
+        {
+            var pencere = new AboutWindow { Owner = this };
+            pencere.ShowDialog();
+        }
 
         private void btnMin_Click(object sender, RoutedEventArgs e)
         {
@@ -230,6 +266,8 @@ namespace Macria
             public int Total;
             public string Error;
             public List<DiagLine> Diag = new List<DiagLine>();
+            public bool UrunDokuldu;    // teshis satiri bir kez yazilsin
+            public bool ParcaDokuldu;
         }
 
         private void WriteDiag(DiagLine d)
@@ -263,7 +301,7 @@ namespace Macria
             }
 
             var found = new Dictionary<string, ScanItem>();
-            ScanNode(root, "", found);
+            ScanNode(root, "", found, result);
 
             foreach (var kv in found)
             {
@@ -354,29 +392,25 @@ namespace Macria
         }
 
         private void ScanNode(dynamic node, string parentProd,
-                              Dictionary<string, ScanItem> found)
+                              Dictionary<string, ScanItem> found, ScanOutput result)
         {
-            string prodName = parentProd;
-            try
-            {
-                string n = node.Name;
-                if (!string.IsNullOrWhiteSpace(n))
-                    prodName = StripInstance(n.Trim());
-            }
-            catch { }
+            // Urun adi, dugumun kendi referansindaki basliktir; agacta gorunen de budur.
+            // node.Name instance adini verir (orn. "hhh.1"), urun adini degil.
+            object dugumRef = ReferansAl(node);
+            string prodName = dugumRef == null ? "" : PlmBaslik(dugumRef);
 
-            // Alt occurrence sayisi: 0 ise bu dugum bir parcadir (yaprak)
-            int altSayisi = 0;
-            try
+            if (string.IsNullOrWhiteSpace(prodName))
             {
-                dynamic altlar = node.Occurrences;
-                if (altlar != null) altSayisi = altlar.Count;
+                try
+                {
+                    string n = node.Name;
+                    if (!string.IsNullOrWhiteSpace(n))
+                        prodName = StripInstance(n.Trim());
+                }
+                catch { }
             }
-            catch { }
 
-            // Yaprak dugumde "urun adi" ust dugumden gelir; dugumun kendi adi
-            // parcanin instance adidir, urun adi degildir
-            string repProd = (altSayisi == 0 && parentProd.Length > 0) ? parentProd : prodName;
+            if (string.IsNullOrWhiteSpace(prodName)) prodName = parentProd;
 
             try
             {
@@ -397,15 +431,18 @@ namespace Macria
                             dynamic repRef = repInst.ReferenceInstanceOf;
                             repRefObj = repRef;
 
-                            // Parca adi olarak Title kullanilir; bos/yoksa Name'e dusulur
-                            string nm = "";
-                            try { nm = repRef.Title; } catch { }
-                            if (string.IsNullOrWhiteSpace(nm))
+                            if (!result.ParcaDokuldu)
                             {
-                                try { nm = repRef.Name; } catch { }
+                                result.ParcaDokuldu = true;
+                                UyeDok(result.Diag, "Ürün Düğümü", (object)node, true);
+                                if (dugumRef != null)
+                                    UyeDok(result.Diag, "Ürün Referansı", dugumRef, true);
+                                UyeDok(result.Diag, "Parça Occurrence", (object)repOcc);
+                                UyeDok(result.Diag, "Parça Instance", (object)repInst);
+                                UyeDok(result.Diag, "Parça Referansı", repRefObj, true);
                             }
 
-                            key = (nm ?? "").Trim();
+                            key = PlmBaslik(repRefObj);
                             part = repRef.GetItem("Part");
                         }
                         catch { }
@@ -414,7 +451,7 @@ namespace Macria
 
                         // Ayni parca farkli urunler altinda ayri satir olsun diye
                         // urun+parca ciftiyle grupla
-                        string mapKey = repProd + "||" + key;
+                        string mapKey = prodName + "||" + key;
 
                         ScanItem item;
                         if (found.TryGetValue(mapKey, out item))
@@ -427,7 +464,7 @@ namespace Macria
                             {
                                 Part = part,
                                 RepRef = repRefObj,
-                                ProductName = repProd,
+                                ProductName = prodName,
                                 PartName = key,
                                 Count = 1
                             };
@@ -444,10 +481,106 @@ namespace Macria
                 {
                     int cnt = subs.Count;
                     for (int i = 1; i <= cnt; i++)
-                        ScanNode(subs.Item(i), prodName, found);
+                        ScanNode(subs.Item(i), prodName, found, result);
                 }
             }
             catch { }
+        }
+
+        // ================= PLM AD/BASLIK =================
+        //
+        // 3DEXPERIENCE'ta Properties penceresindeki iki alan farkli ozelliklerdir:
+        //   Title -> V_Name        (agacta gorunen ad, orn. "3D Shape00000050")
+        //   Name  -> PLM_ExternalID (PLM kimligi,      orn. "3sh-OI000608702-00000050")
+        // Agacla ayni goruntuyu vermek icin once baslik denenir.
+
+        private static readonly string[] BaslikUyeleri = { "V_Name", "Title", "Name" };
+        private static readonly string[] TumUyeler = { "V_Name", "Title", "Name", "PLM_ExternalID" };
+
+        // dynamic uzerinde uye adi degisken olamaz; her aday ayri ayri denenir
+        private static string PlmDeger(object nesne, string uye)
+        {
+            try
+            {
+                dynamic d = nesne;
+                object v = null;
+
+                switch (uye)
+                {
+                    case "V_Name": v = d.V_Name; break;
+                    case "Title": v = d.Title; break;
+                    case "Name": v = d.Name; break;
+                    case "PLM_ExternalID": v = d.PLM_ExternalID; break;
+                }
+
+                return v == null ? "" : Convert.ToString(v).Trim();
+            }
+            catch { return ""; }
+        }
+
+        private static string PlmBaslik(object nesne)
+        {
+            if (nesne == null) return "";
+
+            foreach (string uye in BaslikUyeleri)
+            {
+                string v = PlmDeger(nesne, uye);
+                if (!string.IsNullOrWhiteSpace(v)) return v;
+            }
+
+            return "";
+        }
+
+        // Hangi uyenin ne dondurdugunu konsola yazar; tarama basina bir kez cagrilir
+        private static void UyeDok(List<DiagLine> diag, string etiket, object nesne,
+                                   bool tamListe = false)
+        {
+            var parcalar = new List<string>();
+
+            foreach (string uye in TumUyeler)
+            {
+                string v = PlmDeger(nesne, uye);
+                parcalar.Add(uye + "=" + (v.Length == 0 ? "(yok)" : "\"" + v + "\""));
+            }
+
+            string tip = ComProbe.TipAdi(nesne);
+            diag.Add(new DiagLine(etiket + " [" + tip + "]: " + string.Join("  ", parcalar),
+                                  DiagLevel.Info));
+
+            if (!tamListe) return;
+
+            // Tip kutuphanesinden gercek uye listesini oku; tahmin gerekmesin
+            var adlar = ComProbe.UyeAdlari(nesne);
+            if (adlar.Count == 0)
+            {
+                diag.Add(new DiagLine("   " + etiket + " üye listesi okunamadı.", DiagLevel.Info));
+                return;
+            }
+
+            var ilginc = ComProbe.IlginçUyeler(adlar);
+            diag.Add(new DiagLine("   " + etiket + " üyeleri (" + adlar.Count + "): " +
+                                  string.Join(", ", ilginc.Count > 0 ? ilginc : adlar),
+                                  DiagLevel.Info));
+        }
+
+        // Bir occurrence'in referans nesnesi; baslik oradan okunur
+        private static object ReferansAl(dynamic node)
+        {
+            try
+            {
+                dynamic ins = node.RelatedInstance;
+                if (ins != null)
+                {
+                    object r = ins.ReferenceInstanceOf;
+                    if (r != null) return r;
+                }
+            }
+            catch { }
+
+            try { object r = node.ReferenceInstanceOf; if (r != null) return r; } catch { }
+            try { object r = node.Reference; if (r != null) return r; } catch { }
+
+            return null;
         }
 
         private static string StripInstance(string s)
@@ -621,6 +754,9 @@ namespace Macria
 
         [DllImport("user32.dll")]
         private static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
         [DllImport("user32.dll")]
         private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
@@ -812,8 +948,7 @@ namespace Macria
 
                 // Islem devam ettigi surece fiziksel girdi kilitli (Macria pencereleri haric)
                 SetExporting(true);
-                InputGuard.Enable();
-                LogInfo("Girdi Kilidi Açık — İşlem Bitene Kadar Tıklamalar Engellenecek.");
+                LogInfo("İşlem Sürerken Fare ve Klavyeye Dokunmayın — Odak Kayarsa Export Bozulur.");
 
                 bool ok;
                 try
@@ -822,9 +957,7 @@ namespace Macria
                 }
                 finally
                 {
-                    InputGuard.Disable();
                     SetExporting(false);
-                    LogInfo("Girdi Kilidi Kapatıldı.");
                 }
 
                 if (_stopRequested)
@@ -868,6 +1001,23 @@ namespace Macria
         
             try { if (System.IO.File.Exists(fullPath)) System.IO.File.Delete(fullPath); } catch { }
 
+            // Onay kutulari export boyunca arka planda yanitlanir
+            OnayIzleyiciBaslat();
+
+            try
+            {
+                return await ExportOneIc(repRef, fullPath);
+            }
+            finally
+            {
+                OnayIzleyiciDurdur();
+            }
+        }
+
+        private async System.Threading.Tasks.Task<bool> ExportOneIc(object repRef, string fullPath)
+        {
+            dynamic catia = _catia;
+
             // 1) parcayi yeni pencerede ac
             LogInfo("Parça Açılıyor...");
             dynamic svc = catia.ActiveEditor.GetService("PLMOpenService");
@@ -896,6 +1046,9 @@ namespace Macria
                 await System.Threading.Tasks.Task.Delay(600);
 
                 catia.StartCommand("Save As DXF");
+
+                // Sheet metal uyarisi gibi kutular arka plandaki izleyici tarafindan
+                // yanitlanir; burada sadece panelin acilmasi beklenir
                 await System.Threading.Tasks.Task.Delay(3000);
 
                 bool saveAsBasildi = false;
@@ -927,6 +1080,10 @@ namespace Macria
                         {
                             LogInfo("Save As Butonu Bulunamadı — Tab Yöntemine Geçiliyor.");
                             dogrudanKullan = false;
+
+                            // Ekranda bekleyen bir onay kutusu var mi, varsa
+                            // butonlari nasil gorunuyor: konsola dok
+                            GorunurDiyaloglariYaz();
 
                             // Ilk basarisizlikta panel agacini teshis icin dosyaya dok
                             if (!_dumpYazildi)
@@ -1222,6 +1379,191 @@ namespace Macria
             return adayButon != IntPtr.Zero ? adayButon : adayDiger;
         }
 
+        // ================= ONAY KUTULARI =================
+        //
+        // Parcanin son ozelligi sheet metal degilse (ornegin sonradan PartDesign
+        // Pocket eklenmisse) "Save As DXF" komutu su soruyu sorar:
+        //   "... doesn't contain last feature as sheet metal feature.
+        //    The resulting dxf could be not pertinent. Do you want to generate it?"
+        // Evet denmezse akis burada kilitlenir.
+
+        private static readonly string[] OnayEvet =
+        { "evet", "yes", "oui", "ja", "si", "sim", "tamam", "ok" };
+
+        private static readonly string[] OnayHayir =
+        { "hayır", "hayir", "no", "non", "nein", "nao", "hayır." };
+
+        private static bool ButonMetniEsler(string text, string[] kume)
+        {
+            string f = CleanButtonText(text).ToLowerInvariant();
+            if (f.Length == 0) return false;
+
+            foreach (string k in kume)
+                if (f == k) return true;
+
+            return false;
+        }
+
+        private const int IDYES = 6;
+        private const int IDNO = 7;
+        private const uint WM_COMMAND = 0x0111;
+
+        // Onay kutusu arar; bulursa Evet'e basar ve kutunun basligini dondurur.
+        // Iki tespit yolu var:
+        //   1) Klasik mesaj kutusu (#32770) — IDYES/IDNO kimlikleriyle
+        //   2) Metinle — Evet ve Hayir yazili iki dugmeyi birlikte tasiyan pencere
+        // Iki dugmeyi birden sart kosmak, tek basina "Tamam" tasiyan alakasiz
+        // panellerin yanlislikla onaylanmasini onler.
+        private static string TryConfirmDialog()
+        {
+            IntPtr hDlg = IntPtr.Zero;
+            IntPtr hEvet = IntPtr.Zero;
+            string baslik = "";
+
+            EnumWindows((h, l) =>
+            {
+                if (!IsWindowVisible(h)) return true;
+
+                // 1) Standart mesaj kutusu kimlikleri
+                if (GetCls(h) == "#32770")
+                {
+                    IntPtr yes = GetDlgItem(h, IDYES);
+                    IntPtr no = GetDlgItem(h, IDNO);
+
+                    if (yes != IntPtr.Zero && no != IntPtr.Zero)
+                    {
+                        hDlg = h;
+                        hEvet = yes;
+                        baslik = GetText(h);
+                        return false;
+                    }
+                }
+
+                // 2) Buton metinlerine gore
+                IntPtr evet = IntPtr.Zero;
+                bool hayirVar = false;
+
+                EnumChildWindows(h, (ch, l2) =>
+                {
+                    if (!IsWindowVisible(ch)) return true;
+                    if (GetCls(ch).IndexOf("Button", StringComparison.OrdinalIgnoreCase) < 0)
+                        return true;
+
+                    string t = GetText(ch);
+
+                    if (evet == IntPtr.Zero && ButonMetniEsler(t, OnayEvet)) evet = ch;
+                    else if (ButonMetniEsler(t, OnayHayir)) hayirVar = true;
+
+                    return true;
+                }, IntPtr.Zero);
+
+                if (evet != IntPtr.Zero && hayirVar)
+                {
+                    hDlg = h;
+                    hEvet = evet;
+                    baslik = GetText(h);
+                    return false;
+                }
+
+                return true;
+            }, IntPtr.Zero);
+
+            if (hEvet == IntPtr.Zero) return null;
+
+            SendMessage(hEvet, BM_CLICK, IntPtr.Zero, IntPtr.Zero);
+
+            // BM_CLICK bazi kaliplarda yutulur; komutu diyaloga da bildir
+            if (hDlg != IntPtr.Zero)
+                PostMessage(hDlg, WM_COMMAND, (IntPtr)IDYES, hEvet);
+
+            return baslik.Length > 0 ? baslik : "(başlıksız)";
+        }
+
+        // Export suresince arka planda calisip cikan onay kutularini yanitlar.
+        // Kutunun ne zaman ciktigini onceden bilemedigimiz icin sabit bir
+        // bekleme penceresi yerine surekli izleme kullanilir.
+        private System.Threading.CancellationTokenSource _onayCts;
+
+        private void OnayIzleyiciBaslat()
+        {
+            OnayIzleyiciDurdur();
+
+            _onayCts = new System.Threading.CancellationTokenSource();
+            var token = _onayCts.Token;
+
+            System.Threading.Tasks.Task.Run(async () =>
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    string baslik = null;
+                    try { baslik = TryConfirmDialog(); }
+                    catch { }
+
+                    if (baslik != null)
+                    {
+                        string b = baslik;
+                        try { await Dispatcher.InvokeAsync(() => LogInfo("Onay Kutusu Yanıtlandı — Evet: " + b)); }
+                        catch { }
+                    }
+
+                    try { await System.Threading.Tasks.Task.Delay(400, token); }
+                    catch { return; }
+                }
+            });
+        }
+
+        private void OnayIzleyiciDurdur()
+        {
+            if (_onayCts == null) return;
+
+            try { _onayCts.Cancel(); } catch { }
+            _onayCts = null;
+        }
+
+        // Gorunur diyaloglari ve buton yazilarini konsola dokerek neyin
+        // tespit edilemedigini gosterir
+        private void GorunurDiyaloglariYaz()
+        {
+            var satirlar = new List<string>();
+
+            EnumWindows((h, l) =>
+            {
+                if (!IsWindowVisible(h)) return true;
+
+                string cls = GetCls(h);
+                if (cls != "#32770" && GetText(h).Length == 0) return true;
+
+                var butonlar = new List<string>();
+
+                EnumChildWindows(h, (ch, l2) =>
+                {
+                    if (!IsWindowVisible(ch)) return true;
+                    if (GetCls(ch).IndexOf("Button", StringComparison.OrdinalIgnoreCase) < 0)
+                        return true;
+
+                    string t = CleanButtonText(GetText(ch));
+                    if (t.Length > 0 && butonlar.Count < 8) butonlar.Add(t);
+
+                    return true;
+                }, IntPtr.Zero);
+
+                if (butonlar.Count > 0 && satirlar.Count < 6)
+                    satirlar.Add("\"" + GetText(h) + "\" [" + cls + "] → " +
+                                 string.Join(" | ", butonlar));
+
+                return true;
+            }, IntPtr.Zero);
+
+            if (satirlar.Count == 0)
+            {
+                LogInfo("Görünür Diyalog Bulunamadı (Butonlar Win32 Penceresi Değil).");
+                return;
+            }
+
+            LogInfo("Görünür Diyaloglar:");
+            foreach (string s in satirlar) LogInfo("   " + s);
+        }
+
         // Acikca Iptal/Kapat benzeri bir buton adi mi?
         private static bool IsCancelName(string name)
         {
@@ -1315,8 +1657,7 @@ namespace Macria
 
             // Islem devam ettigi surece fiziksel girdi kilitli (Macria pencereleri haric)
             SetExporting(true);
-            InputGuard.Enable();
-            LogInfo("Girdi Kilidi Açık — İşlem Bitene Kadar Tıklamalar Engellenecek.");
+            LogInfo("İşlem Sürerken Fare ve Klavyeye Dokunmayın — Odak Kayarsa Export Bozulur.");
 
             int ok = 0;
             var failed = new List<string>();
@@ -1364,9 +1705,7 @@ namespace Macria
             }
             finally
             {
-                InputGuard.Disable();
                 SetExporting(false);
-                LogInfo("Girdi Kilidi Kapatıldı.");
             }
 
             if (ok > 0)
@@ -1411,6 +1750,11 @@ namespace Macria
                 }, IntPtr.Zero);
 
                 if (found != IntPtr.Zero) return found;
+
+                // Kaydet penceresi yerine bir onay kutusu cikmis olabilir
+                string onay = TryConfirmDialog();
+                if (onay != null)
+                    LogInfo("Onay Kutusu Yanıtlandı — Evet: " + onay);
 
                 await System.Threading.Tasks.Task.Delay(300);
                 waited += 300;

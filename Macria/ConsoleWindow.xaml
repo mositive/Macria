@@ -1,0 +1,121 @@
+<Window x:Class="Macria.ConsoleWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Macria — Konsol"
+        Icon="Assets/macria-logo.png"
+        Height="520" Width="820"
+        MinHeight="240" MinWidth="420"
+        Background="{StaticResource BgBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}"
+        FontFamily="{StaticResource AppFont}"
+        UseLayoutRounding="True"
+        WindowStartupLocation="CenterOwner">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="38"
+                      ResizeBorderThickness="6"
+                      GlassFrameThickness="0"
+                      CornerRadius="0"
+                      UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <Border Background="{StaticResource BgBrush}">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="Margin" Value="0"/>
+                <Setter Property="CornerRadius" Value="4"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}"
+                                 Value="Maximized">
+                        <Setter Property="Margin" Value="7"/>
+                        <Setter Property="CornerRadius" Value="0"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="38"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- ======== BASLIK CUBUGU ======== -->
+            <Grid Grid.Row="0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
+                    <Image Source="Assets/macria-logo.png" Width="18" Height="18"
+                           RenderOptions.BitmapScalingMode="HighQuality"
+                           VerticalAlignment="Center"/>
+                    <TextBlock Text="Konsol" FontSize="12" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               VerticalAlignment="Center" Margin="9,0,0,0"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                    <Button x:Name="btnClear" Style="{StaticResource WindowButton}"
+                            Content="&#xE74D;" FontSize="13" ToolTip="Konsolu Temizle"
+                            Click="btnClear_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True"/>
+                    <Button x:Name="btnMin" Style="{StaticResource WindowButton}"
+                            Content="&#xE921;" Click="btnMin_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True"/>
+                    <Button x:Name="btnMax" Click="btnMax_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource WindowButton}">
+                                <Setter Property="Content" Value="&#xE922;"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                 Value="Maximized">
+                                        <Setter Property="Content" Value="&#xE923;"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button x:Name="btnClose" Style="{StaticResource WindowCloseButton}"
+                            Content="&#xE8BB;" Click="btnClose_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- ======== KONSOL ======== -->
+            <Border Grid.Row="1" Margin="16,0,16,16"
+                    Background="{StaticResource ConsoleBgBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="4" ClipToBounds="True">
+                <Grid>
+                    <ScrollViewer x:Name="logScroll" VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled" Padding="12,8">
+                        <ItemsControl x:Name="logList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Text}" Foreground="{Binding Color}"
+                                               FontFamily="Cascadia Mono, Consolas" FontSize="12.5"
+                                               TextWrapping="Wrap" Margin="0,1"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- Bos durum -->
+                    <TextBlock Text="Konsol Boş" FontSize="13"
+                               Foreground="{StaticResource TextDisabledBrush}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               IsHitTestVisible="False">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Items.Count, ElementName=logList}" Value="0">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

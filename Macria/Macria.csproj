@@ -7,10 +7,22 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<UseWPF>true</UseWPF>
 		<PlatformTarget>x64</PlatformTarget>
+		<ApplicationIcon>Assets\macria.ico</ApplicationIcon>
+
+		<Product>Macria</Product>
+		<Version>1.0.2</Version>
+		<Company>BMC</Company>
+		<Authors>Enes Yeşilöz, Emre Koçak</Authors>
+		<Copyright> © Macria 2026 | Tüm hakları saklıdır. </Copyright>
+		<Description>CATIA / 3DEXPERIENCE montajlarındaki sac parçaları listeleyen ve DXF olarak dışa aktaran masaüstü uygulaması.</Description>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<Reference Include="Microsoft.VisualBasic" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Resource Include="Assets\macria-logo.png" />
 	</ItemGroup>
 
 </Project>
