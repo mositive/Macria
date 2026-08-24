@@ -1,4 +1,4 @@
-<Window x:Class="Macria.MainWindow"
+﻿<Window x:Class="Macria.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Macria"
@@ -40,8 +40,6 @@
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="38"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
@@ -49,19 +47,38 @@
             <!-- ======== BASLIK CUBUGU ======== -->
             <Grid Grid.Row="0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
-                            Margin="14,0,0,0">
+                            Margin="8,0,0,0">
+                    <!-- Ana menuye donus: yalnizca alt sayfalarda gorunur -->
+                    <Button x:Name="btnBack" Style="{StaticResource WindowButton}"
+                            Content="&#xE72B;" FontSize="14" ToolTip="Ana Menü"
+                            Visibility="Collapsed" Click="btnBack_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True"/>
                     <Image Source="Assets/macria-logo.png" Width="18" Height="18"
                            RenderOptions.BitmapScalingMode="HighQuality"
-                           VerticalAlignment="Center"/>
-                    <TextBlock Text="Macria" FontSize="12" FontWeight="SemiBold"
+                           VerticalAlignment="Center" Margin="6,0,0,0"/>
+                    <TextBlock x:Name="txtTitleBar" Text="Macria" FontSize="12" FontWeight="SemiBold"
                                Foreground="{StaticResource TextSecondaryBrush}"
                                VerticalAlignment="Center" Margin="9,0,0,0"/>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                    <!-- Rehber ve Ayarlar yalnizca Toplu DXF Export sayfasina ait -->
+                    <Button x:Name="btnTutorial" Style="{StaticResource WindowButton}"
+                            Content="&#xE897;" FontSize="14" ToolTip="Rehber"
+                            Visibility="Collapsed" Click="btnTutorial_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True"/>
+                    <Button x:Name="btnSettings" Style="{StaticResource WindowButton}"
+                            Content="&#xE713;" FontSize="14" ToolTip="Ayarlar"
+                            Visibility="Collapsed" Click="btnSettings_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True"/>
                     <Button x:Name="btnAbout" Style="{StaticResource WindowButton}"
                             Content="&#xE946;" FontSize="14" ToolTip="Hakkında"
                             Click="btnAbout_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True"/>
+                    <!-- Konsol her ekranda buradan acilip kapanir -->
+                    <Button x:Name="btnConsole" Style="{StaticResource WindowButton}"
+                            Content="&#xE756;" FontSize="14" ToolTip="Konsol"
+                            Click="btnConsole_Click"
                             WindowChrome.IsHitTestVisibleInChrome="True"/>
                     <Button x:Name="btnMin" Style="{StaticResource WindowButton}"
                             Content="&#xE921;" Click="btnMin_Click"
@@ -86,113 +103,749 @@
                 </StackPanel>
             </Grid>
 
-            <!-- ======== SAYFA BASLIGI ======== -->
-            <Grid Grid.Row="1" Margin="24,10,24,0">
-                <StackPanel>
-                    <TextBlock Text="Sac Parça Listesi" FontSize="20" FontWeight="SemiBold"
-                               FontFamily="{StaticResource AppFontDisplay}"/>
-                    <TextBlock Text="CATIA Montajındaki Sac Parçaları Tarayın ve DXF Olarak Dışa Aktarın"
-                               FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
-                               Margin="0,4,0,0"/>
+            <!-- ================================================================ -->
+            <!-- ANA MENU                                                          -->
+            <!-- ================================================================ -->
+            <Grid x:Name="menuView" Grid.Row="1">
+                <Grid.RenderTransform>
+                    <TranslateTransform x:Name="menuKaydir"/>
+                </Grid.RenderTransform>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Margin="40,24,40,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Macria" FontSize="42" FontWeight="Light"
+                                   FontFamily="{StaticResource AppFontDisplay}"/>
+                        <!-- Surum, baslik ile ayni taban cizgisine oturur -->
+                        <TextBlock x:Name="txtMenuSurum" Text="v1.0.0" FontSize="14"
+                                   FontFamily="{StaticResource AppFontDisplay}" FontWeight="Light"
+                                   VerticalAlignment="Bottom" Margin="9,0,0,9"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                    <TextBlock Text="Bir İşlem Seçin" FontSize="14"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Margin="0,2,0,0"/>
                 </StackPanel>
 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <CheckBox x:Name="chkOpenAfter" Content="Bitince Dosyayı Aç"
-                              VerticalAlignment="Center" Margin="0,0,16,0"/>
-                    <Button x:Name="btnScan" Style="{StaticResource PrimaryButton}"
-                            Click="btnScan_Click" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock x:Name="scanSpinner" Text="&#xE72C;"
-                                       FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                       VerticalAlignment="Center" Margin="0,0,8,0"
-                                       Visibility="Collapsed"
-                                       RenderTransformOrigin="0.5,0.5">
-                                <TextBlock.RenderTransform>
-                                    <RotateTransform x:Name="scanSpin"/>
-                                </TextBlock.RenderTransform>
-                            </TextBlock>
-                            <TextBlock x:Name="scanIcon" Text="&#xE721;"
-                                       FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                       VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock x:Name="scanText" Text="CATIA'yı Tara"/>
-                        </StackPanel>
-                    </Button>
-                    <Button x:Name="btnExportAll" Style="{StaticResource SuccessButton}"
-                            Click="btnExportAll_Click" VerticalAlignment="Center"
-                            Margin="10,0,0,0">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Tümünü DXF Olarak Dışarı Aktar"
-                                       VerticalAlignment="Center"/>
-                            <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                                       VerticalAlignment="Center" Margin="9,0,0,0"/>
-                        </StackPanel>
-                    </Button>
-                </StackPanel>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                              Margin="40,26,30,20">
+                    <WrapPanel>
+
+                        <!-- Toplu DXF Export -->
+                        <Button x:Name="tileExport" Style="{StaticResource MetroTile}"
+                                Width="310" Height="150"
+                                Background="{StaticResource AccentBrush}"
+                                Click="tileExport_Click">
+                            <Grid>
+                                <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="34" VerticalAlignment="Top"
+                                           Foreground="{StaticResource TileTextBrush}"/>
+                                <StackPanel VerticalAlignment="Bottom">
+                                    <TextBlock Text="Toplu DXF Export" FontSize="17"
+                                               FontFamily="{StaticResource AppFontDisplay}"
+                                               Foreground="{StaticResource TileTextBrush}"/>
+                                    <TextBlock Text="Montajdaki Sac Parçaları Tara ve Dışa Aktar"
+                                               FontSize="12" TextWrapping="Wrap"
+                                               Foreground="{StaticResource TileSubTextBrush}"
+                                               Margin="0,3,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <!-- Agirlik ve Maliyet -->
+                        <Button x:Name="tileCost" Style="{StaticResource MetroTile}"
+                                Width="310" Height="150"
+                                Background="{StaticResource TileTealBrush}"
+                                Click="tileCost_Click">
+                            <Grid>
+                                <TextBlock Text="&#xE8EF;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="34" VerticalAlignment="Top"
+                                           Foreground="{StaticResource TileTextBrush}"/>
+                                <StackPanel VerticalAlignment="Bottom">
+                                    <TextBlock Text="Ağırlık ve Maliyet" FontSize="17"
+                                               FontFamily="{StaticResource AppFontDisplay}"
+                                               Foreground="{StaticResource TileTextBrush}"/>
+                                    <TextBlock Text="Sac Parçaların Ağırlığını ve Maliyetini Hesapla"
+                                               FontSize="12" TextWrapping="Wrap"
+                                               Foreground="{StaticResource TileSubTextBrush}"
+                                               Margin="0,3,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <!-- Hakkinda -->
+                        <Button x:Name="tileAbout" Style="{StaticResource MetroTile}"
+                                Width="150" Height="150"
+                                Background="{StaticResource TileNeutralBrush}"
+                                Click="btnAbout_Click">
+                            <Grid>
+                                <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="30" VerticalAlignment="Top"
+                                           Foreground="{StaticResource TileTextBrush}"/>
+                                <TextBlock Text="Hakkında" FontSize="15"
+                                           FontFamily="{StaticResource AppFontDisplay}"
+                                           VerticalAlignment="Bottom"
+                                           Foreground="{StaticResource TileTextBrush}"/>
+                            </Grid>
+                        </Button>
+
+                    </WrapPanel>
+                </ScrollViewer>
             </Grid>
 
-            <!-- ======== ARAMA ======== -->
-            <TextBox Grid.Row="2" x:Name="txtSearch" Style="{StaticResource SearchBox}"
-                     Width="280" Height="34" HorizontalAlignment="Left"
-                     Margin="24,16,24,10" TextChanged="txtSearch_TextChanged"/>
+            <!-- ================================================================ -->
+            <!-- TOPLU DXF EXPORT                                                  -->
+            <!-- ================================================================ -->
+            <Grid x:Name="exportView" Grid.Row="1" Visibility="Collapsed">
+                <Grid.RenderTransform>
+                    <TranslateTransform x:Name="exportKaydir"/>
+                </Grid.RenderTransform>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-            <!-- ======== PARCA LISTESI ======== -->
-            <Border Grid.Row="3" Margin="24,0,24,0"
-                    Background="{StaticResource CardBrush}"
-                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-                    CornerRadius="6" ClipToBounds="True">
-                <Grid>
-                    <DataGrid x:Name="grid"
-                              AutoGenerateColumns="False"
-                              IsReadOnly="True"
-                              GridLinesVisibility="All"
-                              HeadersVisibility="Column"
-                              PreviewMouseRightButtonDown="grid_PreviewMouseRightButtonDown">
-                        <DataGrid.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="DXF Olarak Dışa Aktar" Click="mnuExportDxf_Click"/>
-                            </ContextMenu>
-                        </DataGrid.ContextMenu>
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Ürün Adı"
-                                                Binding="{Binding ProductName}" Width="2*"/>
-                            <DataGridTextColumn Header="Parça Adı"
-                                                Binding="{Binding PartName}" Width="3*"/>
-                            <DataGridTextColumn Header="Kalınlık (mm)"
-                                                Binding="{Binding Thickness}" Width="130"/>
-                            <DataGridTextColumn Header="Adet"
-                                                Binding="{Binding Quantity}" Width="90"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
+                <!-- ======== SAYFA BASLIGI ======== -->
+                <Grid Grid.Row="0" Margin="24,10,24,0">
+                    <StackPanel>
+                        <TextBlock Text="Toplu DXF Export" FontSize="20" FontWeight="SemiBold"
+                                   FontFamily="{StaticResource AppFontDisplay}"/>
+                        <TextBlock Text="CATIA Montajındaki Sac Parçaları Tarayın ve DXF Olarak Dışa Aktarın"
+                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="0,4,0,0"/>
+                    </StackPanel>
 
-                    <!-- Bos durum -->
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
-                                IsHitTestVisible="False">
-                        <StackPanel.Style>
-                            <Style TargetType="StackPanel">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Items.Count, ElementName=grid}" Value="0">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </StackPanel.Style>
-                        <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets" FontSize="30"
-                                   Foreground="{StaticResource TextDisabledBrush}"
-                                   HorizontalAlignment="Center" Margin="0,0,0,12"/>
-                        <TextBlock Text="Liste Boş" FontSize="14"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                   HorizontalAlignment="Center"/>
-                        <TextBlock Text="Sac Parçalarını Listelemek İçin CATIA'yı Tara'ya Basın"
-                                   FontSize="13" Foreground="{StaticResource TextDisabledBrush}"
-                                   HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <CheckBox x:Name="chkOpenAfter" Content="Bitince Dosyayı Aç"
+                                  VerticalAlignment="Center" Margin="0,0,16,0"/>
+
+                        <!-- DXF onizleme panelini ac/kapat -->
+                        <Button x:Name="btnOnizleme" Style="{StaticResource SecondaryButton}"
+                                Width="34" Height="30" Padding="0" Margin="0,0,10,0"
+                                VerticalAlignment="Center"
+                                ToolTip="DXF Önizleme Panelini Aç / Kapat"
+                                Click="btnOnizleme_Click">
+                            <Grid Width="15" Height="12">
+                                <Border BorderBrush="{StaticResource TextPrimaryBrush}"
+                                        BorderThickness="1" CornerRadius="1"/>
+                                <Border Width="5" HorizontalAlignment="Right" Margin="0,2,2,2"
+                                        Background="{StaticResource TextPrimaryBrush}"/>
+                            </Grid>
+                        </Button>
+                        <Button x:Name="btnScan" Style="{StaticResource PrimaryButton}"
+                                Click="btnScan_Click" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="scanSpinner" Text="&#xE72C;"
+                                           FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                           VerticalAlignment="Center" Margin="0,0,8,0"
+                                           Visibility="Collapsed"
+                                           RenderTransformOrigin="0.5,0.5">
+                                    <TextBlock.RenderTransform>
+                                        <RotateTransform x:Name="scanSpin"/>
+                                    </TextBlock.RenderTransform>
+                                </TextBlock>
+                                <TextBlock x:Name="scanIcon" Text="&#xE721;"
+                                           FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                           VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock x:Name="scanText" Text="CATIA'yı Tara"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="btnExportAll" Style="{StaticResource SuccessButton}"
+                                Click="btnExportAll_Click" VerticalAlignment="Center"
+                                Margin="10,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Tümünü DXF Olarak Dışarı Aktar"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                           VerticalAlignment="Center" Margin="9,0,0,0"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </Grid>
-            </Border>
 
-            <!-- ======== ALT SERIT ======== -->
-            <!-- ======== KONSOL ======== -->
-            <Border Grid.Row="4" Height="150" Margin="24,10,24,16"
+                <!-- ======== ARAMA ======== -->
+                <TextBox Grid.Row="1" x:Name="txtSearch" Style="{StaticResource SearchBox}"
+                         Width="280" Height="34" HorizontalAlignment="Left"
+                         Margin="24,16,24,10" TextChanged="txtSearch_TextChanged"/>
+
+                <!-- ======== PARCA LISTESI + DXF ONIZLEME ======== -->
+                <Grid Grid.Row="2" Margin="24,0,24,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0"
+                            Background="{StaticResource CardBrush}"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                            CornerRadius="6" ClipToBounds="True">
+                        <Grid>
+                            <DataGrid x:Name="grid"
+                                      AutoGenerateColumns="False"
+                                      IsReadOnly="True"
+                                      GridLinesVisibility="All"
+                                      HeadersVisibility="Column"
+                                      PreviewMouseRightButtonDown="grid_PreviewMouseRightButtonDown"
+                                      SelectionChanged="grid_SelectionChanged">
+                                <DataGrid.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="DXF Olarak Dışa Aktar" Click="mnuExportDxf_Click"/>
+                                    </ContextMenu>
+                                </DataGrid.ContextMenu>
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Ürün Adı"
+                                                        Binding="{Binding ProductName}" Width="2*"/>
+                                    <DataGridTextColumn Header="Parça Adı"
+                                                        Binding="{Binding PartName}" Width="3*"/>
+                                    <DataGridTextColumn Header="Kalınlık (mm)"
+                                                        Binding="{Binding Thickness}" Width="130"/>
+                                    <DataGridTextColumn Header="Adet"
+                                                        Binding="{Binding Quantity}" Width="90"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <!-- Bos durum -->
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                                        IsHitTestVisible="False">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Items.Count, ElementName=grid}" Value="0">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                                <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets" FontSize="30"
+                                           Foreground="{StaticResource TextDisabledBrush}"
+                                           HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                                <TextBlock Text="Liste Boş" FontSize="14"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="Sac Parçalarını Listelemek İçin CATIA'yı Tara'ya Basın"
+                                           FontSize="13" Foreground="{StaticResource TextDisabledBrush}"
+                                           HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- ======== DXF ONIZLEME ======== -->
+                    <Border x:Name="onizlemePanel" Grid.Column="1" Width="330" Margin="12,0,0,0"
+                            Background="{StaticResource CardBrush}"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                            CornerRadius="6">
+                        <Grid Margin="14,12,14,12">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                                <TextBlock Text="DXF Önizleme" FontSize="13" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="txtOnizlemeParca" FontSize="11.5"
+                                           Foreground="{StaticResource TextDisabledBrush}"
+                                           TextTrimming="CharacterEllipsis"
+                                           Text="Listeden Bir Parça Seçin" Margin="0,2,0,0"/>
+                            </StackPanel>
+
+                            <!-- Cizim alani: acinim en-boy oranini koruyarak sigar -->
+                            <Border Grid.Row="1" CornerRadius="4" Padding="14"
+                                    Background="{StaticResource BgBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                    ClipToBounds="True">
+                                <Grid>
+                                    <Path x:Name="onizlemeCizim" Stretch="Uniform"
+                                          Stroke="{StaticResource TextPrimaryBrush}"
+                                          StrokeThickness="1"
+                                          StrokeLineJoin="Round"
+                                          Visibility="Collapsed"/>
+
+                                    <TextBlock x:Name="txtOnizlemeMesaj" FontSize="12"
+                                               TextWrapping="Wrap" TextAlignment="Center"
+                                               Foreground="{StaticResource TextDisabledBrush}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Text="Önizlemek için listeden bir satır seçin."/>
+                                </Grid>
+                            </Border>
+
+                            <StackPanel Grid.Row="2" Margin="0,10,0,0">
+                                <TextBlock x:Name="txtOnizlemeOlcu" FontSize="12"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <TextBlock x:Name="txtOnizlemeDosya" FontSize="11"
+                                           Foreground="{StaticResource TextDisabledBrush}"
+                                           TextTrimming="CharacterEllipsis" Margin="0,3,0,0"/>
+                            </StackPanel>
+
+                            <Grid Grid.Row="3" Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Button Grid.Column="0" x:Name="btnOnizlemeKlasor"
+                                        Style="{StaticResource SecondaryButton}"
+                                        Content="Klasör Seç" Height="30" Padding="0"
+                                        ToolTip="DXF Dosyalarının Aranacağı Klasörü Seçin"
+                                        Click="btnOnizlemeKlasor_Click"/>
+
+                                <Button Grid.Column="2" x:Name="btnOnizlemeAc"
+                                        Style="{StaticResource SecondaryButton}"
+                                        Content="Dosyayı Aç" Height="30" Padding="0"
+                                        IsEnabled="False"
+                                        Click="btnOnizlemeAc_Click"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <!-- ================================================================ -->
+            <!-- AGIRLIK VE MALIYET                                                -->
+            <!-- ================================================================ -->
+            <Grid x:Name="costView" Grid.Row="1" Visibility="Collapsed">
+                <Grid.RenderTransform>
+                    <TranslateTransform x:Name="costKaydir"/>
+                </Grid.RenderTransform>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- ======== SAYFA BASLIGI ======== -->
+                <Grid Grid.Row="0" Margin="24,10,24,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0">
+                        <TextBlock Text="Ağırlık ve Maliyet" FontSize="20" FontWeight="SemiBold"
+                                   FontFamily="{StaticResource AppFontDisplay}"/>
+                        <TextBlock Text="Parçaların Hacmi ve Yüzeyi CATIA'dan Ölçülür, Ağırlık ve Kesim Maliyeti Hesaplanır"
+                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
+                                   TextTrimming="CharacterEllipsis"
+                                   Margin="0,4,0,0"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal"
+                                HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Button x:Name="btnTabloAyarlari" Style="{StaticResource SecondaryButton}"
+                                VerticalAlignment="Center"
+                                ToolTip="Sütunları Düzenle, Kendi Sütununu Ekle"
+                                Click="btnTabloAyarlari_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE71D;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="12" VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Text="Tablo Ayarları" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Isi haritasi: acikken dugme dolu gorunur -->
+                        <Button x:Name="btnIsiHaritasi" Style="{StaticResource SecondaryButton}"
+                                Width="34" Height="30" Padding="0" Margin="8,0,0,0"
+                                VerticalAlignment="Center"
+                                ToolTip="Isı Haritası — Hücreleri Sütun İçindeki Değerine Göre Tonla"
+                                Click="btnIsiHaritasi_Click">
+                            <Border Width="15" Height="15" CornerRadius="2"
+                                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,1" EndPoint="1,0">
+                                        <GradientStop Color="#3A3A36" Offset="0"/>
+                                        <GradientStop Color="#B8873F" Offset="0.55"/>
+                                        <GradientStop Color="#B44638" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                            </Border>
+                        </Button>
+
+                        <Button x:Name="btnGrafikler" Style="{StaticResource SecondaryButton}"
+                                VerticalAlignment="Center" Margin="8,0,0,0"
+                                ToolTip="Ağırlık ve Maliyet Dağılımını Grafiklerle Gör"
+                                Click="btnGrafikler_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <!-- Cubuk grafik simgesi: yazi tipine bagli kalmasin diye cizili -->
+                                <Path Data="M0,7 H3 V12 H0 Z M4.5,3 H7.5 V12 H4.5 Z M9,5.5 H12 V12 H9 Z"
+                                      Fill="{StaticResource TextPrimaryBrush}"
+                                      VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="Grafikler" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="btnCostClear" Style="{StaticResource SecondaryButton}"
+                                Content="Tabloyu Temizle" VerticalAlignment="Center"
+                                Margin="8,0,0,0"
+                                Click="btnCostClear_Click"/>
+
+                        <Button x:Name="btnCostExport" Style="{StaticResource SecondaryButton}"
+                                VerticalAlignment="Center" Margin="8,0,0,0"
+                                ToolTip="Hesaplanmış Tabloyu Excel veya PDF Olarak Kaydet"
+                                Click="btnCostExport_Click">
+                            <Button.ContextMenu>
+                                <ContextMenu x:Name="mnuCostExport">
+                                    <MenuItem Click="mnuExcelAktar_Click">
+                                        <MenuItem.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Border Width="28" Height="16" CornerRadius="2"
+                                                        Background="#1D6F42">
+                                                    <TextBlock Text="XLSX" FontSize="8"
+                                                               FontWeight="Bold" Foreground="#FFFFFF"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"/>
+                                                </Border>
+                                                <TextBlock Text="Excel Çalışma Kitabı (.xlsx)"
+                                                           VerticalAlignment="Center"
+                                                           Margin="10,0,0,0"/>
+                                            </StackPanel>
+                                        </MenuItem.Header>
+                                    </MenuItem>
+                                    <MenuItem Click="mnuPdfAktar_Click">
+                                        <MenuItem.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Border Width="28" Height="16" CornerRadius="2"
+                                                        Background="#B0322A">
+                                                    <TextBlock Text="PDF" FontSize="8"
+                                                               FontWeight="Bold" Foreground="#FFFFFF"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"/>
+                                                </Border>
+                                                <TextBlock Text="PDF Belgesi (.pdf)"
+                                                           VerticalAlignment="Center"
+                                                           Margin="10,0,0,0"/>
+                                            </StackPanel>
+                                        </MenuItem.Header>
+                                    </MenuItem>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="12" VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Text="Dışarı Aktar" VerticalAlignment="Center"/>
+                                <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="9" VerticalAlignment="Center"
+                                           Margin="8,1,0,0"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="btnCostScan" Style="{StaticResource PrimaryButton}"
+                                Click="btnCostScan_Click" VerticalAlignment="Center"
+                                Margin="8,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                           VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="CATIA'yı Tara ve Hesapla" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <!-- ======== PARAMETRELER ======== -->
+                <Border Grid.Row="1" Margin="24,16,24,10" Padding="14"
+                        Background="{StaticResource CardBrush}"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                        CornerRadius="4">
+                  <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <TextBlock Text="&#xE9F5;" FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Text="Hesap Parametreleri" FontSize="11.5" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2.2*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Malzeme" FontSize="12"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Margin="0,0,0,5"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <ComboBox Grid.Column="0" x:Name="cmbMalzeme"
+                                          Style="{StaticResource AppCombo}"
+                                          SelectionChanged="cmbMalzeme_SelectionChanged"/>
+
+                                <Button Grid.Column="1" x:Name="btnMalzemeEkle"
+                                        Style="{StaticResource SecondaryButton}"
+                                        Content="&#xE710;" FontFamily="Segoe MDL2 Assets"
+                                        FontSize="12" Width="30" Height="30" Padding="0"
+                                        Margin="6,0,0,0" ToolTip="Özel Malzeme Ekle"
+                                        Click="btnMalzemeEkle_Click"/>
+
+                                <Button Grid.Column="2" x:Name="btnMalzemeSil"
+                                        Style="{StaticResource SecondaryButton}"
+                                        Content="&#xE74D;" FontFamily="Segoe MDL2 Assets"
+                                        FontSize="12" Width="30" Height="30" Padding="0"
+                                        Margin="6,0,0,0" ToolTip="Özel Malzemeyi Sil"
+                                        IsEnabled="False" Click="btnMalzemeSil_Click"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Yoğunluk (g/cm³)" FontSize="12"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Margin="0,0,0,5"/>
+                            <TextBox x:Name="txtYogunluk" Style="{StaticResource FieldBox}"
+                                     PreviewTextInput="SadeceOndalik"
+                                     LostFocus="ParametreDegisti"
+                                     TextChanged="ParametreDegisti"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="4">
+                            <TextBlock x:Name="lblKgFiyat" Text="Malzeme Fiyatı (/kg)" FontSize="12"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Margin="0,0,0,5"/>
+                            <TextBox x:Name="txtKgFiyat" Style="{StaticResource FieldBox}"
+                                     PreviewTextInput="SadeceOndalik"
+                                     LostFocus="ParametreDegisti"
+                                     TextChanged="ParametreDegisti"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="6">
+                            <TextBlock x:Name="lblKesimFiyat" Text="Kesim Fiyatı (/m)" FontSize="12"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Margin="0,0,0,5"/>
+                            <TextBox x:Name="txtKesimFiyat" Style="{StaticResource FieldBox}"
+                                     PreviewTextInput="SadeceOndalik"
+                                     LostFocus="ParametreDegisti"
+                                     TextChanged="ParametreDegisti"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="8">
+                            <TextBlock Text="Para Birimi" FontSize="12"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Margin="0,0,0,5"/>
+                            <ComboBox x:Name="cmbParaBirimi" Style="{StaticResource AppCombo}"
+                                      SelectionChanged="cmbParaBirimi_SelectionChanged">
+                                <ComboBoxItem Content="TL (₺)" Tag="₺"/>
+                                <ComboBoxItem Content="Euro (€)" Tag="€"/>
+                                <ComboBoxItem Content="Dolar ($)" Tag="$"/>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <Button Grid.Column="10" x:Name="btnYenidenHesapla"
+                                Style="{StaticResource PrimaryButton}"
+                                Height="30" Padding="14,0" VerticalAlignment="Bottom"
+                                ToolTip="Tabloyu Güncel Değerlerle Yeniden Hesapla"
+                                Click="btnYenidenHesapla_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="12" VerticalAlignment="Center"
+                                           Margin="0,0,7,0"/>
+                                <TextBlock Text="Hesapla" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <!-- Doviz kurlari -->
+                    <Border Background="{StaticResource KpiBlueBgBrush}"
+                            BorderBrush="{StaticResource KpiBlueBorderBrush}" BorderThickness="1"
+                            CornerRadius="3" Padding="10,7" Margin="0,12,0,0">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="&#xE1D3;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="12" VerticalAlignment="Center"
+                                           Foreground="{StaticResource LogInfoBrush}"
+                                           Margin="0,0,9,0"/>
+                                <TextBlock x:Name="txtKurlar" FontSize="12"
+                                           VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                                        VerticalAlignment="Center">
+                                <TextBlock x:Name="txtKurKaynak" FontSize="11.5"
+                                           VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextDisabledBrush}"/>
+                                <Button x:Name="btnKurYenile" Style="{StaticResource SecondaryButton}"
+                                        Content="&#xE72C;" FontFamily="Segoe MDL2 Assets"
+                                        FontSize="11" Width="26" Height="26" Padding="0"
+                                        Margin="10,0,0,0" ToolTip="Kurları Yenile"
+                                        Click="btnKurYenile_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                  </StackPanel>
+                </Border>
+
+                <!-- ======== MALIYET TABLOSU ======== -->
+                <Border Grid.Row="2" Margin="24,0,24,0"
+                        Background="{StaticResource CardBrush}"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                        CornerRadius="6" ClipToBounds="True">
+                    <Grid>
+                        <DataGrid x:Name="costGrid"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  GridLinesVisibility="All"
+                                  HeadersVisibility="Column"
+                                  AlternationCount="2"
+                                  RowStyle="{StaticResource ZebraRow}">
+                            <!-- Sutunlar Tablo Ayarlari yapilandirmasindan uretilir -->
+                        </DataGrid>
+
+                        <!-- Bos durum -->
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    IsHitTestVisible="False">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Items.Count, ElementName=costGrid}" Value="0">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <TextBlock Text="&#xE8EF;" FontFamily="Segoe MDL2 Assets" FontSize="30"
+                                       Foreground="{StaticResource TextDisabledBrush}"
+                                       HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                            <TextBlock Text="Tablo Boş" FontSize="14"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock Text="Hesaplamak İçin CATIA'yı Tara ve Hesapla'ya Basın"
+                                       FontSize="13" Foreground="{StaticResource TextDisabledBrush}"
+                                       HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- ======== OZET KARTLARI ======== -->
+                <Grid Grid.Row="3" Margin="24,12,24,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Padding="14,10,14,11" CornerRadius="4"
+                            Background="{StaticResource KpiNeutralBgBrush}"
+                            BorderBrush="{StaticResource KpiNeutralBorderBrush}"
+                            BorderThickness="1">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE9D5;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="11" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextDisabledBrush}"
+                                           Margin="0,0,7,0"/>
+                                <TextBlock Text="Ölçülen Parça" FontSize="11"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock x:Name="txtOzetSatir" Text="0 / 0" FontSize="19"
+                                       FontFamily="{StaticResource AppFontDisplay}"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       Margin="0,3,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="2" Padding="14,10,14,11" CornerRadius="4"
+                            Background="{StaticResource KpiBlueBgBrush}"
+                            BorderBrush="{StaticResource KpiBlueBorderBrush}"
+                            BorderThickness="1">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE7C1;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="11" VerticalAlignment="Center"
+                                           Foreground="{StaticResource LogInfoBrush}"
+                                           Margin="0,0,7,0"/>
+                                <TextBlock Text="Toplam Ağırlık" FontSize="11"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock x:Name="txtOzetAgirlik" Text="0,00 kg" FontSize="19"
+                                       FontFamily="{StaticResource AppFontDisplay}"
+                                       Foreground="{StaticResource LogInfoBrush}"
+                                       Margin="0,3,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="4" Padding="14,10,14,11" CornerRadius="4"
+                            Background="{StaticResource KpiGreenBgBrush}"
+                            BorderBrush="{StaticResource KpiGreenBorderBrush}"
+                            BorderThickness="1">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="11" VerticalAlignment="Center"
+                                           Foreground="{StaticResource LogSuccessBrush}"
+                                           Margin="0,0,7,0"/>
+                                <TextBlock Text="Toplam Kesim" FontSize="11"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock x:Name="txtOzetKesim" Text="0,0 m" FontSize="19"
+                                       FontFamily="{StaticResource AppFontDisplay}"
+                                       Foreground="{StaticResource LogSuccessBrush}"
+                                       Margin="0,3,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="6" Padding="14,10,14,11" CornerRadius="4"
+                            Background="{StaticResource KpiWarmBgBrush}"
+                            BorderBrush="{StaticResource KpiWarmBorderBrush}"
+                            BorderThickness="1">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE1D3;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="11" VerticalAlignment="Center"
+                                           Foreground="{StaticResource WarnTextBrush}"
+                                           Margin="0,0,7,0"/>
+                                <TextBlock Text="Toplam Maliyet" FontSize="11"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock x:Name="txtOzetMaliyet" Text="0,00" FontSize="19"
+                                       FontWeight="SemiBold"
+                                       FontFamily="{StaticResource AppFontDisplay}"
+                                       Foreground="{StaticResource WarnTextBrush}"
+                                       Margin="0,3,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <!-- ================================================================ -->
+            <!-- KONSOL — iki sayfa da ayni kaydi kullanir                          -->
+            <!-- ================================================================ -->
+            <!-- Konsol kapaliyken sayfanin alti pencereye yapismasin -->
+            <Border x:Name="konsolBosluk" Grid.Row="2" Height="16" Visibility="Collapsed"/>
+
+            <Border x:Name="consoleHost" Grid.Row="2" Height="150" Margin="24,10,24,16"
+                    Visibility="Collapsed"
                     Background="{StaticResource ConsoleBgBrush}"
                     BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                     CornerRadius="4" ClipToBounds="True">

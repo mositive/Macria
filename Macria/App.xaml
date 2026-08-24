@@ -33,6 +33,162 @@
         <SolidColorBrush x:Key="LogSuccessBrush" Color="#4CC38A"/>
         <SolidColorBrush x:Key="LogErrorBrush" Color="#F05B50"/>
 
+
+        <!-- Ana menu kutucuklari (Windows 8 tarzi) -->
+        <SolidColorBrush x:Key="TileTextBrush" Color="#F4F2EB"/>
+        <SolidColorBrush x:Key="TileSubTextBrush" Color="#C9C7BF"/>
+        <SolidColorBrush x:Key="TileNeutralBrush" Color="#3B3B38"/>
+        <SolidColorBrush x:Key="TileNeutralAltBrush" Color="#4A4944"/>
+        <SolidColorBrush x:Key="TileTealBrush" Color="#2F6E6A"/>
+
+        <!-- Ozet kartlari (Agirlik ve Maliyet) -->
+        <SolidColorBrush x:Key="KpiNeutralBgBrush" Color="#2F2F2C"/>
+        <SolidColorBrush x:Key="KpiNeutralBorderBrush" Color="#3D3D39"/>
+        <SolidColorBrush x:Key="KpiBlueBgBrush" Color="#212B3A"/>
+        <SolidColorBrush x:Key="KpiBlueBorderBrush" Color="#2E3D52"/>
+        <SolidColorBrush x:Key="KpiGreenBgBrush" Color="#1D2B25"/>
+        <SolidColorBrush x:Key="KpiGreenBorderBrush" Color="#2A3D34"/>
+        <SolidColorBrush x:Key="KpiWarmBgBrush" Color="#2F2820"/>
+        <SolidColorBrush x:Key="KpiWarmBorderBrush" Color="#42382C"/>
+        <SolidColorBrush x:Key="WarnTextBrush" Color="#E0A458"/>
+
+        <!-- ======== ACILIR LISTE ======== -->
+        <Style x:Key="ComboItem" TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="bd" Background="Transparent" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="bd" Property="Background"
+                                        Value="{StaticResource SurfaceHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="bd" Property="Background"
+                                        Value="{StaticResource RowSelectedBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="AppCombo" TargetType="ComboBox">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="ItemContainerStyle" Value="{StaticResource ComboItem}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="tb" Focusable="False" ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay,
+                                                      RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="bd" Background="{StaticResource SurfaceBrush}"
+                                                BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="1" CornerRadius="4">
+                                            <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                                       FontSize="10" HorizontalAlignment="Right"
+                                                       VerticalAlignment="Center" Margin="0,0,10,0"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="bd" Property="Background"
+                                                        Value="{StaticResource SurfaceHoverBrush}"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+
+                            <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              Margin="10,0,28,0" VerticalAlignment="Center"
+                                              IsHitTestVisible="False"/>
+
+                            <Popup x:Name="PART_Popup" Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True" Focusable="False"
+                                   PopupAnimation="Fade">
+                                <Border Background="{StaticResource CardBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1" CornerRadius="4"
+                                        MinWidth="{TemplateBinding ActualWidth}"
+                                        MaxHeight="260" Margin="0,2,0,0" SnapsToDevicePixels="True">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="tb" Property="Opacity" Value="1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ======== METRO KUTUCUK ======== -->
+        <!-- Duz renk, keskine yakin kose, basinca hafif kuculme.
+             Golge ya da parlama yok. -->
+        <Style x:Key="MetroTile" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TileTextBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,0,10,10"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                    CornerRadius="2" SnapsToDevicePixels="True">
+                                <ContentPresenter Margin="16"
+                                                  HorizontalAlignment="Stretch"
+                                                  VerticalAlignment="Stretch"/>
+                            </Border>
+                            <Border x:Name="ov" Background="#FFFFFF" Opacity="0"
+                                    CornerRadius="2" IsHitTestVisible="False"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ov" Property="Opacity" Value="0.07"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="ov" Property="Opacity" Value="0.07"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ov" Property="Opacity" Value="0.15"/>
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.96" ScaleY="0.96"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <!-- ======== BIRINCIL BUTON ======== -->
         <Style x:Key="PrimaryButton" TargetType="Button">
             <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
@@ -161,6 +317,38 @@
         </Style>
 
         <!-- ======== ARAMA KUTUSU ======== -->
+        <!-- Ayarlar penceresindeki sade giris kutusu -->
+        <Style x:Key="FieldBox" TargetType="TextBox">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="CaretBrush" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="SelectionBrush" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                                CornerRadius="4">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="9,0"
+                                          VerticalAlignment="Center"
+                                          Background="Transparent" BorderThickness="0"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush"
+                                        Value="{StaticResource AccentBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="SearchBox" TargetType="TextBox">
             <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
             <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
@@ -445,7 +633,7 @@
             <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="Padding" Value="16,0"/>
+            <Setter Property="Padding" Value="10,4"/>
             <Setter Property="BorderBrush" Value="{StaticResource GridLineBrush}"/>
             <Setter Property="BorderThickness" Value="0,0,1,1"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
@@ -457,14 +645,21 @@
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
                                     Padding="{TemplateBinding Padding}">
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <ContentPresenter VerticalAlignment="Center"
+                                <!-- Grid kullaniliyor: yatay StackPanel icinde basliklar
+                                     sinirsiz genislik gordugu icin sarilamiyor, kirpiliyordu -->
+                                <Grid VerticalAlignment="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ContentPresenter Grid.Column="0" VerticalAlignment="Center"
+                                                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                                       RecognizesAccessKey="True"/>
-                                    <Path x:Name="sortArrow" Visibility="Collapsed"
+                                    <Path x:Name="sortArrow" Grid.Column="1" Visibility="Collapsed"
                                           Data="M 0,0 L 7,0 L 3.5,4.5 Z"
                                           Fill="{StaticResource TextSecondaryBrush}"
                                           Margin="6,1,0,0" VerticalAlignment="Center"/>
-                                </StackPanel>
+                                </Grid>
                             </Border>
                             <!-- Kolon genisligi surukleme tutamaclari -->
                             <Thumb x:Name="PART_LeftHeaderGripper" HorizontalAlignment="Left"
@@ -501,6 +696,72 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <!-- Durum hucresi: basarili yesil, hatali kirmizi noktayla gosterilir -->
+        <DataTemplate x:Key="DurumHucre">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Ellipse Width="6" Height="6" Margin="0,0,7,0" VerticalAlignment="Center">
+                    <Ellipse.Style>
+                        <Style TargetType="Ellipse">
+                            <Setter Property="Fill" Value="{StaticResource LogErrorBrush}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Durum}" Value="Ölçüldü">
+                                    <Setter Property="Fill" Value="{StaticResource LogSuccessBrush}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Durum}" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Ellipse.Style>
+                </Ellipse>
+                <TextBlock Text="{Binding Durum}" VerticalAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{StaticResource LogErrorBrush}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Durum}" Value="Ölçüldü">
+                                    <Setter Property="Foreground" Value="{StaticResource LogSuccessBrush}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- Sayi sutunlari saga yaslanir; toplam sutunu vurgulu yazilir -->
+        <Style x:Key="SayiHucre" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+        </Style>
+
+        <Style x:Key="VurguHucre" TargetType="TextBlock" BasedOn="{StaticResource SayiHucre}">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource WarnTextBrush}"/>
+        </Style>
+
+        <Style x:Key="SayiBaslik" TargetType="DataGridColumnHeader"
+               BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+            <Setter Property="HorizontalContentAlignment" Value="Right"/>
+        </Style>
+
+        <!-- Tek satirlari hafif koyu: uzun tabloda satir takibi kolaylasir.
+             Tetikleyici sirasi onemli, fare/secim vurgusu en sonda kalmali. -->
+        <Style x:Key="ZebraRow" TargetType="DataGridRow">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Style.Triggers>
+                <Trigger Property="AlternationIndex" Value="1">
+                    <Setter Property="Background" Value="{StaticResource CardBrush}"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource RowSelectedBrush}"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
 
         <Style TargetType="DataGridRow">

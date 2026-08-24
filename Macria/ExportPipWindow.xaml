@@ -27,7 +27,7 @@
             <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
                 <TextBlock FontSize="12" Foreground="{StaticResource TextPrimaryBrush}">
                     <Run Text="Macria" FontWeight="Bold"/>
-                    <Run x:Name="pipTitleText" Text=" · DXF Export Sürüyor" FontWeight="SemiBold"/>
+                    <Run x:Name="pipTitleText" Text=" · Başlatılıyor..." FontWeight="SemiBold"/>
                 </TextBlock>
                 <TextBlock x:Name="pipDetail" Text="" FontSize="11"
                            Foreground="{StaticResource TextSecondaryBrush}"

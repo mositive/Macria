@@ -55,6 +55,9 @@ namespace Macria
 
         public enum PipState { Starting, Running, Error, Stopped, Done }
 
+        // Basliktaki is adi; export akisi "DXF Export", olcum akisi "Hesaplama"
+        public string GorevAdi { get; set; } = "DXF Export";
+
         public void SetDetail(string text)
         {
             pipDetail.Text = text;
@@ -86,10 +89,10 @@ namespace Macria
             switch (state)
             {
                 case PipState.Starting:
-                    pipTitleText.Text = " · Başlatılıyor...";
+                    pipTitleText.Text = " · " + GorevAdi + " Başlatılıyor...";
                     break;
                 case PipState.Running:
-                    pipTitleText.Text = " · DXF Export Sürüyor";
+                    pipTitleText.Text = " · " + GorevAdi + " Sürüyor";
                     break;
                 case PipState.Error:
                     pipTitleText.Text = " · Hata Oluştu";

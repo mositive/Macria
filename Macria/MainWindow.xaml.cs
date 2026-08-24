@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Automation;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 
 namespace Macria
 {
@@ -17,6 +18,9 @@ namespace Macria
         public string PartName { get; set; } = "";
         public double Thickness { get; set; }
         public int Quantity { get; set; }
+
+        // Bu parcadan uretilen DXF'in yolu; onizleme buradan okur
+        public string DxfYolu { get; set; }
     }
 
     public class LogEntry
@@ -37,13 +41,14 @@ namespace Macria
         private ConsoleWindow _logWindow;
         private bool _stopRequested;
 
-        private const int TAB_FIRST = 15;   // ilk parca
-        private const int TAB_REST = 16;    // sonraki parcalar
-
         public MainWindow()
         {
             InitializeComponent();
             WindowEffects.RoundCorners(this);
+
+            // Bekleme suresi, ogretilmis Save As konumu ve son kurlar
+            // makineye ozel; her acilista kullanicinin profilinden okunur
+            Ayarlar.Yukle();
 
             // Pencere kapanirken suren islem durdurulsun
             Closing += (s, e) => { _stopRequested = true; };
@@ -53,7 +58,15 @@ namespace Macria
             grid.ItemsSource = _view;
 
             logList.ItemsSource = _logs;
+            txtMenuSurum.Text = "v" + AboutWindow.SurumMetni();
+            MaliyetKur();
+            KonsoluUygula();
+            OnizlemeyiUygula();
+
             LogInfo("Macria Hazır.");
+
+            if (Ayarlar.KonumVar)
+                LogInfo("Save As Konumu Öğretilmiş — Doğrudan Tıklanacak.");
         }
 
         // ================= KONSOL =================
@@ -128,10 +141,194 @@ namespace Macria
             _logWindow.Show();
         }
 
+        // ================= GEZINME =================
+        //
+        // Uygulama tek pencerede iki gorunum tutuyor: ana menu ve secilen
+        // islem sayfasi. Sayfalar arasi gecis sadece gorunurluk degisimi;
+        // liste, konsol ve suren islem yerinde kaliyor.
+
+        // Gelen sayfa bu kadar piksel oteden kayarak girer
+        private const double GecisKaymasi = 28;
+
+        private static readonly Duration GirisSuresi =
+            new Duration(TimeSpan.FromMilliseconds(220));
+        private static readonly Duration CikisSuresi =
+            new Duration(TimeSpan.FromMilliseconds(130));
+
+        private void AnaMenuyeDon()
+        {
+            SayfayiKapat(exportView);
+            SayfayiKapat(costView);
+            SayfayiAc(menuView, menuKaydir, -GecisKaymasi);
+
+            btnBack.Visibility = Visibility.Collapsed;
+            btnSettings.Visibility = Visibility.Collapsed;
+            btnTutorial.Visibility = Visibility.Collapsed;
+            txtTitleBar.Text = "Macria";
+        }
+
+        private void SayfaAc(UIElement sayfa, TranslateTransform kaydir,
+                             string baslik, bool ayarlarVar)
+        {
+            SayfayiKapat(menuView);
+            SayfayiAc(sayfa, kaydir, GecisKaymasi);
+
+            btnBack.Visibility = Visibility.Visible;
+            btnSettings.Visibility = ayarlarVar ? Visibility.Visible : Visibility.Collapsed;
+            btnTutorial.Visibility = btnSettings.Visibility;
+            txtTitleBar.Text = "Macria — " + baslik;
+
+            logScroll.ScrollToEnd();
+        }
+
+        // Gelen gorunum: yandan kayarak ve belirerek girer
+        private static void SayfayiAc(UIElement gorunum, TranslateTransform kaydir,
+                                      double baslangicX)
+        {
+            gorunum.Visibility = Visibility.Visible;
+
+            gorunum.BeginAnimation(OpacityProperty,
+                new DoubleAnimation(0, 1, GirisSuresi));
+
+            kaydir.BeginAnimation(TranslateTransform.XProperty,
+                new DoubleAnimation(baslangicX, 0, GirisSuresi)
+                {
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                });
+        }
+
+        // Giden gorunum: yerinde solar, bitince gizlenir
+        private static void SayfayiKapat(UIElement gorunum)
+        {
+            if (gorunum.Visibility != Visibility.Visible) return;
+
+            var solma = new DoubleAnimation(1, 0, CikisSuresi);
+
+            // Hizli gidip gelmede eski solma yeni acilan sayfayi gizlemesin
+            solma.Completed += (s, e) =>
+            {
+                if (gorunum.Opacity < 0.01) gorunum.Visibility = Visibility.Collapsed;
+            };
+
+            gorunum.BeginAnimation(OpacityProperty, solma);
+        }
+
+        private void btnBack_Click(object sender, RoutedEventArgs e)
+        {
+            AnaMenuyeDon();
+        }
+
+        // ================= KONSOL =================
+
+        // Konsol artik sayfaya degil basliktaki dugmeye bagli; her ekranda
+        // ayni kaydi gosterir ve secim kullanicinin profilinde saklanir.
+        private void btnConsole_Click(object sender, RoutedEventArgs e)
+        {
+            Ayarlar.KonsolAcik = consoleHost.Visibility != Visibility.Visible;
+            Ayarlar.Kaydet();
+
+            KonsoluUygula();
+        }
+
+        private void KonsoluUygula()
+        {
+            bool acik = Ayarlar.KonsolAcik;
+
+            consoleHost.Visibility = acik ? Visibility.Visible : Visibility.Collapsed;
+            konsolBosluk.Visibility = acik ? Visibility.Collapsed : Visibility.Visible;
+
+            // Acikken dugme hafif dolu gorunur (fare vurgusu sablonda kaliyor)
+            btnConsole.Background = acik
+                ? (System.Windows.Media.Brush)FindResource("SurfaceBrush")
+                : System.Windows.Media.Brushes.Transparent;
+
+            if (acik) logScroll.ScrollToEnd();
+        }
+
+        private void tileExport_Click(object sender, RoutedEventArgs e)
+        {
+            SayfaAc(exportView, exportKaydir, "Toplu DXF Export", true);
+
+            // Ilk giriste rehber kendiliginden acilir
+            if (!Ayarlar.RehberGosterildi)
+            {
+                Ayarlar.RehberGosterildi = true;
+                Ayarlar.Kaydet();
+                RehberiAc();
+            }
+        }
+
+        // Rehberi gosterir; kullanici son adimda isterse ogretme moduna gecer
+        private void RehberiAc()
+        {
+            var rehber = new TutorialWindow { Owner = this };
+            rehber.ShowDialog();
+
+            if (rehber.OgretmeIstendi)
+            {
+                var ayarlar = new SettingsWindow(ogretmeyeBasla: true) { Owner = this };
+                ayarlar.ShowDialog();
+
+                if (Ayarlar.KonumVar)
+                    LogSuccess("Save As Konumu Öğretildi — Export Kullanıma Hazır.");
+            }
+        }
+
+        private void btnTutorial_Click(object sender, RoutedEventArgs e)
+        {
+            RehberiAc();
+        }
+
+        // Export ancak konum ogretildiyse calisabilir
+        private bool ExportIzinliMi()
+        {
+            if (Ayarlar.KonumVar) return true;
+
+            LogError("Export İçin Önce Save As Konumu Öğretilmeli — Rehber Açılıyor.");
+            RehberiAc();
+
+            return Ayarlar.KonumVar;
+        }
+
+        // Toplu export oncesi fare uyarisi. Kullanici "bir daha gosterme"
+        // dediyse sessizce gecilir. Vazgecerse export baslamaz.
+        private bool FareUyarisiniGoster()
+        {
+            if (Ayarlar.FareUyarisiGizle) return true;
+
+            var uyari = new FareUyariWindow { Owner = this };
+            bool basla = uyari.ShowDialog() == true;
+
+            if (basla && uyari.BirDahaGosterme)
+            {
+                Ayarlar.FareUyarisiGizle = true;
+                Ayarlar.Kaydet();
+                LogInfo("Fare Uyarısı Bir Daha Gösterilmeyecek (Ayarlar'dan Geri Açılabilir).");
+            }
+
+            if (!basla) LogInfo("Toplu Export İptal Edildi.");
+
+            return basla;
+        }
+
+        private void tileCost_Click(object sender, RoutedEventArgs e)
+        {
+            SayfaAc(costView, costKaydir, "Ağırlık ve Maliyet", false);
+            KurlariTazele();
+        }
+
         private void btnAbout_Click(object sender, RoutedEventArgs e)
         {
             var pencere = new AboutWindow { Owner = this };
             pencere.ShowDialog();
+        }
+
+        private void btnSettings_Click(object sender, RoutedEventArgs e)
+        {
+            var pencere = new SettingsWindow { Owner = this };
+            if (pencere.ShowDialog() == true)
+                LogInfo("Ayarlar Kaydedildi — Bekleme: " + Ayarlar.PanelBekleme + " ms" +
+                        (Ayarlar.KonumVar ? ", Save As Konumu Öğretilmiş." : "."));
         }
 
         private void btnMin_Click(object sender, RoutedEventArgs e)
@@ -155,21 +352,32 @@ namespace Macria
 
         private int _pipSession;
 
-        private ExportPipWindow EnsurePip()
+        // Gorev adi pencere gosterilmeden once verilir; aksi halde pip bir an
+        // icin yanlis baslikla (varsayilan metniyle) cizilir
+        private ExportPipWindow EnsurePip(string gorevAdi = null)
         {
             if (_pip == null)
             {
                 _pip = new ExportPipWindow();
+                if (gorevAdi != null) _pip.GorevAdi = gorevAdi;
+
+                _pip.SetState(ExportPipWindow.PipState.Starting, "");
                 _pip.StopRequested += OnPipStopRequested;
                 _pip.Show();
             }
+            else if (gorevAdi != null)
+            {
+                _pip.GorevAdi = gorevAdi;
+            }
+
             return _pip;
         }
 
-        private void ShowPipStart(string detail)
+        private void ShowPipStart(string detail, string gorevAdi = "DXF Export")
         {
             _pipSession++;
-            EnsurePip().SetState(ExportPipWindow.PipState.Starting, detail);
+
+            EnsurePip(gorevAdi).SetState(ExportPipWindow.PipState.Starting, detail);
         }
 
         private void ShowPip(string detail)
@@ -206,6 +414,195 @@ namespace Macria
         }
 
         // Export sonrasi dosyayi/klasoru varsayilan uygulamayla acar
+        // ================= DXF ONIZLEME =================
+        //
+        // Listede secili parcanin acinimi sag panelde cizilir. Boylece "DXF
+        // bos mu, sekil beklenen mi" sorusu dosyayi bir CAD'de acmadan
+        // cevaplanir. Cizim, disa aktarilmis dosyadan okunur.
+
+        private string _onizlemeSonYol = "";
+
+        private void btnOnizleme_Click(object sender, RoutedEventArgs e)
+        {
+            Ayarlar.OnizlemeAcik = !Ayarlar.OnizlemeAcik;
+            Ayarlar.Kaydet();
+            OnizlemeyiUygula();
+        }
+
+        private void OnizlemeyiUygula()
+        {
+            bool acik = Ayarlar.OnizlemeAcik;
+
+            onizlemePanel.Visibility = acik ? Visibility.Visible : Visibility.Collapsed;
+
+            btnOnizleme.Background = acik
+                ? (Brush)FindResource("SurfaceBrush")
+                : Brushes.Transparent;
+
+            if (acik) OnizlemeyiYenile();
+        }
+
+        private void grid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            OnizlemeyiYenile();
+        }
+
+        private void OnizlemeyiYenile()
+        {
+            if (!IsLoaded || !Ayarlar.OnizlemeAcik) return;
+
+            var row = grid.SelectedItem as SheetRow;
+
+            if (row == null)
+            {
+                OnizlemeBosalt("Listeden Bir Parça Seçin",
+                               "Önizlemek için listeden bir satır seçin.");
+                return;
+            }
+
+            txtOnizlemeParca.Text = row.PartName;
+
+            string yol = OnizlemeDosyasi(row);
+
+            if (yol == null)
+            {
+                OnizlemeBosalt(row.PartName,
+                    "Bu parçanın DXF'i bulunamadı.\n" +
+                    "Dışa aktardıktan sonra burada görünür; dosyalar başka " +
+                    "bir klasördeyse \"Klasör Seç\" ile gösterin.");
+                return;
+            }
+
+            // Ayni dosya yeniden cozulmesin
+            if (yol == _onizlemeSonYol) return;
+            _onizlemeSonYol = yol;
+
+            string hata;
+            DxfCizim cizim = DxfOkuyucu.Oku(yol, out hata);
+
+            txtOnizlemeDosya.Text = System.IO.Path.GetFileName(yol);
+            txtOnizlemeDosya.ToolTip = yol;
+            btnOnizlemeAc.IsEnabled = true;
+
+            if (cizim == null || cizim.Bos)
+            {
+                onizlemeCizim.Visibility = Visibility.Collapsed;
+                onizlemeCizim.Data = null;
+
+                txtOnizlemeMesaj.Visibility = Visibility.Visible;
+                txtOnizlemeMesaj.Text = hata ?? "Çizim okunamadı.";
+                txtOnizlemeOlcu.Text = "";
+                return;
+            }
+
+            onizlemeCizim.Data = cizim.Geometri();
+            onizlemeCizim.Visibility = Visibility.Visible;
+            txtOnizlemeMesaj.Visibility = Visibility.Collapsed;
+
+            txtOnizlemeOlcu.Text =
+                cizim.Genislik.ToString("N1", System.Globalization.CultureInfo.CurrentCulture) +
+                " × " +
+                cizim.Yukseklik.ToString("N1", System.Globalization.CultureInfo.CurrentCulture) +
+                " mm   ·   " + cizim.NesneSayisi + " nesne";
+        }
+
+        private void OnizlemeBosalt(string parca, string mesaj)
+        {
+            _onizlemeSonYol = "";
+
+            txtOnizlemeParca.Text = parca;
+            onizlemeCizim.Visibility = Visibility.Collapsed;
+            onizlemeCizim.Data = null;
+
+            txtOnizlemeMesaj.Visibility = Visibility.Visible;
+            txtOnizlemeMesaj.Text = mesaj;
+
+            txtOnizlemeOlcu.Text = "";
+            txtOnizlemeDosya.Text = "";
+            txtOnizlemeDosya.ToolTip = null;
+            btnOnizlemeAc.IsEnabled = false;
+        }
+
+        // Once export sirasinda kaydedilen yol, yoksa son cikti klasorunde
+        // ayni adla duran dosya aranir
+        private static string OnizlemeDosyasi(SheetRow row)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(row.DxfYolu) &&
+                    System.IO.File.Exists(row.DxfYolu)) return row.DxfYolu;
+
+                if (string.IsNullOrEmpty(Ayarlar.SonCiktiKlasoru)) return null;
+
+                string aday = System.IO.Path.Combine(Ayarlar.SonCiktiKlasoru,
+                                                     MakeFileName(row));
+
+                if (!System.IO.File.Exists(aday)) return null;
+
+                row.DxfYolu = aday;
+                return aday;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private void btnOnizlemeKlasor_Click(object sender, RoutedEventArgs e)
+        {
+            var fd = new Microsoft.Win32.OpenFolderDialog();
+            fd.Title = "DXF Dosyalarının Bulunduğu Klasör";
+
+            if (!string.IsNullOrEmpty(Ayarlar.SonCiktiKlasoru))
+                fd.InitialDirectory = Ayarlar.SonCiktiKlasoru;
+
+            if (fd.ShowDialog() != true) return;
+
+            Ayarlar.SonCiktiKlasoru = fd.FolderName;
+            Ayarlar.Kaydet();
+
+            // Yeni klasor gecerli olsun diye onceki eslesmeler birakilir
+            foreach (SheetRow r in _rows) r.DxfYolu = null;
+
+            _onizlemeSonYol = "";
+            OnizlemeyiYenile();
+
+            LogInfo("Önizleme Klasörü: " + fd.FolderName);
+        }
+
+        // Basarili bir disa aktarimdan sonra dosya onizlemeye baglanir
+        private void OnizlemeyeYaz(SheetRow row, string yol)
+        {
+            row.DxfYolu = yol;
+
+            try
+            {
+                string klasor = System.IO.Path.GetDirectoryName(yol);
+
+                if (!string.IsNullOrEmpty(klasor) && klasor != Ayarlar.SonCiktiKlasoru)
+                {
+                    Ayarlar.SonCiktiKlasoru = klasor;
+                    Ayarlar.Kaydet();
+                }
+            }
+            catch { }
+
+            if (ReferenceEquals(grid.SelectedItem, row))
+            {
+                _onizlemeSonYol = "";
+                OnizlemeyiYenile();
+            }
+        }
+
+        private void btnOnizlemeAc_Click(object sender, RoutedEventArgs e)
+        {
+            var row = grid.SelectedItem as SheetRow;
+            if (row == null) return;
+
+            string yol = OnizlemeDosyasi(row);
+            if (yol != null) OpenExported(yol);
+        }
+
         private static void OpenExported(string path)
         {
             try
@@ -920,6 +1317,7 @@ namespace Macria
         private async void mnuExportDxf_Click(object sender, RoutedEventArgs e)
         {
             if (_exporting) return;
+            if (!ExportIzinliMi()) return;
 
             if (grid.SelectedItem == null)
             {
@@ -967,6 +1365,8 @@ namespace Macria
                 }
                 else if (ok)
                 {
+                    OnizlemeyeYaz(row, dlg.FileName);
+
                     if (chkOpenAfter.IsChecked == true)
                         OpenExported(dlg.FileName);
                     await FinishPip(ExportPipWindow.PipState.Done, row.PartName);
@@ -1030,12 +1430,20 @@ namespace Macria
             if (_pip != null)
                 _pip.SetStateKeepDetail(ExportPipWindow.PipState.Running);
 
-            IntPtr hCatia = FindWindow(null, "3DEXPERIENCE");
+            // CATIA ana penceresi: baslik surumden surume degisiyor
+            // ("3DEXPERIENCE", "3DEXPERIENCE R2022x", belge adi eklenmis hali...).
+            // Bu yuzden baslikla degil, surec adiyla bulunuyor.
+            IntPtr hCatia = PencereAraclari.AnaPencere();
+            if (hCatia == IntPtr.Zero) hCatia = FindWindow(null, "3DEXPERIENCE");
+
+            if (hCatia == IntPtr.Zero)
+                LogError("CATIA Ana Penceresi Bulunamadı — Odak Verilemeyebilir.");
+            else
+                LogInfo("CATIA Penceresi: \"" + PencereAraclari.BaslikMetni(hCatia) + "\"");
+
             IntPtr hSave = IntPtr.Zero;
 
-            // 2-4) komut + Save As butonunu bul ve bas
-            bool dogrudanKullan = true; // once butonu pencere agacindan bulup BM_CLICK dene
-
+            // 2-4) komut + Save As butonuna basma
             for (int deneme = 1; deneme <= 3 && hSave == IntPtr.Zero; deneme++)
             {
                 if (_stopRequested) return false;
@@ -1047,101 +1455,14 @@ namespace Macria
 
                 catia.StartCommand("Save As DXF");
 
-                // Sheet metal uyarisi gibi kutular arka plandaki izleyici tarafindan
-                // yanitlanir; burada sadece panelin acilmasi beklenir
-                await System.Threading.Tasks.Task.Delay(3000);
+                // Sheet metal uyarisi gibi kutular arka plandaki izleyici
+                // tarafindan yanitlanir; burada sadece panelin acilmasi beklenir
+                await System.Threading.Tasks.Task.Delay(Ayarlar.PanelBekleme);
 
-                bool saveAsBasildi = false;
-
-                // Yontem 1: "Save As" yazili butonu pencere agacinda bul,
-                // odaktan tamamen bagimsiz olarak dogrudan tikla
-                if (dogrudanKullan)
-                {
-                    IntPtr hBtn = FindSaveAsButton();
-                    if (hBtn != IntPtr.Zero)
-                    {
-                        LogInfo("Save As Butonu Bulundu — Doğrudan Tıklanıyor.");
-                        SendMessage(hBtn, BM_CLICK, IntPtr.Zero, IntPtr.Zero);
-                        saveAsBasildi = true;
-                    }
-                    else
-                    {
-                        // Win32'de yok: UIA agacinda isimle ara
-                        LogInfo("Win32'de Bulunamadı — UIA Ağacında Aranıyor...");
-                        bool uiaTik = await System.Threading.Tasks.Task.Run(
-                            () => TryClickSaveAsUia(hCatia));
-
-                        if (uiaTik)
-                        {
-                            LogInfo("Save As Butonu UIA ile Bulundu — Tıklandı.");
-                            saveAsBasildi = true;
-                        }
-                        else
-                        {
-                            LogInfo("Save As Butonu Bulunamadı — Tab Yöntemine Geçiliyor.");
-                            dogrudanKullan = false;
-
-                            // Ekranda bekleyen bir onay kutusu var mi, varsa
-                            // butonlari nasil gorunuyor: konsola dok
-                            GorunurDiyaloglariYaz();
-
-                            // Ilk basarisizlikta panel agacini teshis icin dosyaya dok
-                            if (!_dumpYazildi)
-                            {
-                                _dumpYazildi = true;
-                                try
-                                {
-                                    string dumpYolu = await System.Threading.Tasks.Task.Run(
-                                        () => DumpPanelTree(hCatia));
-                                    LogInfo("Teşhis Dökümü Yazıldı: " + dumpYolu);
-                                }
-                                catch (Exception dex)
-                                {
-                                    LogError("Teşhis Dökümü Yazılamadı: " + dex.Message);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Yontem 2 (yedek): sabit tab sayisi
-                if (!saveAsBasildi && !dogrudanKullan)
-                {
-                    int tabSayisi = _ilkKayitYapildi ? TAB_REST : TAB_FIRST;
-                    LogInfo("DXF Komutu (Tab=" + tabSayisi + ")...");
-
-                    for (int t = 0; t < tabSayisi; t++)
-                    {
-                        PressTab();
-                        await System.Threading.Tasks.Task.Delay(60);
-                    }
-
-                    await System.Threading.Tasks.Task.Delay(300);
-
-                    // Basmadan once odaktaki elemanin adina bak: ad okunabiliyor
-                    // ve acikca Iptal/Kapat ise basma, denemeyi yenile
-                    string odak = GetFocusedName();
-                    if (odak.Length > 0)
-                        LogInfo("Odaktaki Öğe: \"" + odak + "\"");
-
-                    if (IsCancelName(odak))
-                    {
-                        LogError("Odak İptal/Kapat Butonunda — Basılmadı, Yeniden Deneniyor.");
-                    }
-                    else
-                    {
-                        PressSpace();
-                        saveAsBasildi = true;
-                    }
-                }
-
-                if (saveAsBasildi)
-                    hSave = await WaitForSaveDialog(6000);
+                hSave = await SaveAsBas(hCatia, deneme);
 
                 if (hSave == IntPtr.Zero)
                 {
-                    // Dogrudan tiklama ise yaramadiysa sonraki denemede tab'a don
-                    dogrudanKullan = false;
                     PressEscape();
                     await System.Threading.Tasks.Task.Delay(1500);
                 }
@@ -1193,22 +1514,77 @@ namespace Macria
             return ok;
         }
 
-        // ================= SAVE AS BULMA (UIA) =================
-
-        // Odaktaki UI elemaninin adini UI Automation ile okur
-        private static string GetFocusedName()
+        // ================= SAVE AS BUTONUNA BASMA =================
+        //
+        // Tek yontem: kullanicinin ogrettigi konuma gercek fare tiklamasi.
+        // (Ayarlar > Save As Konumu, ya da export sekmesindeki rehber.)
+        // Klavye/Win32/UIA yontemleri kurulumdan kuruluma tutarsiz oldugu
+        // icin sistemden kaldirildi.
+        private async System.Threading.Tasks.Task<IntPtr> SaveAsBas(IntPtr hCatia, int deneme)
         {
+            int ox, oy;
+            if (!PencereAraclari.OgretilmisNokta(out ox, out oy))
+            {
+                LogError("Save As Konumu Öğretilmemiş — Ayarlar'dan Konumu Öğretin.");
+                return IntPtr.Zero;
+            }
+
+            LogInfo("Öğretilmiş Konuma Tıklanıyor: " + ox + ", " + oy);
+            ClickAt(ox, oy);
+
+            IntPtr h = await WaitForSaveDialog(6000);
+            if (h != IntPtr.Zero) return h;
+
+            LogError("Kaydetme Penceresi Açılmadı (Deneme " + deneme + ").");
+
+            // Ekranda bekleyen bir onay kutusu var mi, butonlari nasil gorunuyor
+            GorunurDiyaloglariYaz();
+
+            return IntPtr.Zero;
+        }
+
+        // Odaktaki UI ogesinin adi ve ekrandaki dikdortgeni
+        private static bool OdakBilgisi(out string ad, out Rect kutu)
+        {
+            ad = "";
+            kutu = Rect.Empty;
+
             try
             {
-                var el = System.Windows.Automation.AutomationElement.FocusedElement;
-                if (el == null) return "";
-                return (el.Current.Name ?? "").Trim();
+                var el = AutomationElement.FocusedElement;
+                if (el == null) return false;
+
+                ad = (el.Current.Name ?? "").Trim();
+                kutu = el.Current.BoundingRectangle;
+                return !kutu.IsEmpty;
             }
             catch
             {
-                return "";
+                return false;
             }
         }
+
+        // Odaktaki ogeyi Invoke deseniyle calistirir (varsa)
+        private static bool OdaktakiniInvokeEt()
+        {
+            try
+            {
+                var el = AutomationElement.FocusedElement;
+                if (el == null) return false;
+
+                object pat;
+                if (!el.TryGetCurrentPattern(InvokePattern.Pattern, out pat)) return false;
+
+                ((InvokePattern)pat).Invoke();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        // ================= SAVE AS BULMA (UIA) =================
 
         [DllImport("user32.dll")]
         private static extern bool SetCursorPos(int X, int Y);
@@ -1638,6 +2014,7 @@ namespace Macria
         private async void btnExportAll_Click(object sender, RoutedEventArgs e)
         {
             if (_exporting) return;
+            if (!ExportIzinliMi()) return;
 
             if (_rows.Count == 0)
             {
@@ -1645,12 +2022,19 @@ namespace Macria
                 return;
             }
 
+            if (!FareUyarisiniGoster()) return;
+
             // klasoru bir kez sor
             var fd = new Microsoft.Win32.OpenFolderDialog();
             fd.Title = "Çıktı Klasörünü Seçin";
             if (fd.ShowDialog() != true) return;
 
             string folder = fd.FolderName;
+
+            // Onizleme, aktarilmayan parcalari da bu klasorde arayabilsin
+            Ayarlar.SonCiktiKlasoru = folder;
+            Ayarlar.Kaydet();
+
             LogInfo("Toplu DXF Export Başladı: " + _rows.Count + " Parça");
             _stopRequested = false;
             ShowPipStart("Hazırlanıyor...");
@@ -1688,7 +2072,8 @@ namespace Macria
                     try
                     {
                         bool done = await ExportOne(_repRefs[row.PartName], path);
-                        if (done) ok++;
+
+                        if (done) { ok++; OnizlemeyeYaz(row, path); }
                         else if (!_stopRequested) failed.Add(row.PartName);
                     }
                     catch

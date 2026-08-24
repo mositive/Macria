@@ -25,7 +25,7 @@ namespace Macria
         }
 
         // csproj'daki Version degeri; yoksa assembly surumune duser
-        private static string SurumMetni()
+        internal static string SurumMetni()
         {
             var asm = Assembly.GetExecutingAssembly();
 

@@ -1,0 +1,68 @@
+<Window x:Class="Macria.MalzemeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Özel Malzeme"
+        Icon="Assets/macria-logo.png"
+        Width="380" SizeToContent="Height"
+        WindowStyle="None" ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BgBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}"
+        FontFamily="{StaticResource AppFont}"
+        UseLayoutRounding="True">
+
+    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+            CornerRadius="4">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="38"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- ======== BASLIK CUBUGU ======== -->
+            <Grid Grid.Row="0" Background="Transparent"
+                  MouseLeftButtonDown="Baslik_MouseLeftButtonDown">
+                <TextBlock Text="Özel Malzeme Ekle" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           VerticalAlignment="Center" Margin="16,0,0,0"/>
+                <Button Style="{StaticResource WindowCloseButton}" Content="&#xE8BB;"
+                        HorizontalAlignment="Right" VerticalAlignment="Top"
+                        Click="btnVazgec_Click"/>
+            </Grid>
+
+            <!-- ======== ICERIK ======== -->
+            <StackPanel Grid.Row="1" Margin="24,4,24,0">
+                <TextBlock Text="Malzeme Adı" FontSize="12"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="0,0,0,5"/>
+                <TextBox x:Name="txtAd" Style="{StaticResource FieldBox}" MaxLength="60"/>
+
+                <TextBlock Text="Yoğunluk (g/cm³)" FontSize="12"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="0,14,0,5"/>
+                <TextBox x:Name="txtYogunlukYeni" Style="{StaticResource FieldBox}"
+                         Width="130" HorizontalAlignment="Left"
+                         PreviewTextInput="SadeceOndalik"/>
+
+                <TextBlock x:Name="txtHata" FontSize="12.5" TextWrapping="Wrap"
+                           Foreground="{StaticResource LogErrorBrush}"
+                           Margin="0,10,0,0" Visibility="Collapsed"/>
+            </StackPanel>
+
+            <!-- ======== ALT SERIT ======== -->
+            <Border Grid.Row="2" Margin="0,20,0,0" Padding="24,14"
+                    Background="{StaticResource CardBrush}"
+                    CornerRadius="0,0,3,3">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Style="{StaticResource SecondaryButton}" Content="Vazgeç"
+                            Height="32" Padding="16,0" Click="btnVazgec_Click"/>
+                    <Button Style="{StaticResource PrimaryButton}" Content="Ekle"
+                            Height="32" Padding="16,0" Margin="8,0,0,0"
+                            Click="btnEkle_Click"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>
