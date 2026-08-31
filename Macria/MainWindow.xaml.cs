@@ -421,6 +421,28 @@ namespace Macria
         // cevaplanir. Cizim, disa aktarilmis dosyadan okunur.
 
         private string _onizlemeSonYol = "";
+        private OnizlemeWindow _onizlemeWindow;
+
+        // Ayni cizimi gosteren genis pencere; ikinci kez acilmaz, one getirilir
+        private void btnOnizlemePopOut_Click(object sender, RoutedEventArgs e)
+        {
+            if (_onizlemeWindow != null)
+            {
+                if (_onizlemeWindow.WindowState == WindowState.Minimized)
+                    _onizlemeWindow.WindowState = WindowState.Normal;
+
+                _onizlemeWindow.Activate();
+                return;
+            }
+
+            _onizlemeWindow = new OnizlemeWindow { Owner = this };
+            _onizlemeWindow.Closed += (s, ev) => _onizlemeWindow = null;
+            _onizlemeWindow.Show();
+
+            // Acilir acilmaz secili parcayi alsin diye onbellek bosaltilir
+            _onizlemeSonYol = "";
+            OnizlemeyiYenile();
+        }
 
         private void btnOnizleme_Click(object sender, RoutedEventArgs e)
         {
@@ -449,7 +471,10 @@ namespace Macria
 
         private void OnizlemeyiYenile()
         {
-            if (!IsLoaded || !Ayarlar.OnizlemeAcik) return;
+            if (!IsLoaded) return;
+
+            // Panel kapali olsa da ayri pencere aciksa cizim guncellenir
+            if (!Ayarlar.OnizlemeAcik && _onizlemeWindow == null) return;
 
             var row = grid.SelectedItem as SheetRow;
 
@@ -486,24 +511,38 @@ namespace Macria
 
             if (cizim == null || cizim.Bos)
             {
+                string sorun = hata ?? "Çizim okunamadı.";
+
                 onizlemeCizim.Visibility = Visibility.Collapsed;
                 onizlemeCizim.Data = null;
 
                 txtOnizlemeMesaj.Visibility = Visibility.Visible;
-                txtOnizlemeMesaj.Text = hata ?? "Çizim okunamadı.";
+                txtOnizlemeMesaj.Text = sorun;
                 txtOnizlemeOlcu.Text = "";
+
+                if (_onizlemeWindow != null)
+                    _onizlemeWindow.Bosalt(row.PartName, sorun, yol);
+
                 return;
             }
 
-            onizlemeCizim.Data = cizim.Geometri();
+            // Geometri donduruldugu icin iki gorunum ayni sekli paylasabilir
+            Geometry sekil = cizim.Geometri();
+
+            onizlemeCizim.Data = sekil;
             onizlemeCizim.Visibility = Visibility.Visible;
             txtOnizlemeMesaj.Visibility = Visibility.Collapsed;
 
-            txtOnizlemeOlcu.Text =
+            string olcu =
                 cizim.Genislik.ToString("N1", System.Globalization.CultureInfo.CurrentCulture) +
                 " × " +
                 cizim.Yukseklik.ToString("N1", System.Globalization.CultureInfo.CurrentCulture) +
                 " mm   ·   " + cizim.NesneSayisi + " nesne";
+
+            txtOnizlemeOlcu.Text = olcu;
+
+            if (_onizlemeWindow != null)
+                _onizlemeWindow.Goster(row.PartName, sekil, olcu, yol);
         }
 
         private void OnizlemeBosalt(string parca, string mesaj)
@@ -521,6 +560,9 @@ namespace Macria
             txtOnizlemeDosya.Text = "";
             txtOnizlemeDosya.ToolTip = null;
             btnOnizlemeAc.IsEnabled = false;
+
+            if (_onizlemeWindow != null)
+                _onizlemeWindow.Bosalt(parca, mesaj, "");
         }
 
         // Once export sirasinda kaydedilen yol, yoksa son cikti klasorunde

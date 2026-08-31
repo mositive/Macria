@@ -347,13 +347,21 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <StackPanel Grid.Row="0" Margin="0,0,0,10">
-                                <TextBlock Text="DXF Önizleme" FontSize="13" FontWeight="SemiBold"/>
-                                <TextBlock x:Name="txtOnizlemeParca" FontSize="11.5"
-                                           Foreground="{StaticResource TextDisabledBrush}"
-                                           TextTrimming="CharacterEllipsis"
-                                           Text="Listeden Bir Parça Seçin" Margin="0,2,0,0"/>
-                            </StackPanel>
+                            <Grid Grid.Row="0" Margin="0,0,0,10">
+                                <StackPanel Margin="0,0,30,0">
+                                    <TextBlock Text="DXF Önizleme" FontSize="13" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="txtOnizlemeParca" FontSize="11.5"
+                                               Foreground="{StaticResource TextDisabledBrush}"
+                                               TextTrimming="CharacterEllipsis"
+                                               Text="Listeden Bir Parça Seçin" Margin="0,2,0,0"/>
+                                </StackPanel>
+
+                                <!-- Konsoldaki gibi: cizim genis pencerede de acilabilir -->
+                                <Button x:Name="btnOnizlemePopOut" Style="{StaticResource ConsoleToolButton}"
+                                        Content="&#xE8A7;" ToolTip="Ayrı Pencerede Aç"
+                                        HorizontalAlignment="Right" VerticalAlignment="Top"
+                                        Click="btnOnizlemePopOut_Click"/>
+                            </Grid>
 
                             <!-- Cizim alani: acinim en-boy oranini koruyarak sigar -->
                             <Border Grid.Row="1" CornerRadius="4" Padding="14"
