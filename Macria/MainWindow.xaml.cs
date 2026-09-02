@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
@@ -12,15 +13,77 @@ using System.Windows.Media.Animation;
 
 namespace Macria
 {
-    public class SheetRow
+    public class SheetRow : INotifyPropertyChanged
     {
+        private double _thickness;
+        private string _hamSacKalinligiMetni = "";
+
         public string ProductName { get; set; } = "";
         public string PartName { get; set; } = "";
-        public double Thickness { get; set; }
+
+        public double Thickness
+        {
+            get { return _thickness; }
+            set
+            {
+                if (Math.Abs(_thickness - value) < 0.0001) return;
+                _thickness = value;
+                OnPropertyChanged(nameof(Thickness));
+                OnPropertyChanged(nameof(HamSacFarkliMi));
+            }
+        }
+
+        public string HamSacKalinligiMetni
+        {
+            get { return _hamSacKalinligiMetni; }
+            set
+            {
+                string newValue = value ?? "";
+                if (_hamSacKalinligiMetni == newValue) return;
+                _hamSacKalinligiMetni = newValue;
+                OnPropertyChanged(nameof(HamSacKalinligiMetni));
+                OnPropertyChanged(nameof(HamSacFarkliMi));
+            }
+        }
+
+        public bool HamSacFarkliMi
+        {
+            get
+            {
+                double hamSac;
+                return HamSacKalinliklari.TryParse(
+                           HamSacKalinligiMetni, out hamSac) &&
+                       Math.Abs(hamSac - Thickness) >= 0.0001;
+            }
+        }
+
+        // DXF adinda ve yerlesimde kullanilan kalinlik: kullanici ham sac
+        // girdiyse o, yoksa modelden okunan kalinlik. Tek karar noktasi
+        // burasi olsun ki onizleme ve yerlesim de ayni dosyayi bulsun.
+        public double HamSacKalinligi
+        {
+            get
+            {
+                double hamSac;
+                return HamSacKalinliklari.TryParse(HamSacKalinligiMetni, out hamSac)
+                    ? hamSac
+                    : Thickness;
+            }
+        }
+
+        public double UygulananHamSacKalinligi { get; set; }
         public int Quantity { get; set; }
 
         // Bu parcadan uretilen DXF'in yolu; onizleme buradan okur
         public string DxfYolu { get; set; }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        private void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(
+                this, new PropertyChangedEventArgs(propertyName));
+        }
     }
 
     public class LogEntry
@@ -63,10 +126,12 @@ namespace Macria
             KonsoluUygula();
             OnizlemeyiUygula();
 
-            LogInfo("Macria Hazır.");
+            LogInfo("Macria Hazır — Sheet Metal filtresi TR/EN / Teşhis açık.");
 
             if (Ayarlar.KonumVar)
-                LogInfo("Save As Konumu Öğretilmiş — Doğrudan Tıklanacak.");
+                LogInfo(SaveAsBulucu.VarMi()
+                    ? "Save As Düğmesi Görüntüden Tanınacak."
+                    : "Save As Konumu Öğretilmiş — Doğrudan Tıklanacak.");
         }
 
         // ================= KONSOL =================
@@ -88,6 +153,9 @@ namespace Macria
             // Pip acikken son konsol satirini orada da goster
             if (_pip != null)
                 _pip.SetLastLog(entry.Text, entry.Color);
+
+            // Konsol kapaliyken satir kosede kisa sureli bir kart olarak cikar
+            Bildir(message, brushKey);
         }
 
         // ================= ARAMA =================
@@ -242,7 +310,12 @@ namespace Macria
                 ? (System.Windows.Media.Brush)FindResource("SurfaceBrush")
                 : System.Windows.Media.Brushes.Transparent;
 
-            if (acik) logScroll.ScrollToEnd();
+            // Konsol acikken kartlara gerek yok, ayni satirlar orada duruyor
+            if (acik)
+            {
+                TumBildirimleriKapat();
+                logScroll.ScrollToEnd();
+            }
         }
 
         private void tileExport_Click(object sender, RoutedEventArgs e)
@@ -282,16 +355,56 @@ namespace Macria
         // Export ancak konum ogretildiyse calisabilir
         private bool ExportIzinliMi()
         {
-            if (Ayarlar.KonumVar) return true;
+            if (!Ayarlar.KonumVar)
+            {
+                LogError("Export İçin Önce Save As Konumu Öğretilmeli — Rehber Açılıyor.");
+                RehberiAc();
 
-            LogError("Export İçin Önce Save As Konumu Öğretilmeli — Rehber Açılıyor.");
-            RehberiAc();
+                return Ayarlar.KonumVar;
+            }
 
-            return Ayarlar.KonumVar;
+            if (!SaveAsBulucu.VarMi()) return GorselYokUyarisi();
+
+            return true;
         }
 
-        // Toplu export oncesi fare uyarisi. Kullanici "bir daha gosterme"
-        // dediyse sessizce gecilir. Vazgecerse export baslamaz.
+        // Konum, gorsel tanima eklenmeden onceki bir surumde ogretilmisse
+        // yalnizca koordinat kayitlidir; dugme goruntusu yoktur. Bu durumda
+        // panel en ufak kaydiginda tiklama sasar ve export bosuna calisir.
+        // Sessizce devam etmek yerine sorulur.
+        private bool GorselYokUyarisi()
+        {
+            LogError("Düğme Görüntüsü Öğretilmemiş — Yalnızca Sabit Koordinata Tıklanır.");
+
+            bool ogret = OnayWindow.Sor(this,
+                "Düğme Görüntüsü Eksik",
+                "Save As konumunu daha eski bir Macria sürümünde öğretmişsiniz: " +
+                "kayıtlı olan yalnızca bir koordinat, düğmenin görüntüsü yok.\n\n" +
+                "Bu haliyle Macria hep aynı noktaya tıklar. CATIA penceresi " +
+                "taşındıysa ya da paneli farklı bir yerde açtıysa tıklama boşa " +
+                "gider ve export başarısız olur.\n\n" +
+                "Konumu bir kez yeniden öğretirseniz düğmenin görüntüsü de " +
+                "kaydedilir; bundan sonra panel nereye giderse gitsin bulunur.",
+                "Şimdi Öğret", "Yine de Devam Et");
+
+            if (!ogret) return true;
+
+            var ayarlar = new SettingsWindow(ogretmeyeBasla: true) { Owner = this };
+            ayarlar.ShowDialog();
+
+            if (SaveAsBulucu.VarMi())
+            {
+                LogSuccess("Düğme Görüntüsü Öğretildi — Panel Kaysa Bile Bulunacak.");
+                return true;
+            }
+
+            LogInfo("Görüntü Öğretilmedi — Export İptal Edildi.");
+            return false;
+        }
+
+        // Export oncesi bilgilendirme. Fare devralindigi icin hem tekil hem
+        // toplu aktarimdan once cikar. Kullanici "bir daha gosterme" dediyse
+        // sessizce gecilir; vazgecerse export baslamaz.
         private bool FareUyarisiniGoster()
         {
             if (Ayarlar.FareUyarisiGizle) return true;
@@ -303,10 +416,10 @@ namespace Macria
             {
                 Ayarlar.FareUyarisiGizle = true;
                 Ayarlar.Kaydet();
-                LogInfo("Fare Uyarısı Bir Daha Gösterilmeyecek (Ayarlar'dan Geri Açılabilir).");
+                LogInfo("Export Bilgilendirmesi Bir Daha Gösterilmeyecek (Ayarlar'dan Geri Açılabilir).");
             }
 
-            if (!basla) LogInfo("Toplu Export İptal Edildi.");
+            if (!basla) LogInfo("Export İptal Edildi.");
 
             return basla;
         }
@@ -636,6 +749,259 @@ namespace Macria
             }
         }
 
+        // ================= GORSEL YERLESIM =================
+
+        // Parcalarin gercek olcusu ve konturu sadece DXF'te oldugu icin
+        // yerlesim bu sayfadan acilir; kaynagi listedeki satirlar.
+        private YerlesimWindow _yerlesimWindow;
+
+        // Konsol gibi modelsiz acilir: kipli olsaydi simge durumuna
+        // kucultuldugunde ana pencere kilitli kalir, ekranda tutunacak bir sey
+        // kalmazdi. Ikinci kez acilmaz, one getirilir.
+        private void btnYerlesim_Click(object sender, RoutedEventArgs e)
+        {
+            if (_yerlesimWindow != null)
+            {
+                if (_yerlesimWindow.WindowState == WindowState.Minimized)
+                    _yerlesimWindow.WindowState = WindowState.Normal;
+
+                _yerlesimWindow.Activate();
+                return;
+            }
+
+            if (_rows.Count == 0)
+            {
+                LogError("Yerleşim İçin Önce CATIA'yı Tarayın.");
+                return;
+            }
+
+            _yerlesimWindow = new YerlesimWindow(_rows) { Owner = this };
+            _yerlesimWindow.Closed += (s, ev) => _yerlesimWindow = null;
+            _yerlesimWindow.Show();
+        }
+
+        // Ham sac kutusuna tiklaninca satir da secilir; onizleme ve sag tik
+        // islemleri kullanicinin duzenledigi parca uzerinde kalir.
+        private void HamSacTextBox_GotKeyboardFocus(
+            object sender, KeyboardFocusChangedEventArgs e)
+        {
+            DependencyObject current = sender as DependencyObject;
+
+            while (current != null && !(current is DataGridRow))
+            {
+                if (current is Visual ||
+                    current is System.Windows.Media.Media3D.Visual3D)
+                    current = VisualTreeHelper.GetParent(current);
+                else if (current is FrameworkContentElement contentElement)
+                    current = contentElement.Parent;
+                else
+                    break;
+            }
+
+            DataGridRow dataGridRow = current as DataGridRow;
+            if (dataGridRow == null) return;
+
+            dataGridRow.IsSelected = true;
+            grid.SelectedItem = dataGridRow.Item;
+        }
+
+        private void GridDegisikliginiTamamla()
+        {
+            try
+            {
+                grid.CommitEdit(DataGridEditingUnit.Cell, true);
+                grid.CommitEdit(DataGridEditingUnit.Row, true);
+            }
+            catch { }
+        }
+
+        private bool HamSacSatiriniDogrula(SheetRow row, out double value)
+        {
+            value = 0;
+            if (row != null &&
+                HamSacKalinliklari.TryParse(row.HamSacKalinligiMetni, out value))
+            {
+                if (value + 0.0001 >= row.Thickness) return true;
+
+                grid.SelectedItem = row;
+                grid.ScrollIntoView(row);
+                LogError(
+                    "Ham Sac kalınlığı model kalınlığından küçük olamaz — " +
+                    row.ProductName + ": Model " +
+                    HamSacKalinliklari.Goster(row.Thickness) + " mm.");
+                return false;
+            }
+
+            if (row != null)
+            {
+                grid.SelectedItem = row;
+                grid.ScrollIntoView(row);
+                LogError(
+                    "Geçersiz Ham Sac kalınlığı — " + row.ProductName +
+                    ". 0,05 ile 1000 mm arasında bir değer girin.");
+            }
+
+            return false;
+        }
+
+        private bool TumHamSacGirdileriniDogrula(
+            out Dictionary<SheetRow, double> values)
+        {
+            values = new Dictionary<SheetRow, double>();
+            GridDegisikliginiTamamla();
+
+            foreach (SheetRow row in _rows)
+            {
+                double value;
+                if (!HamSacSatiriniDogrula(row, out value)) return false;
+                values[row] = value;
+            }
+
+            return true;
+        }
+
+        private static bool AyniDosyaYolu(string first, string second)
+        {
+            try
+            {
+                return string.Equals(
+                    System.IO.Path.GetFullPath(first),
+                    System.IO.Path.GetFullPath(second),
+                    StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return string.Equals(first, second, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        // Kullanici daha once export almissa once o bagli yol, sonra son cikti
+        // klasorundeki eski ham sac ve model kalinligi adlari denenir.
+        private static string EskiDxfYolunuBul(SheetRow row)
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(row.DxfYolu) &&
+                    System.IO.File.Exists(row.DxfYolu))
+                    return row.DxfYolu;
+
+                if (string.IsNullOrWhiteSpace(Ayarlar.SonCiktiKlasoru)) return null;
+
+                double eskiHamSac = row.UygulananHamSacKalinligi > 0
+                    ? row.UygulananHamSacKalinligi
+                    : row.Thickness;
+
+                string eskiHamSacYolu = System.IO.Path.Combine(
+                    Ayarlar.SonCiktiKlasoru,
+                    MakeFileName(row, eskiHamSac));
+
+                if (System.IO.File.Exists(eskiHamSacYolu)) return eskiHamSacYolu;
+
+                string modelYolu = System.IO.Path.Combine(
+                    Ayarlar.SonCiktiKlasoru,
+                    MakeFileName(row, row.Thickness));
+
+                return System.IO.File.Exists(modelYolu) ? modelYolu : null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private void btnHamSacGuncelle_Click(object sender, RoutedEventArgs e)
+        {
+            if (_exporting) return;
+
+            if (_rows.Count == 0)
+            {
+                LogInfo("Önce CATIA Taraması Yapın.");
+                return;
+            }
+
+            Dictionary<SheetRow, double> values;
+            if (!TumHamSacGirdileriniDogrula(out values)) return;
+
+            int renamed = 0;
+            int unchanged = 0;
+            int renameError = 0;
+
+            foreach (SheetRow row in _rows)
+            {
+                double value = values[row];
+                string source = EskiDxfYolunuBul(row);
+
+                HamSacKalinliklari.Ayarla(
+                    row.ProductName,
+                    row.PartName,
+                    value,
+                    row.Thickness);
+
+                row.HamSacKalinligiMetni = HamSacKalinliklari.Goster(value);
+                row.UygulananHamSacKalinligi = value;
+
+                if (string.IsNullOrWhiteSpace(source)) continue;
+
+                try
+                {
+                    string folder = System.IO.Path.GetDirectoryName(source);
+                    if (string.IsNullOrWhiteSpace(folder)) continue;
+
+                    string target = System.IO.Path.Combine(folder, MakeFileName(row, value));
+
+                    if (AyniDosyaYolu(source, target))
+                    {
+                        row.DxfYolu = source;
+                        unchanged++;
+                    }
+                    else if (System.IO.File.Exists(target))
+                    {
+                        // Var olan dosyanin ustune yazilmaz. Hedef zaten varsa
+                        // onizleme ona baglanir, eski dosya guvenlik icin korunur.
+                        row.DxfYolu = target;
+                        unchanged++;
+                        LogInfo(
+                            "DXF hedef adı zaten mevcut; eski dosyaya dokunulmadı: " +
+                            System.IO.Path.GetFileName(target));
+                    }
+                    else
+                    {
+                        System.IO.File.Move(source, target);
+                        row.DxfYolu = target;
+                        renamed++;
+                        LogSuccess(
+                            "DXF Adı Güncellendi: " +
+                            System.IO.Path.GetFileName(source) + " → " +
+                            System.IO.Path.GetFileName(target));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    renameError++;
+                    LogError(
+                        "DXF Adı Güncellenemedi — " + row.ProductName + ": " +
+                        ex.Message);
+                }
+            }
+
+            string saveError;
+            if (!HamSacKalinliklari.Kaydet(out saveError))
+            {
+                LogError("Ham Sac değerleri kaydedilemedi: " + saveError);
+                return;
+            }
+
+            grid.Items.Refresh();
+            _onizlemeSonYol = "";
+            OnizlemeyiYenile();
+
+            LogSuccess(
+                "Ham Sac Değerleri Kaydedildi — Satır: " + _rows.Count +
+                ", DXF Adı Değişen: " + renamed +
+                (unchanged > 0 ? ", Zaten Güncel: " + unchanged : "") +
+                (renameError > 0 ? ", Hata: " + renameError : ""));
+        }
+
         private void btnOnizlemeAc_Click(object sender, RoutedEventArgs e)
         {
             var row = grid.SelectedItem as SheetRow;
@@ -744,14 +1110,42 @@ namespace Macria
 
             foreach (var kv in found)
             {
-                double thk = GetThickness(kv.Value.Part);
-                if (thk <= 0) continue;
+                bool kalintiThickness;
+                List<string> sacTeshisi;
+                double thk = GetThickness(
+                    kv.Value.Part, out kalintiThickness, out sacTeshisi);
+                if (thk <= 0)
+                {
+                    if (kalintiThickness)
+                    {
+                        result.Diag.Add(new DiagLine(
+                            "Sac filtresi dışladı — " + kv.Value.ProductName +
+                            ": Thickness var, PartBody içinde tanınan Sheet Metal unsuru yok.",
+                            DiagLevel.Info));
+
+                        foreach (string satir in sacTeshisi)
+                        {
+                            result.Diag.Add(new DiagLine(
+                                "   ↳ " + satir,
+                                DiagLevel.Info));
+                        }
+                    }
+                    continue;
+                }
+
+                double modelKalinligi = Math.Round(thk, 2);
+                double hamSacKalinligi = HamSacKalinliklari.Getir(
+                    kv.Value.ProductName,
+                    kv.Value.PartName,
+                    modelKalinligi);
 
                 result.Rows.Add(new SheetRow
                 {
                     ProductName = kv.Value.ProductName,
                     PartName = kv.Value.PartName,
-                    Thickness = Math.Round(thk, 2),
+                    Thickness = modelKalinligi,
+                    HamSacKalinligiMetni = HamSacKalinliklari.Goster(hamSacKalinligi),
+                    UygulananHamSacKalinligi = hamSacKalinligi,
                     Quantity = kv.Value.Count
                 });
 
@@ -770,6 +1164,8 @@ namespace Macria
             _exporting = active;
             btnScan.IsEnabled = !active;
             btnExportAll.IsEnabled = !active;
+            btnHamSacGuncelle.IsEnabled = !active;
+            grid.IsEnabled = !active;
         }
 
         // Tarama sirasinda butondaki donen gostergeyi acip kapatir
@@ -777,6 +1173,8 @@ namespace Macria
         {
             btnScan.IsHitTestVisible = !active;
             btnExportAll.IsEnabled = !active;
+            btnHamSacGuncelle.IsEnabled = !active;
+            grid.IsEnabled = !active;
 
             scanIcon.Visibility = active ? Visibility.Collapsed : Visibility.Visible;
             scanSpinner.Visibility = active ? Visibility.Visible : Visibility.Collapsed;
@@ -833,23 +1231,23 @@ namespace Macria
         private void ScanNode(dynamic node, string parentProd,
                               Dictionary<string, ScanItem> found, ScanOutput result)
         {
-            // Urun adi, dugumun kendi referansindaki basliktir; agacta gorunen de budur.
-            // node.Name instance adini verir (orn. "hhh.1"), urun adini degil.
+            // Urun adi yalnizca dugumun VPMReference nesnesindeki Title'dan okunur.
+            // node.Name instance adidir (orn. "hhh.1") ve parca/DXF adi icin kullanilmaz.
             object dugumRef = ReferansAl(node);
             string prodName = dugumRef == null ? "" : PlmBaslik(dugumRef);
 
             if (string.IsNullOrWhiteSpace(prodName))
             {
-                try
-                {
-                    string n = node.Name;
-                    if (!string.IsNullOrWhiteSpace(n))
-                        prodName = StripInstance(n.Trim());
-                }
-                catch { }
+                // Title okunamazsa instance ada geri donmek ayni referansin .1, .2...
+                // seklinde farkli adlarla listelenmesine neden olur. Bu nedenle yedek ad da
+                // Reference uzerindeki kalici PLM kimliginden alinir.
+                prodName = dugumRef == null ? "" : PlmDeger(dugumRef, "PLM_ExternalID");
             }
 
-            if (string.IsNullOrWhiteSpace(prodName)) prodName = parentProd;
+            if (string.IsNullOrWhiteSpace(prodName))
+                prodName = string.IsNullOrWhiteSpace(parentProd)
+                    ? "REFERENCE_TITLE_OKUNAMADI"
+                    : parentProd;
 
             try
             {
@@ -882,11 +1280,13 @@ namespace Macria
                             }
 
                             key = PlmBaslik(repRefObj);
-                            part = repRef.GetItem("Part");
+                            part = ParcaNesnesiAl(repRefObj);
                         }
                         catch { }
 
-                        if (key.Length == 0) continue;
+                        // Drawing gibi Part/CATIAPart nesnesi olmayan representation'lar
+                        // sac taramasina ve adet hesabina girmemeli.
+                        if (key.Length == 0 || part == null || repRefObj == null) continue;
 
                         // Ayni parca farkli urunler altinda ayri satir olsun diye
                         // urun+parca ciftiyle grupla
@@ -926,19 +1326,55 @@ namespace Macria
             catch { }
         }
 
+        private static object ParcaNesnesiAl(object repRef)
+        {
+            if (repRef == null) return null;
+
+            try
+            {
+                object part = ((dynamic)repRef).GetItem("Part");
+                if (part != null) return part;
+            }
+            catch { }
+
+            // Bazi 3DEXPERIENCE surumlerinde ayni nesne CATIAPart adi ile acilir.
+            try
+            {
+                object part = ((dynamic)repRef).GetItem("CATIAPart");
+                if (part != null) return part;
+            }
+            catch { }
+
+            return null;
+        }
+
         // ================= PLM AD/BASLIK =================
         //
-        // 3DEXPERIENCE'ta Properties penceresindeki iki alan farkli ozelliklerdir:
-        //   Title -> V_Name        (agacta gorunen ad, orn. "3D Shape00000050")
-        //   Name  -> PLM_ExternalID (PLM kimligi,      orn. "3sh-OI000608702-00000050")
-        // Agacla ayni goruntuyu vermek icin once baslik denenir.
+        // 3DEXPERIENCE'ta Properties > Reference bolumundeki alanlar:
+        //   Title -> V_Name         (kullanicinin verdigi referans basligi)
+        //   Name  -> PLM_ExternalID (kalici PLM kimligi)
+        // Liste ve DXF adi icin yalnizca Reference Title kullanilir.
 
-        private static readonly string[] BaslikUyeleri = { "V_Name", "Title", "Name" };
+        private static readonly string[] BaslikUyeleri = { "V_Name", "Title" };
         private static readonly string[] TumUyeler = { "V_Name", "Title", "Name", "PLM_ExternalID" };
 
         // dynamic uzerinde uye adi degisken olamaz; her aday ayri ayri denenir
         private static string PlmDeger(object nesne, string uye)
         {
+            if (nesne == null) return "";
+
+            // VPMReference alanlari bircok 3DEXPERIENCE surumunde normal COM
+            // property olarak degil GetAttributeValue ile sunulur. Ozellikle ekranda
+            // "Title" olarak gorunen alanin teknik adi V_Name'dir.
+            try
+            {
+                dynamic d = nesne;
+                object attr = d.GetAttributeValue(uye);
+                string text = attr == null ? "" : Convert.ToString(attr).Trim();
+                if (!string.IsNullOrWhiteSpace(text)) return text;
+            }
+            catch { }
+
             try
             {
                 dynamic d = nesne;
@@ -1002,17 +1438,48 @@ namespace Macria
                                   DiagLevel.Info));
         }
 
-        // Bir occurrence'in referans nesnesi; baslik oradan okunur
+        // Bir occurrence'in VPMReference nesnesi; Title mutlaka buradan okunur.
         private static object ReferansAl(dynamic node)
         {
+            // VPMOccurrence -> VPMInstance -> VPMReference
+            // 3DEXPERIENCE Product Modeler'in standart occurrence yolu budur.
+            try
+            {
+                dynamic ins = node.InstanceOccurrenceOf;
+                object r = InstanceReferansi(ins);
+                if (r != null) return r;
+            }
+            catch { }
+
+            // Bazi COM surumleri parametresiz uyeleri method olarak cagirir.
+            try
+            {
+                dynamic ins = node.InstanceOccurrenceOf();
+                object r = InstanceReferansi(ins);
+                if (r != null) return r;
+            }
+            catch { }
+
+            // 2018x/2020x gibi bazi on-premise surumlerde occurrence'in
+            // VPMInstance baglantisi PLMEntity adi ile acilir.
+            try
+            {
+                dynamic ins = node.PLMEntity;
+                object r = InstanceReferansi(ins);
+                if (r != null) return r;
+            }
+            catch { }
+
+            // Root occurrence'in instance'i yoktur; kendi reference baglantisi vardir.
+            try { object r = node.ReferenceRootOccurrenceOf; if (r != null) return r; } catch { }
+            try { object r = node.ReferenceRootOccurrenceOf(); if (r != null) return r; } catch { }
+
+            // Eski/alternatif API adlariyla geriye uyumluluk.
             try
             {
                 dynamic ins = node.RelatedInstance;
-                if (ins != null)
-                {
-                    object r = ins.ReferenceInstanceOf;
-                    if (r != null) return r;
-                }
+                object r = InstanceReferansi(ins);
+                if (r != null) return r;
             }
             catch { }
 
@@ -1022,28 +1489,38 @@ namespace Macria
             return null;
         }
 
-        private static string StripInstance(string s)
+        private static object InstanceReferansi(object instance)
         {
-            int p = s.LastIndexOf('.');
-            if (p > 0)
+            if (instance == null) return null;
+
+            try
             {
-                int dummy;
-                if (int.TryParse(s.Substring(p + 1), out dummy))
-                    return s.Substring(0, p);
+                dynamic ins = instance;
+                object r = ins.ReferenceInstanceOf;
+                if (r != null) return r;
             }
-            return s;
+            catch { }
+
+            try
+            {
+                dynamic ins = instance;
+                object r = ins.ReferenceInstanceOf();
+                if (r != null) return r;
+            }
+            catch { }
+
+            return null;
         }
 
-        // ================= KALINLIK =================
-
-        private static readonly string[] NeutralAnchors =
-        {
-            "BendTable", "ReliefRadialLength", "ReliefAxialLength",
-            "BeadStd", "ExtrudedHoleStd", "SurfaceStampStd", "CurveStampStd",
-            "BridgeStd", "StiffeningRibStd", "CircularStampStd",
-            "FlangedCutoutStd", "LouverStd", "DowelStd", "CircularCutoutStd",
-            "DINNormaFormula"
-        };
+        // ================= KALINLIK / GERCEK SHEET METAL DOGRULAMA =================
+        //
+        // Bir parcayi sac kabul etmek icin iki kosul ayni Part icinde saglanmalidir:
+        // 1) Sheet Metal Parameters altinda gecerli Thickness bulunmali.
+        // 2) PartBody altinda gercek bir Sheet Metal feature bulunmali.
+        //
+        // Sheet Metal feature'dan once veya sonra Pad/Pocket gibi Part Design
+        // ozellikleri bulunabilir; siralama sonucu degistirmez. Yalnizca Thickness
+        // kalmis ve govdesinde hic Sheet Metal feature olmayan parcalar elenir.
 
         private static readonly string[] ThicknessNames =
         {
@@ -1051,112 +1528,682 @@ namespace Macria
             "espesor", "espessura", "dikte", "tjocklek", "tykkelse"
         };
 
-        private static double GetThickness(object partObj)
+        // CATIA agacindaki feature adi arayuz diline gore degisebilir. Sol taraf
+        // Fold() ile normalize edilmis gorunen ad, sag taraf dil-bagimsiz kanonik addir.
+        // Yalnizca gercek Sheet Metal komutlari bulunur; Pad/Pocket/Hole gibi genel
+        // Part Design komutlari bilerek bu sozluge alinmaz.
+        private static readonly Dictionary<string, string> SheetMetalFeatureAliases =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                // Temel duvarlar ve bukumler
+                { "wall", "Wall" },
+                { "sheetmetalwall", "Wall" },
+                { "duvar", "Wall" },
+
+                { "wallonedge", "Wall on Edge" },
+                { "edgewall", "Wall on Edge" },
+                { "sheetmetalwallonedge", "Wall on Edge" },
+                { "kenardakiduvar", "Wall on Edge" },
+                { "kenardaduvar", "Wall on Edge" },
+                { "kenaruzerindeduvar", "Wall on Edge" },
+                { "kenaruzerindekiduvar", "Wall on Edge" },
+
+                { "bend", "Bend" },
+                { "sheetmetalbend", "Bend" },
+                { "bukum", "Bend" },
+                { "bendfromflat", "Bend From Flat" },
+                { "duzdenbukum", "Bend From Flat" },
+
+                { "flange", "Flange" },
+                { "sheetmetalflange", "Flange" },
+                { "flans", "Flange" },
+                { "userflange", "User Flange" },
+                { "kullaniciflans", "User Flange" },
+                { "kullaniciflansi", "User Flange" },
+                { "loftedflange", "Lofted Flange" },
+                { "loftflansi", "Lofted Flange" },
+                { "gecisflansi", "Lofted Flange" },
+
+                { "hem", "Hem" },
+                { "kivirma", "Hem" },
+                { "kenarkivirma", "Hem" },
+                { "teardrop", "Teardrop" },
+                { "gozyasi", "Teardrop" },
+                { "damla", "Teardrop" },
+                { "fold", "Fold" },
+                { "katla", "Fold" },
+                { "katlama", "Fold" },
+                { "unfold", "Unfold" },
+                { "acinim", "Unfold" },
+                { "acilim", "Unfold" },
+                { "acma", "Unfold" },
+
+                // Ana sac olusturma komutlari
+                { "extrusion", "Extrusion" },
+                { "extruzyon", "Extrusion" },
+                { "ekstruzyon", "Extrusion" },
+                { "sheetmetalextrusion", "Extrusion" },
+                { "sheetmetalextruzyon", "Extrusion" },
+                { "sheetmetalekstruzyon", "Extrusion" },
+                { "web", "Web" },
+                { "sheetmetalweb", "Web" },
+                { "perde", "Web" },
+                { "rolledwall", "Rolled Wall" },
+                { "ruloduvar", "Rolled Wall" },
+                { "haddelenmisduvar", "Rolled Wall" },
+                { "sweptwall", "Swept Wall" },
+                { "supurmeduvar", "Swept Wall" },
+                { "supurulmusduvar", "Swept Wall" },
+                { "joggle", "Joggle" },
+                { "kademelendirme", "Joggle" },
+                { "ofsetbukum", "Joggle" },
+                { "zofset", "Joggle" },
+
+                // Kesimler, koseler ve sac delikleri
+                { "cutout", "Cutout" },
+                { "sheetmetalcutout", "Cutout" },
+                { "kesim", "Cutout" },
+                { "kesme", "Cutout" },
+                { "corner", "Corner" },
+                { "sheetmetalcorner", "Corner" },
+                { "kose", "Corner" },
+                { "extrudedhole", "Extruded Hole" },
+                { "sheetmetalextrudedhole", "Extruded Hole" },
+                { "extruzyonludelik", "Extruded Hole" },
+                { "ekstruzyonludelik", "Extruded Hole" },
+                { "flangedcutout", "Flanged Cutout" },
+                { "flanslikesim", "Flanged Cutout" },
+                { "flanslikesme", "Flanged Cutout" },
+                { "circularcutout", "Circular Cutout" },
+                { "daireselkesim", "Circular Cutout" },
+                { "daireselkesme", "Circular Cutout" },
+                { "sheetmetalhole", "Sheet Metal Hole" },
+                { "sacmetaldeligi", "Sheet Metal Hole" },
+                { "sacmetalideligi", "Sheet Metal Hole" },
+                { "saclevhadeligi", "Sheet Metal Hole" },
+                { "sacdeligi", "Sheet Metal Hole" },
+
+                // Damgalar ve sekillendirme komutlari
+                { "bead", "Bead" },
+                { "kordon", "Bead" },
+                { "boncuk", "Bead" },
+                { "kabartma", "Bead" },
+                { "louver", "Louver" },
+                { "panjur", "Louver" },
+                { "menfez", "Louver" },
+                { "dowel", "Dowel" },
+                { "kavela", "Dowel" },
+                { "pimkabartma", "Dowel" },
+                { "surfacestamp", "Surface Stamp" },
+                { "yuzeydamga", "Surface Stamp" },
+                { "yuzeydamgasi", "Surface Stamp" },
+                { "curvestamp", "Curve Stamp" },
+                { "egridamga", "Curve Stamp" },
+                { "egridamgasi", "Curve Stamp" },
+                { "circularstamp", "Circular Stamp" },
+                { "daireseldamga", "Circular Stamp" },
+                { "stiffeningrib", "Stiffening Rib" },
+                { "takviyenervuru", "Stiffening Rib" },
+                { "sertlestirmekaburgasi", "Stiffening Rib" },
+                { "bridge", "Bridge" },
+                { "kopru", "Bridge" },
+
+                // Mevcut geometriden sac tanima
+                { "recognize", "Sheet Metal Recognition" },
+                { "recognition", "Sheet Metal Recognition" },
+                { "sheetmetalrecognize", "Sheet Metal Recognition" },
+                { "sheetmetalrecognition", "Sheet Metal Recognition" },
+                { "recognizesheetmetal", "Sheet Metal Recognition" },
+                { "tani", "Sheet Metal Recognition" },
+                { "tanima", "Sheet Metal Recognition" },
+                { "sacmetalitanima", "Sheet Metal Recognition" },
+                { "sactanima", "Sheet Metal Recognition" }
+            };
+
+        private static double GetThickness(
+            object partObj,
+            out bool kalintiThickness,
+            out List<string> teshis)
         {
+            kalintiThickness = false;
+            teshis = new List<string>();
             if (partObj == null) return 0;
 
-            dynamic part = partObj;
-            dynamic prms = null;
-            try { prms = part.Parameters; } catch { }
-            if (prms == null) return 0;
+            dynamic parameters = null;
 
-            int count = 0;
-            try { count = prms.Count; } catch { return 0; }
+            try { parameters = ((dynamic)partObj).Parameters; }
+            catch { return 0; }
 
-            string prefix = "";
-            for (int i = 1; i <= count; i++)
+            if (parameters == null) return 0;
+
+            int parameterCount;
+            try { parameterCount = Convert.ToInt32(parameters.Count); }
+            catch { return 0; }
+
+            double thicknessMm = 0;
+            bool thicknessFound = false;
+            bool sheetMetalFeatureFound = false;
+            int activityAdayi = 0;
+
+            // Bazi Sheet Metal komutlari (ozellikle Recognize) Activity parametresi
+            // uretmeyebilir. Once PartBody'nin Shapes koleksiyonuna dogrudan bakilir.
+            string agactakiFeature;
+            if (TryFindSheetMetalFeatureInPartBody(partObj, out agactakiFeature))
             {
-                string name = "";
-                try { name = prms.Item(i).Name; } catch { }
-                if (string.IsNullOrEmpty(name)) continue;
-
-                if (IsNeutralAnchor(LastSegment(name)))
-                {
-                    prefix = ParentPath(name);
-                    break;
-                }
-                if (IsNeutralAnchor(LastSegment(ParentPath(name))))
-                {
-                    prefix = ParentPath(ParentPath(name));
-                    break;
-                }
-            }
-            if (prefix.Length == 0) return 0;
-
-            double first = 0;
-            for (int i = 1; i <= count; i++)
-            {
-                string name = "";
-                try { name = prms.Item(i).Name; } catch { }
-                if (string.IsNullOrEmpty(name)) continue;
-                if (!IsUnder(name, prefix)) continue;
-
-                double val = 0;
-                try { val = Convert.ToDouble(prms.Item(i).Value); } catch { }
-
-                if (first == 0 && val >= 0.05 && val <= 100) first = val;
-
-                if (IsThicknessName(LastSegment(name)) && val >= 0.05 && val <= 100)
-                    return val;
+                sheetMetalFeatureFound = true;
+                teshis.Add("PartBody ağacında Sheet Metal unsuru: " + agactakiFeature);
             }
 
-            return first;
+            for (int i = 1; i <= parameterCount; i++)
+            {
+                dynamic parameter = null;
+                try { parameter = parameters.Item(i); }
+                catch { continue; }
+
+                if (parameter == null) continue;
+
+                string parameterName = GetParameterName(parameter);
+                if (string.IsNullOrWhiteSpace(parameterName)) continue;
+
+                object rawValue = GetParameterRawValue(parameter);
+                string displayValue = GetParameterDisplayValue(parameter);
+
+                // Yalnizca Activity ile biten yollara bagli kalma. Feature'a ait
+                // herhangi bir parametre yolu da Sheet Metal unsurunun varligini
+                // kanitlar. Bu nedenle Part Design / Sheet Metal sirasi onemsizdir.
+                bool featurePartBodyAltinda;
+                string yoldakiFeature;
+                if (!sheetMetalFeatureFound &&
+                    SheetMetalFeatureYolunuCoz(
+                        parameterName,
+                        out featurePartBodyAltinda,
+                        out yoldakiFeature) &&
+                    featurePartBodyAltinda &&
+                    yoldakiFeature.Length > 0)
+                {
+                    sheetMetalFeatureFound = true;
+                    teshis.Add(
+                        "Sheet Metal feature yolu: \"" + parameterName + "\"" +
+                        " | Tanınan=" + yoldakiFeature);
+                }
+
+                if (!thicknessFound && IsSheetMetalThicknessParameter(parameterName))
+                {
+                    double candidateMm = NormalizeLengthMillimeters(rawValue, displayValue);
+
+                    teshis.Add(
+                        "Thickness yolu: \"" + parameterName + "\"" +
+                        " | Raw=" + ParametreDegerMetni(rawValue) +
+                        " | Display=" + BosIseYok(displayValue) +
+                        " | Normalize=" + candidateMm.ToString(
+                            System.Globalization.CultureInfo.InvariantCulture) + " mm");
+
+                    if (candidateMm >= 0.05 && candidateMm <= 100)
+                    {
+                        thicknessMm = candidateMm;
+                        thicknessFound = true;
+                    }
+                }
+
+                bool partBodyAltinda;
+                string taninanFeature;
+
+                if (ActivityYolunuCoz(
+                        parameterName, out partBodyAltinda, out taninanFeature))
+                {
+                    activityAdayi++;
+                    bool aktif = IsTrueParameter(parameter);
+                    bool sheetMetal = partBodyAltinda && taninanFeature.Length > 0;
+
+                    if (teshis.Count < 60)
+                    {
+                        teshis.Add(
+                            "Activity adayı: \"" + parameterName + "\"" +
+                            " | Raw=" + ParametreDegerMetni(rawValue) +
+                            " | Display=" + BosIseYok(displayValue) +
+                            " | Aktif=" + (aktif ? "EVET" : "HAYIR") +
+                            " | PartBody=" + (partBodyAltinda ? "EVET" : "HAYIR") +
+                            " | Tanınan Sheet Metal feature=" +
+                            (taninanFeature.Length == 0 ? "YOK" : taninanFeature));
+                    }
+
+                    // Activity bilgisi teshis icin tutulur. Kullanici kuralina gore
+                    // feature PartBody icinde varsa, Activity olmasa veya False olsa
+                    // bile parca Sheet Metal kabul edilir.
+                    if (!sheetMetalFeatureFound && sheetMetal)
+                        sheetMetalFeatureFound = true;
+                }
+
+                if (thicknessFound && sheetMetalFeatureFound)
+                    return thicknessMm;
+            }
+
+            // Thickness var fakat PartBody'de Sheet Metal feature yoksa kalintidir.
+            kalintiThickness = thicknessFound && !sheetMetalFeatureFound;
+
+            if (kalintiThickness && activityAdayi == 0)
+            {
+                teshis.Add(
+                    "Activity ile biten hiçbir parametre yolu bulunamadı; " +
+                    "CATIA'nın gerçek feature yolu bu sürümde farklı olabilir.");
+            }
+            else if (kalintiThickness)
+            {
+                teshis.Add(
+                    "Activity adayı sayısı: " + activityAdayi +
+                    ". PartBody içinde tanınan Sheet Metal feature bulunamadı.");
+            }
+
+            return 0;
         }
 
-        private static bool IsNeutralAnchor(string leaf)
+        private static string ParametreDegerMetni(object value)
         {
-            foreach (string a in NeutralAnchors)
-                if (string.Equals(leaf, a, StringComparison.OrdinalIgnoreCase))
+            if (value == null) return "(yok)";
+
+            try
+            {
+                string text = Convert.ToString(value).Trim();
+                return text.Length == 0 ? "(boş)" : "\"" + text + "\"";
+            }
+            catch { return "(okunamadı)"; }
+        }
+
+        private static string BosIseYok(string value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? "(yok)" : "\"" + value + "\"";
+        }
+
+        private static string GetParameterName(dynamic parameter)
+        {
+            try
+            {
+                object value = parameter.Name;
+                return value == null ? "" : Convert.ToString(value).Trim();
+            }
+            catch { return ""; }
+        }
+
+        private static object GetParameterRawValue(dynamic parameter)
+        {
+            try { return parameter.Value; }
+            catch { return null; }
+        }
+
+        private static string GetParameterDisplayValue(dynamic parameter)
+        {
+            try
+            {
+                object value = parameter.ValueAsString;
+                if (value != null) return Convert.ToString(value).Trim();
+            }
+            catch { }
+
+            try
+            {
+                object value = parameter.ValueAsString();
+                if (value != null) return Convert.ToString(value).Trim();
+            }
+            catch { }
+
+            return "";
+        }
+
+        private static bool IsSheetMetalThicknessParameter(string parameterName)
+        {
+            if (string.IsNullOrWhiteSpace(parameterName)) return false;
+
+            string foldedName = Fold(parameterName);
+
+            // CATIA otomasyonunda genellikle teknik ad (Sheet Metal Parameters)
+            // gelir; yerellestirilmis Turkce gorunum icin Sac Parametreleri de taninir.
+            bool sheetMetalPath =
+                foldedName.Contains("sheetmetalparameters") ||
+                foldedName.Contains("sacparametreleri");
+
+            return sheetMetalPath && IsThicknessName(LastSegment(parameterName));
+        }
+
+        private static double NormalizeLengthMillimeters(object rawValue, string displayValue)
+        {
+            double displayNumber;
+            string displayUnit;
+
+            if (TryReadLengthDisplay(displayValue, out displayNumber, out displayUnit))
+            {
+                switch (displayUnit)
+                {
+                    case "mm": return displayNumber;
+                    case "cm": return displayNumber * 10.0;
+                    case "m": return displayNumber * 1000.0;
+                    case "um": return displayNumber / 1000.0;
+                    case "in": return displayNumber * 25.4;
+                }
+
+                if (displayNumber >= 0.05 && displayNumber <= 100)
+                    return displayNumber;
+            }
+
+            double rawNumber;
+            if (!TryConvertDouble(rawValue, out rawNumber)) return 0;
+
+            rawNumber = Math.Abs(rawNumber);
+
+            // Bazi COM surumleri Length.Value degerini metre, bazilari mm dondurur.
+            if (rawNumber >= 0.00005 && rawNumber < 0.05)
+                return rawNumber * 1000.0;
+
+            if (rawNumber >= 0.05 && rawNumber <= 100)
+                return rawNumber;
+
+            return 0;
+        }
+
+        private static bool TryReadLengthDisplay(
+            string text, out double number, out string unit)
+        {
+            number = 0;
+            unit = "";
+
+            if (string.IsNullOrWhiteSpace(text)) return false;
+
+            string normalized = text.Trim().ToLowerInvariant()
+                .Replace("µ", "u")
+                .Replace("μ", "u");
+
+            var match = System.Text.RegularExpressions.Regex.Match(
+                normalized,
+                @"[-+]?\d+(?:[.,]\d+)?(?:[eE][-+]?\d+)?");
+
+            if (!match.Success) return false;
+
+            string numericText = match.Value.Replace(',', '.');
+
+            if (!double.TryParse(
+                    numericText,
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out number))
+                return false;
+
+            if (normalized.Contains("mm")) unit = "mm";
+            else if (normalized.Contains("cm")) unit = "cm";
+            else if (normalized.Contains("um")) unit = "um";
+            else if (normalized.Contains("inch") || normalized.Contains(" in")) unit = "in";
+            else if (System.Text.RegularExpressions.Regex.IsMatch(
+                         normalized, @"(^|[^a-z])m($|[^a-z])")) unit = "m";
+
+            number = Math.Abs(number);
+            return true;
+        }
+
+        private static bool TryConvertDouble(object value, out double number)
+        {
+            number = 0;
+            if (value == null) return false;
+
+            try
+            {
+                number = Convert.ToDouble(
+                    value,
+                    System.Globalization.CultureInfo.InvariantCulture);
+                return true;
+            }
+            catch { }
+
+            string text;
+            try { text = Convert.ToString(value); }
+            catch { return false; }
+
+            if (string.IsNullOrWhiteSpace(text)) return false;
+
+            return double.TryParse(
+                text.Trim().Replace(',', '.'),
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out number);
+        }
+
+        // Herhangi bir parametre yolunda PartBody ve Sheet Metal feature arar.
+        // Activity zorunlu degildir; Recognize gibi komutlar farkli parametreler
+        // uretebilir veya hic Activity parametresi uretmeyebilir.
+        private static bool SheetMetalFeatureYolunuCoz(
+            string parameterName,
+            out bool partBodyAltinda,
+            out string taninanFeature)
+        {
+            partBodyAltinda = false;
+            taninanFeature = "";
+
+            if (string.IsNullOrWhiteSpace(parameterName)) return false;
+
+            string normalizedPath = parameterName.Replace('/', '\\');
+            string[] segments = normalizedPath.Split('\\');
+            if (segments.Length < 2) return false;
+
+            int bodyIndex = -1;
+            for (int i = 0; i < segments.Length; i++)
+            {
+                string bodyName = Fold(segments[i]);
+                if (bodyName == "partbody" || bodyName == "parcagovdesi")
+                {
+                    bodyIndex = i;
+                    partBodyAltinda = true;
+                    break;
+                }
+            }
+
+            if (bodyIndex < 0) return true;
+
+            // Son segment parametrenin kendisidir; yalnizca ust yol feature olabilir.
+            for (int i = bodyIndex + 1; i < segments.Length - 1; i++)
+            {
+                string canonicalName;
+                if (!SheetMetalFeatureAliases.TryGetValue(
+                        Fold(segments[i]), out canonicalName))
+                    continue;
+
+                taninanFeature = segments[i] + " → " + canonicalName;
+                break;
+            }
+
+            return true;
+        }
+
+        // PartBody.Shapes dogrudan taranir. Bu, Parameters koleksiyonunda feature
+        // yolu gorunmeyen Recognize ve benzeri Sheet Metal komutlarini da yakalar.
+        private static bool TryFindSheetMetalFeatureInPartBody(
+            object partObj, out string taninanFeature)
+        {
+            taninanFeature = "";
+            if (partObj == null) return false;
+
+            dynamic bodies = null;
+            try { bodies = ((dynamic)partObj).Bodies; }
+            catch { }
+
+            // Dil ve kullanici tarafindan verilen govde adindan bagimsiz ana yol.
+            dynamic mainBody = null;
+            try { mainBody = ((dynamic)partObj).MainBody; }
+            catch { }
+
+            if (mainBody == null && bodies != null)
+            {
+                try { mainBody = bodies.MainBody; }
+                catch { }
+            }
+
+            if (mainBody != null &&
+                TryFindSheetMetalFeatureInBody(mainBody, out taninanFeature))
+                return true;
+
+            if (bodies == null) return false;
+
+            int bodyCount;
+            try { bodyCount = Convert.ToInt32(bodies.Count); }
+            catch { return false; }
+
+            for (int bodyNo = 1; bodyNo <= bodyCount; bodyNo++)
+            {
+                dynamic body = null;
+                try { body = bodies.Item(bodyNo); }
+                catch { continue; }
+
+                if (body == null) continue;
+
+                string bodyName = "";
+                try { bodyName = Convert.ToString(body.Name).Trim(); }
+                catch { }
+
+                string foldedBody = Fold(bodyName);
+                if (foldedBody != "partbody" && foldedBody != "parcagovdesi")
+                    continue;
+
+                if (TryFindSheetMetalFeatureInBody(body, out taninanFeature))
                     return true;
+            }
+
             return false;
+        }
+
+        private static bool TryFindSheetMetalFeatureInBody(
+            dynamic body, out string taninanFeature)
+        {
+            taninanFeature = "";
+            if (body == null) return false;
+
+            dynamic shapes = null;
+            try { shapes = body.Shapes; }
+            catch { return false; }
+
+            if (shapes == null) return false;
+
+            int shapeCount;
+            try { shapeCount = Convert.ToInt32(shapes.Count); }
+            catch { return false; }
+
+            // Shapes sirayla gezilir fakat herhangi bir eslesme yeterlidir.
+            // Part Design unsurunun once veya sonra olmasi sonucu degistirmez.
+            for (int shapeNo = 1; shapeNo <= shapeCount; shapeNo++)
+            {
+                dynamic shape = null;
+                try { shape = shapes.Item(shapeNo); }
+                catch { continue; }
+
+                if (shape == null) continue;
+
+                string shapeName = "";
+                try { shapeName = Convert.ToString(shape.Name).Trim(); }
+                catch { }
+
+                string canonicalName;
+                if (!SheetMetalFeatureAliases.TryGetValue(
+                        Fold(shapeName), out canonicalName))
+                    continue;
+
+                taninanFeature = shapeName + " → " + canonicalName;
+                return true;
+            }
+
+            return false;
+        }
+
+        // Activity parametresinin tam yolunu teshis eder. Kabul kuralini Activity
+        // belirlemez; bu bilgi yalnizca konsolda gorunur.
+        private static bool ActivityYolunuCoz(
+            string parameterName,
+            out bool partBodyAltinda,
+            out string taninanFeature)
+        {
+            partBodyAltinda = false;
+            taninanFeature = "";
+
+            if (string.IsNullOrWhiteSpace(parameterName)) return false;
+
+            string normalizedPath = parameterName.Replace('/', '\\');
+            string[] segments = normalizedPath.Split('\\');
+            if (segments.Length < 2) return false;
+
+            string activityName = Fold(segments[segments.Length - 1]);
+            if (activityName != "activity" &&
+                activityName != "aktivite" &&
+                activityName != "etkinlik")
+                return false;
+
+            SheetMetalFeatureYolunuCoz(
+                parameterName, out partBodyAltinda, out taninanFeature);
+            return true;
+        }
+
+        private static bool IsTrueParameter(dynamic parameter)
+        {
+            object rawValue = GetParameterRawValue(parameter);
+
+            if (rawValue is bool) return (bool)rawValue;
+
+            double numericValue;
+            if (TryConvertDouble(rawValue, out numericValue))
+                return Math.Abs(numericValue) > double.Epsilon;
+
+            string rawText = "";
+            try { rawText = rawValue == null ? "" : Convert.ToString(rawValue).Trim(); }
+            catch { }
+
+            return IsTrueText(rawText) || IsTrueText(GetParameterDisplayValue(parameter));
+        }
+
+        private static bool IsTrueText(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return false;
+
+            string text = value.Trim().ToLowerInvariant();
+            return text == "true" || text == "1" || text == "-1" ||
+                   text == "yes" || text == "evet" ||
+                   text == "vrai" || text == "wahr";
         }
 
         private static bool IsThicknessName(string leaf)
         {
-            string f = Fold(leaf);
-            if (f.Contains("thick")) return true;
-            foreach (string t in ThicknessNames)
-                if (f == t) return true;
+            string folded = Fold(leaf);
+            if (folded.Contains("thick")) return true;
+
+            foreach (string name in ThicknessNames)
+                if (folded == Fold(name)) return true;
+
             return false;
         }
 
-        private static string Fold(string s)
+        private static string Fold(string text)
         {
-            StringBuilder sb = new StringBuilder();
-            foreach (char c in s)
+            if (string.IsNullOrEmpty(text)) return "";
+
+            StringBuilder result = new StringBuilder();
+            foreach (char original in text)
             {
-                char ch = c;
+                char ch = original;
                 if (ch == 'Ç' || ch == 'ç') ch = 'c';
                 else if (ch == 'Ğ' || ch == 'ğ') ch = 'g';
-                else if (ch == 'İ' || ch == 'ı') ch = 'i';
+                else if (ch == 'İ' || ch == 'I' || ch == 'ı') ch = 'i';
                 else if (ch == 'Ö' || ch == 'ö') ch = 'o';
                 else if (ch == 'Ş' || ch == 'ş') ch = 's';
                 else if (ch == 'Ü' || ch == 'ü') ch = 'u';
 
                 if (ch < 128 && char.IsLetter(ch))
-                    sb.Append(char.ToLowerInvariant(ch));
+                    result.Append(char.ToLowerInvariant(ch));
             }
-            return sb.ToString();
+
+            return result.ToString();
         }
 
         private static string LastSegment(string path)
         {
-            int p = path.LastIndexOf('\\');
-            if (p < 0) return path;
-            return path.Substring(p + 1);
-        }
+            if (string.IsNullOrEmpty(path)) return "";
 
-        private static string ParentPath(string path)
-        {
-            int p = path.LastIndexOf('\\');
-            if (p <= 0) return "";
-            return path.Substring(0, p);
-        }
+            path = path.Replace('/', '\\');
+            int position = path.LastIndexOf('\\');
+            if (position < 0) return path;
 
-        private static bool IsUnder(string path, string prefix)
-        {
-            if (prefix.Length == 0) return false;
-            return path.StartsWith(prefix + "\\", StringComparison.OrdinalIgnoreCase);
+            return path.Substring(position + 1);
         }
 
         // ================= WINDOWS API =================
@@ -1369,15 +2416,23 @@ namespace Macria
 
             SheetRow row = (SheetRow)grid.SelectedItem;
 
+            GridDegisikliginiTamamla();
+            double hamSacKalinligi;
+            if (!HamSacSatiriniDogrula(row, out hamSacKalinligi)) return;
+
             if (!_repRefs.ContainsKey(row.PartName) || _repRefs[row.PartName] == null)
             {
                 LogError("Parça Referansı Bulunamadı: " + row.PartName);
                 return;
             }
 
+            // Tek parcada da fare devralindigi icin bilgilendirme burada da
+            // cikar; dosya adi sorulmadan once, bosuna soru sorulmasin
+            if (!FareUyarisiniGoster()) return;
+
             var dlg = new Microsoft.Win32.SaveFileDialog();
             dlg.Filter = "DXF|*.dxf";
-            dlg.FileName = MakeFileName(row);
+            dlg.FileName = MakeFileName(row, hamSacKalinligi);
             if (dlg.ShowDialog() != true) return;
 
             try
@@ -1427,8 +2482,14 @@ namespace Macria
 
         private static string MakeFileName(SheetRow row)
         {
-            string thk = row.Thickness.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            return row.ProductName + "_" + thk + "mm_" + row.Quantity + "adet.dxf";
+            return MakeFileName(row, row.HamSacKalinligi);
+        }
+
+        // Ad uretimi tek yerde (DxfAdi): onizleme ve yerlesim de ayni adi
+        // kurmak zorunda, yoksa dosyayi bulamazlar.
+        private static string MakeFileName(SheetRow row, double hamSacKalinligi)
+        {
+            return DxfAdi.Uret(row.ProductName, hamSacKalinligi, row.Quantity);
         }
 
         private bool _ilkKayitYapildi = false;
@@ -1558,24 +2619,77 @@ namespace Macria
 
         // ================= SAVE AS BUTONUNA BASMA =================
         //
-        // Tek yontem: kullanicinin ogrettigi konuma gercek fare tiklamasi.
-        // (Ayarlar > Save As Konumu, ya da export sekmesindeki rehber.)
-        // Klavye/Win32/UIA yontemleri kurulumdan kuruluma tutarsiz oldugu
-        // icin sistemden kaldirildi.
+        // Panel kendi ciziyor: Windows'a ne UIA agaci ne de metinli alt
+        // pencere veriyor, bu yuzden dugme nesne olarak tetiklenemiyor.
+        // Klavye/Win32/UIA denemeleri kurulumdan kuruluma tutarsiz oldugu icin
+        // kaldirildi; geriye gercek fare tiklamasi kaldi.
+        //
+        // Nokta once dugmenin goruntusunden aranir (bkz. SaveAsBulucu): panel
+        // tasinmis ya da boyutu degismis olsa bile bulunur. Benzerlik esigin
+        // altindaysa korlemesine tiklanmaz, ogretilmis koordinata donulur;
+        // o da yoksa hic tiklanmaz.
+        private bool SaveAsNoktasi(out int x, out int y, out bool gorseldenBulundu)
+        {
+            x = 0; y = 0;
+            gorseldenBulundu = false;
+
+            if (SaveAsBulucu.VarMi())
+            {
+                double skor;
+
+                if (SaveAsBulucu.Bul(PencereAraclari.HedefPencere(), out x, out y, out skor))
+                {
+                    LogSuccess("Save As Düğmesi Görüntüden Bulundu — Benzerlik %" +
+                               Math.Round(skor * 100) + ", Konum: " + x + ", " + y);
+
+                    gorseldenBulundu = true;
+                    return true;
+                }
+
+                LogInfo("Düğme Görüntüden Bulunamadı, Öğretilmiş Konuma Dönülüyor.");
+            }
+
+            if (!PencereAraclari.OgretilmisNokta(out x, out y))
+            {
+                LogError("Save As Konumu Öğretilmemiş — Ayarlar'dan Konumu Öğretin.");
+                return false;
+            }
+
+            LogInfo("Öğretilmiş Konuma Tıklanıyor: " + x + ", " + y);
+            return true;
+        }
+
         private async System.Threading.Tasks.Task<IntPtr> SaveAsBas(IntPtr hCatia, int deneme)
         {
             int ox, oy;
-            if (!PencereAraclari.OgretilmisNokta(out ox, out oy))
+            bool gorselden;
+
+            if (!SaveAsNoktasi(out ox, out oy, out gorselden)) return IntPtr.Zero;
+
+            // Goruntu henuz ogretilmemisse, tiklamadan hemen once dugmenin
+            // resmi alinir. Panel su an acik oldugu icin dogru an burasi;
+            // ornek yalnizca tiklama tutarsa saklanir.
+            SaveAsBulucu.OrnekAdayi aday = null;
+
+            if (!gorselden && !SaveAsBulucu.VarMi())
             {
-                LogError("Save As Konumu Öğretilmemiş — Ayarlar'dan Konumu Öğretin.");
-                return IntPtr.Zero;
+                string adayHata;
+                aday = SaveAsBulucu.AdayAl(ox, oy, out adayHata);
             }
 
-            LogInfo("Öğretilmiş Konuma Tıklanıyor: " + ox + ", " + oy);
             ClickAt(ox, oy);
 
             IntPtr h = await WaitForSaveDialog(6000);
-            if (h != IntPtr.Zero) return h;
+
+            if (h != IntPtr.Zero)
+            {
+                // Tiklama tuttu: demek ki o goruntu gercekten Save As dugmesi
+                if (aday != null && SaveAsBulucu.AdayiSakla(aday))
+                    LogSuccess("Düğmenin Görüntüsü Öğrenildi — Bundan Sonra Panel " +
+                               "Kaysa Bile Bulunacak.");
+
+                return h;
+            }
 
             LogError("Kaydetme Penceresi Açılmadı (Deneme " + deneme + ").");
 
@@ -2064,6 +3178,9 @@ namespace Macria
                 return;
             }
 
+            Dictionary<SheetRow, double> hamSacDegerleri;
+            if (!TumHamSacGirdileriniDogrula(out hamSacDegerleri)) return;
+
             if (!FareUyarisiniGoster()) return;
 
             // klasoru bir kez sor
@@ -2106,7 +3223,9 @@ namespace Macria
                         continue;
                     }
 
-                    string path = System.IO.Path.Combine(folder, MakeFileName(row));
+                    string path = System.IO.Path.Combine(
+                        folder,
+                        MakeFileName(row, hamSacDegerleri[row]));
 
                     LogInfo("(" + (i + 1) + "/" + _rows.Count + ") " + row.PartName);
                     ShowPip("(" + (i + 1) + "/" + _rows.Count + ") " + row.PartName);

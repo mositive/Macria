@@ -1,0 +1,304 @@
+<Window x:Class="Macria.NestingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Plaka Tüketimi"
+        Icon="Assets/macria-logo.png"
+        Width="1060" Height="700"
+        MinWidth="820" MinHeight="520"
+        WindowStyle="None" ResizeMode="CanResize"
+        ShowInTaskbar="True"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BgBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}"
+        FontFamily="{StaticResource AppFont}"
+        UseLayoutRounding="True">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="38"
+                      ResizeBorderThickness="6"
+                      GlassFrameThickness="0"
+                      CornerRadius="0"
+                      UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="Margin" Value="0"/>
+                <Setter Property="CornerRadius" Value="4"/>
+                <Style.Triggers>
+                    <!-- Buyutulmus pencere kenarlardan tasar, pay verilir -->
+                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}"
+                                 Value="Maximized">
+                        <Setter Property="Margin" Value="7"/>
+                        <Setter Property="CornerRadius" Value="0"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="38"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- ======== BASLIK CUBUGU ======== -->
+            <Grid Grid.Row="0">
+                <TextBlock Text="Plaka Tüketimi" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           VerticalAlignment="Center" Margin="16,0,0,0"/>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                            VerticalAlignment="Top">
+                    <Button x:Name="btnKucult" Style="{StaticResource WindowButton}"
+                            Content="&#xE921;" Click="btnKucult_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True"/>
+
+                    <Button x:Name="btnBuyut" Click="btnBuyut_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource WindowButton}">
+                                <Setter Property="Content" Value="&#xE922;"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                 Value="Maximized">
+                                        <Setter Property="Content" Value="&#xE923;"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <Button Style="{StaticResource WindowCloseButton}" Content="&#xE8BB;"
+                            Click="btnKapat_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- ======== BASLIK ======== -->
+            <StackPanel Grid.Row="1" Margin="20,2,20,0">
+                <TextBlock Text="Tahmini Plaka Tüketimi" FontSize="18"
+                           FontWeight="SemiBold"
+                           FontFamily="{StaticResource AppFontDisplay}"/>
+                <TextBlock x:Name="txtAltBaslik" FontSize="12.5"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="0,3,0,0"/>
+            </StackPanel>
+
+            <!-- ======== AYARLAR ======== -->
+            <Border Grid.Row="2" Margin="20,14,20,0" Padding="16,12" CornerRadius="4"
+                    Background="{StaticResource CardBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                <StackPanel Orientation="Horizontal">
+                    <StackPanel Margin="0,0,18,0">
+                        <TextBlock Text="Plaka Boyu (mm)" FontSize="11.5"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="0,0,0,5"/>
+                        <TextBox x:Name="txtBoy" Style="{StaticResource FieldBox}"
+                                 PreviewTextInput="SadeceOndalik"
+                                 Width="110" TextChanged="Ayar_TextChanged"/>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,18,0">
+                        <TextBlock Text="Plaka Eni (mm)" FontSize="11.5"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="0,0,0,5"/>
+                        <TextBox x:Name="txtEn" Style="{StaticResource FieldBox}"
+                                 PreviewTextInput="SadeceOndalik"
+                                 Width="110" TextChanged="Ayar_TextChanged"/>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,18,0">
+                        <TextBlock Text="Yerleşim Verimi (%)" FontSize="11.5"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="0,0,0,5"/>
+                        <TextBox x:Name="txtVerim" Style="{StaticResource FieldBox}"
+                                 PreviewTextInput="SadeceOndalik"
+                                 Width="110" TextChanged="Ayar_TextChanged"/>
+                    </StackPanel>
+
+                    <!-- Hazir plaka olculeri: elle yazmak yerine tek tikla -->
+                    <StackPanel VerticalAlignment="Bottom" Margin="6,0,0,0">
+                        <TextBlock Text="Hazır Ölçüler" FontSize="11.5"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="0,0,0,5"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource SecondaryButton}" Height="30"
+                                    Padding="12,0" Content="2000 × 1000"
+                                    Tag="2000x1000" Click="Hazir_Click"/>
+                            <Button Style="{StaticResource SecondaryButton}" Height="30"
+                                    Padding="12,0" Margin="6,0,0,0" Content="2500 × 1250"
+                                    Tag="2500x1250" Click="Hazir_Click"/>
+                            <Button Style="{StaticResource SecondaryButton}" Height="30"
+                                    Padding="12,0" Margin="6,0,0,0" Content="3000 × 1500"
+                                    Tag="3000x1500" Click="Hazir_Click"/>
+                            <Button Style="{StaticResource SecondaryButton}" Height="30"
+                                    Padding="12,0" Margin="6,0,0,0" Content="6000 × 2000"
+                                    Tag="6000x2000" Click="Hazir_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <TextBlock x:Name="txtAyarUyari" FontSize="12"
+                               Foreground="{StaticResource WarnTextBrush}"
+                               VerticalAlignment="Bottom" Margin="16,0,0,7"
+                               TextWrapping="Wrap" MaxWidth="220"/>
+                </StackPanel>
+            </Border>
+
+            <!-- ======== TABLO ======== -->
+            <Border Grid.Row="3" Margin="20,12,20,0" CornerRadius="4"
+                    Background="{StaticResource CardBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    ClipToBounds="True">
+                <Grid>
+                    <DataGrid x:Name="tablo" AutoGenerateColumns="False"
+                              IsReadOnly="True" HeadersVisibility="Column"
+                              CanUserAddRows="False" CanUserResizeRows="False"
+                              CanUserReorderColumns="False"
+                              SelectionMode="Single"
+                              GridLinesVisibility="None"
+                              AlternationCount="2"
+                              RowStyle="{StaticResource ZebraRow}"
+                              Background="Transparent" BorderThickness="0">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Kalınlık" Width="90"
+                                                Binding="{Binding KalinlikMetni}"/>
+
+                            <DataGridTextColumn Header="Parça" Width="80"
+                                                Binding="{Binding ParcaAdedi}"
+                                                ElementStyle="{StaticResource SayiHucre}"
+                                                HeaderStyle="{StaticResource SayiBaslik}"/>
+
+                            <DataGridTextColumn Header="Düz Alan (m²)" Width="110"
+                                                Binding="{Binding DuzAlanM2, StringFormat=N2}"
+                                                ElementStyle="{StaticResource SayiHucre}"
+                                                HeaderStyle="{StaticResource SayiBaslik}"/>
+
+                            <DataGridTextColumn Header="Plaka" Width="80"
+                                                Binding="{Binding PlakaSayisi}"
+                                                ElementStyle="{StaticResource VurguHucre}"
+                                                HeaderStyle="{StaticResource SayiBaslik}"/>
+
+                            <DataGridTextColumn Header="Doluluk" Width="90"
+                                                Binding="{Binding Doluluk, StringFormat=P0}"
+                                                ElementStyle="{StaticResource SayiHucre}"
+                                                HeaderStyle="{StaticResource SayiBaslik}"/>
+
+                            <DataGridTextColumn Header="Sac (kg)" Width="100"
+                                                Binding="{Binding ToplamPlakaKg, StringFormat=N0}"
+                                                ElementStyle="{StaticResource SayiHucre}"
+                                                HeaderStyle="{StaticResource SayiBaslik}"/>
+
+                            <DataGridTextColumn Header="Hurda (kg)" Width="100"
+                                                Binding="{Binding HurdaKg, StringFormat=N0}"
+                                                ElementStyle="{StaticResource SayiHucre}"
+                                                HeaderStyle="{StaticResource SayiBaslik}"/>
+
+                            <DataGridTextColumn x:Name="colParcaMaliyet" Header="Parça Bedeli"
+                                                Width="*"
+                                                Binding="{Binding ParcaMaliyet, StringFormat=N2}"
+                                                ElementStyle="{StaticResource SayiHucre}"
+                                                HeaderStyle="{StaticResource SayiBaslik}"/>
+
+                            <DataGridTextColumn x:Name="colPlakaMaliyet" Header="Plaka Bedeli"
+                                                Width="*"
+                                                Binding="{Binding PlakaMaliyet, StringFormat=N2}"
+                                                ElementStyle="{StaticResource SayiHucre}"
+                                                HeaderStyle="{StaticResource SayiBaslik}"/>
+
+                            <DataGridTextColumn x:Name="colFark" Header="Fark" Width="*"
+                                                Binding="{Binding Fark, StringFormat=N2}"
+                                                ElementStyle="{StaticResource VurguHucre}"
+                                                HeaderStyle="{StaticResource SayiBaslik}"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <TextBlock x:Name="txtBosluk" FontSize="13"
+                               Foreground="{StaticResource TextDisabledBrush}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               TextAlignment="Center" TextWrapping="Wrap" MaxWidth="420"
+                               Visibility="Collapsed"
+                               Text="Hesaplanmış Parça Yok"/>
+                </Grid>
+            </Border>
+
+            <!-- ======== OZET ======== -->
+            <Grid Grid.Row="4" Margin="20,12,20,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="1.35*"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Padding="16,12" CornerRadius="4"
+                        Background="{StaticResource CardBrush}"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="Toplam Plaka" FontSize="11.5"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBlock x:Name="txtToplamPlaka" FontSize="22" FontWeight="SemiBold"
+                                   FontFamily="{StaticResource AppFontDisplay}"
+                                   Margin="0,2,0,0"/>
+                        <TextBlock x:Name="txtToplamAlan" FontSize="11.5"
+                                   Foreground="{StaticResource TextDisabledBrush}"
+                                   Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="2" Padding="16,12" CornerRadius="4"
+                        Background="{StaticResource CardBrush}"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="Hurda" FontSize="11.5"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBlock x:Name="txtToplamHurda" FontSize="22" FontWeight="SemiBold"
+                                   FontFamily="{StaticResource AppFontDisplay}"
+                                   Margin="0,2,0,0"/>
+                        <TextBlock x:Name="txtHurdaOran" FontSize="11.5"
+                                   Foreground="{StaticResource TextDisabledBrush}"
+                                   Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Asil mesaj: mevcut maliyet hurday goremiyor -->
+                <Border Grid.Column="4" Padding="16,12" CornerRadius="4"
+                        Background="{StaticResource CardBrush}"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="Görünmeyen Hurda Maliyeti" FontSize="11.5"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBlock x:Name="txtFark" FontSize="22" FontWeight="SemiBold"
+                                   FontFamily="{StaticResource AppFontDisplay}"
+                                   Foreground="{StaticResource WarnTextBrush}"
+                                   Margin="0,2,0,0"/>
+                        <TextBlock x:Name="txtFarkAciklama" FontSize="11.5"
+                                   Foreground="{StaticResource TextDisabledBrush}"
+                                   TextWrapping="Wrap" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- ======== ALT SERIT ======== -->
+            <Border Grid.Row="5" Margin="0,16,0,0" Padding="24,12"
+                    Background="{StaticResource CardBrush}"
+                    CornerRadius="0,0,3,3">
+                <Grid>
+                    <TextBlock x:Name="txtDurum" FontSize="12" VerticalAlignment="Center"
+                               HorizontalAlignment="Left"
+                               Foreground="{StaticResource TextDisabledBrush}"/>
+
+                    <Button Style="{StaticResource PrimaryButton}" Content="Kapat"
+                            Height="32" Padding="18,0" HorizontalAlignment="Right"
+                            Click="btnKapat_Click"/>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

@@ -236,6 +236,29 @@
                                         Background="{StaticResource TextPrimaryBrush}"/>
                             </Grid>
                         </Button>
+                        <!-- Gorsel yerlesim: parcalarin gercek olculeri DXF'ten
+                             okundugu icin bu sayfada duruyor -->
+                        <Button x:Name="btnYerlesim" Style="{StaticResource SecondaryButton}"
+                                VerticalAlignment="Center" Margin="0,0,10,0"
+                                ToolTip="Dışa Aktarılmış Parçaları Plakaya Yerleştir"
+                                Click="btnYerlesim_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <!-- Plaka uzerine dizilmis parcalar; cizili simge -->
+                                <Grid Width="15" Height="11" VerticalAlignment="Center"
+                                      Margin="0,0,8,0">
+                                    <Border BorderBrush="{StaticResource TextPrimaryBrush}"
+                                            BorderThickness="1" CornerRadius="1"/>
+                                    <Rectangle Width="5" Height="4" Margin="2,2,0,0"
+                                               HorizontalAlignment="Left" VerticalAlignment="Top"
+                                               Fill="{StaticResource TextPrimaryBrush}"/>
+                                    <Rectangle Width="3" Height="5" Margin="0,0,2,2"
+                                               HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                               Fill="{StaticResource TextPrimaryBrush}"/>
+                                </Grid>
+                                <TextBlock Text="Yerleşim" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
                         <Button x:Name="btnScan" Style="{StaticResource PrimaryButton}"
                                 Click="btnScan_Click" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal">
@@ -267,10 +290,56 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- ======== ARAMA ======== -->
-                <TextBox Grid.Row="1" x:Name="txtSearch" Style="{StaticResource SearchBox}"
-                         Width="280" Height="34" HorizontalAlignment="Left"
-                         Margin="24,16,24,10" TextChanged="txtSearch_TextChanged"/>
+                <!-- ======== ARAMA + HAM SAC HATIRLATMASI ======== -->
+                <Grid Grid.Row="1" Margin="24,16,24,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="280"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox Grid.Column="0" x:Name="txtSearch"
+                             Style="{StaticResource SearchBox}"
+                             Height="34"
+                             TextChanged="txtSearch_TextChanged"/>
+
+                    <Border Grid.Column="1" Height="34" Margin="12,0"
+                            Padding="10,0"
+                            Background="{StaticResource HamSacReminderBrush}"
+                            BorderBrush="{StaticResource HamSacReminderBorderBrush}"
+                            BorderThickness="1" CornerRadius="4"
+                            ToolTip="Toplu DXF almadan önce işlenecek parçaların Ham Sac ölçülerini kontrol etmeyi unutmayın.">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="&#xE946;"
+                                       FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                       Foreground="{StaticResource HamSacReminderTextBrush}"
+                                       VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Grid.Column="1"
+                                       Text="Toplu DXF öncesi işlenecek parçaların Ham Sac ölçülerini kontrol edin."
+                                       FontSize="12"
+                                       Foreground="{StaticResource HamSacReminderTextBrush}"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </Grid>
+                    </Border>
+
+                    <Button Grid.Column="2" x:Name="btnHamSacGuncelle"
+                            Style="{StaticResource SecondaryButton}"
+                            Height="34"
+                            Click="btnHamSacGuncelle_Click"
+                            ToolTip="Ham sac değerlerini kaydet ve mevcut DXF dosya adlarını güncelle">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE895;" FontFamily="Segoe MDL2 Assets"
+                                       FontSize="13" VerticalAlignment="Center"
+                                       Margin="0,0,7,0"/>
+                            <TextBlock Text="Güncelle" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
 
                 <!-- ======== PARCA LISTESI + DXF ONIZLEME ======== -->
                 <Grid Grid.Row="2" Margin="24,0,24,0">
@@ -284,13 +353,56 @@
                             BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                             CornerRadius="6" ClipToBounds="True">
                         <Grid>
+                            <!-- Ham Sac sutunu duzenlenebilir oldugu icin tablo
+                                 salt okunur degil; ama liste CATIA taramasindan
+                                 geliyor, elle satir eklenip silinemez -->
                             <DataGrid x:Name="grid"
                                       AutoGenerateColumns="False"
-                                      IsReadOnly="True"
+                                      IsReadOnly="False"
+                                      CanUserAddRows="False"
+                                      CanUserDeleteRows="False"
+                                      CanUserResizeRows="False"
                                       GridLinesVisibility="All"
                                       HeadersVisibility="Column"
                                       PreviewMouseRightButtonDown="grid_PreviewMouseRightButtonDown"
                                       SelectionChanged="grid_SelectionChanged">
+                                <DataGrid.RowStyle>
+                                    <Style TargetType="DataGridRow"
+                                           BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HamSacFarkliMi}" Value="True">
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource HamSacChangedRowBrush}"/>
+                                            </DataTrigger>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource SurfaceBrush}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource RowSelectedBrush}"/>
+                                            </Trigger>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding HamSacFarkliMi}" Value="True"/>
+                                                    <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}"
+                                                               Value="True"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource HamSacChangedRowHoverBrush}"/>
+                                            </MultiDataTrigger>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding HamSacFarkliMi}" Value="True"/>
+                                                    <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}"
+                                                               Value="True"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource TileTealBrush}"/>
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGrid.RowStyle>
                                 <DataGrid.ContextMenu>
                                     <ContextMenu>
                                         <MenuItem Header="DXF Olarak Dışa Aktar" Click="mnuExportDxf_Click"/>
@@ -298,13 +410,47 @@
                                 </DataGrid.ContextMenu>
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Ürün Adı"
-                                                        Binding="{Binding ProductName}" Width="2*"/>
+                                                        Binding="{Binding ProductName}"
+                                                        IsReadOnly="True" Width="1.4*"/>
                                     <DataGridTextColumn Header="Parça Adı"
-                                                        Binding="{Binding PartName}" Width="3*"/>
+                                                        Binding="{Binding PartName}"
+                                                        IsReadOnly="True" Width="1.6*"/>
                                     <DataGridTextColumn Header="Kalınlık (mm)"
-                                                        Binding="{Binding Thickness}" Width="130"/>
+                                                        Binding="{Binding Thickness}"
+                                                        IsReadOnly="True" Width="100"/>
+                                    <DataGridTemplateColumn Width="120" IsReadOnly="False">
+                                        <DataGridTemplateColumn.Header>
+                                            <TextBlock Text="Ham Sac (mm)"
+                                                       ToolTip="Lazerden kesilecek ham sac kalınlığı"/>
+                                        </DataGridTemplateColumn.Header>
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBox Text="{Binding HamSacKalinligiMetni, UpdateSourceTrigger=PropertyChanged}"
+                                                         Height="28" MaxLength="10"
+                                                         HorizontalContentAlignment="Right"
+                                                         GotKeyboardFocus="HamSacTextBox_GotKeyboardFocus"
+                                                         ToolTip="Örnek: Bitmiş parça 13 mm, ham sac 16 mm ise buraya 16 yazın">
+                                                    <TextBox.Style>
+                                                        <Style TargetType="TextBox"
+                                                               BasedOn="{StaticResource FieldBox}">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding HamSacFarkliMi}"
+                                                                             Value="True">
+                                                                    <Setter Property="Background"
+                                                                            Value="{StaticResource HamSacChangedRowHoverBrush}"/>
+                                                                    <Setter Property="BorderBrush"
+                                                                            Value="{StaticResource HamSacReminderBorderBrush}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBox.Style>
+                                                </TextBox>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
                                     <DataGridTextColumn Header="Adet"
-                                                        Binding="{Binding Quantity}" Width="90"/>
+                                                        Binding="{Binding Quantity}"
+                                                        IsReadOnly="True" Width="62"/>
                                 </DataGrid.Columns>
                             </DataGrid>
 
@@ -487,6 +633,27 @@
                                       Fill="{StaticResource TextPrimaryBrush}"
                                       VerticalAlignment="Center" Margin="0,0,8,0"/>
                                 <TextBlock Text="Grafikler" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="btnNesting" Style="{StaticResource SecondaryButton}"
+                                VerticalAlignment="Center" Margin="8,0,0,0"
+                                ToolTip="Kalınlığa Göre Tahmini Plaka Tüketimini Hesapla"
+                                Click="btnNesting_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <!-- Plaka uzerine yerlesmis parcalar; cizili simge -->
+                                <Grid Width="15" Height="11" VerticalAlignment="Center"
+                                      Margin="0,0,8,0">
+                                    <Border BorderBrush="{StaticResource TextPrimaryBrush}"
+                                            BorderThickness="1" CornerRadius="1"/>
+                                    <Rectangle Width="5" Height="4" Margin="2,2,0,0"
+                                               HorizontalAlignment="Left" VerticalAlignment="Top"
+                                               Fill="{StaticResource TextPrimaryBrush}"/>
+                                    <Rectangle Width="3" Height="5" Margin="0,0,2,2"
+                                               HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                               Fill="{StaticResource TextPrimaryBrush}"/>
+                                </Grid>
+                                <TextBlock Text="Plaka Tüketimi" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
@@ -896,6 +1063,14 @@
                     </ScrollViewer>
                 </Grid>
             </Border>
+
+            <!-- ================================================================ -->
+            <!-- BILDIRIMLER — konsol kapaliyken kaydin gorunur hali              -->
+            <!-- ================================================================ -->
+            <!-- Butun satirlarin uzerinde durur; tiklanınca konsolu acar -->
+            <StackPanel x:Name="bildirimKatmani" Grid.Row="0" Grid.RowSpan="3"
+                        HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                        Margin="0,0,24,20" Width="360"/>
         </Grid>
     </Border>
 </Window>

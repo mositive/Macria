@@ -6,15 +6,37 @@
         Width="1080" Height="740"
         MinWidth="760" MinHeight="560"
         WindowStyle="None" ResizeMode="CanResize"
-        ShowInTaskbar="False"
+        ShowInTaskbar="True"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource BgBrush}"
         Foreground="{StaticResource TextPrimaryBrush}"
         FontFamily="{StaticResource AppFont}"
         UseLayoutRounding="True">
 
-    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-            CornerRadius="4">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="38"
+                      ResizeBorderThickness="6"
+                      GlassFrameThickness="0"
+                      CornerRadius="0"
+                      UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="Margin" Value="0"/>
+                <Setter Property="CornerRadius" Value="4"/>
+                <Style.Triggers>
+                    <!-- Buyutulmus pencere kenarlardan tasar, pay verilir -->
+                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}"
+                                 Value="Maximized">
+                        <Setter Property="Margin" Value="7"/>
+                        <Setter Property="CornerRadius" Value="0"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="38"/>
@@ -24,14 +46,36 @@
             </Grid.RowDefinitions>
 
             <!-- ======== BASLIK CUBUGU ======== -->
-            <Grid Grid.Row="0" Background="Transparent"
-                  MouseLeftButtonDown="Baslik_MouseLeftButtonDown">
+            <Grid Grid.Row="0">
                 <TextBlock Text="Grafikler" FontSize="12" FontWeight="SemiBold"
                            Foreground="{StaticResource TextSecondaryBrush}"
                            VerticalAlignment="Center" Margin="16,0,0,0"/>
-                <Button Style="{StaticResource WindowCloseButton}" Content="&#xE8BB;"
-                        HorizontalAlignment="Right" VerticalAlignment="Top"
-                        Click="btnKapat_Click"/>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                            VerticalAlignment="Top">
+                    <Button x:Name="btnKucult" Style="{StaticResource WindowButton}"
+                            Content="&#xE921;" Click="btnKucult_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True"/>
+
+                    <Button x:Name="btnBuyut" Click="btnBuyut_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource WindowButton}">
+                                <Setter Property="Content" Value="&#xE922;"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                 Value="Maximized">
+                                        <Setter Property="Content" Value="&#xE923;"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <Button Style="{StaticResource WindowCloseButton}" Content="&#xE8BB;"
+                            Click="btnKapat_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True"/>
+                </StackPanel>
             </Grid>
 
             <!-- ======== OZET SERIDI ======== -->

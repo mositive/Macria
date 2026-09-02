@@ -33,6 +33,13 @@ namespace Macria
         public static double KesimFiyat = 0;    // birim para / m
         public static string ParaBirimi = "₺";
 
+        // Plaka tuketimi tahmini (bkz. Nesting.cs)
+        public static double PlakaBoy = 3000;      // mm
+        public static double PlakaEn = 1500;       // mm
+        public static double NestingVerim = 80;    // yuzde
+        public static double ParcaPayi = 4;        // her parcanin dort yani, mm
+        public static double PlakaKenarPayi = 10;  // plaka kenari, mm
+
         // En son basarili kur cekiminden kalanlar (bkz. KurServisi)
         public static double KurEurTry;
         public static double KurUsdTry;
@@ -87,6 +94,11 @@ namespace Macria
                         case "KgFiyat": KgFiyat = Ondalik(deger, KgFiyat); break;
                         case "KesimFiyat": KesimFiyat = Ondalik(deger, KesimFiyat); break;
                         case "ParaBirimi": if (deger.Length > 0) ParaBirimi = deger; break;
+                        case "PlakaBoy": PlakaBoy = Ondalik(deger, PlakaBoy); break;
+                        case "PlakaEn": PlakaEn = Ondalik(deger, PlakaEn); break;
+                        case "NestingVerim": NestingVerim = Ondalik(deger, NestingVerim); break;
+                        case "ParcaPayi": ParcaPayi = Ondalik(deger, ParcaPayi); break;
+                        case "PlakaKenarPayi": PlakaKenarPayi = Ondalik(deger, PlakaKenarPayi); break;
                         case "KurEurTry": KurEurTry = Ondalik(deger, KurEurTry); break;
                         case "KurUsdTry": KurUsdTry = Ondalik(deger, KurUsdTry); break;
                         case "KurTarihi": KurTarihi = Gun(deger, KurTarihi); break;
@@ -124,6 +136,11 @@ namespace Macria
                     "KgFiyat=" + KgFiyat.ToString(CultureInfo.InvariantCulture),
                     "KesimFiyat=" + KesimFiyat.ToString(CultureInfo.InvariantCulture),
                     "ParaBirimi=" + ParaBirimi,
+                    "PlakaBoy=" + PlakaBoy.ToString(CultureInfo.InvariantCulture),
+                    "PlakaEn=" + PlakaEn.ToString(CultureInfo.InvariantCulture),
+                    "NestingVerim=" + NestingVerim.ToString(CultureInfo.InvariantCulture),
+                    "ParcaPayi=" + ParcaPayi.ToString(CultureInfo.InvariantCulture),
+                    "PlakaKenarPayi=" + PlakaKenarPayi.ToString(CultureInfo.InvariantCulture),
                     "KurEurTry=" + KurEurTry.ToString(CultureInfo.InvariantCulture),
                     "KurUsdTry=" + KurUsdTry.ToString(CultureInfo.InvariantCulture),
                     "KurTarihi=" + KurTarihi.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),

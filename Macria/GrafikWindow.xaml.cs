@@ -219,9 +219,16 @@ namespace Macria
 
         // ================= PENCERE =================
 
-        private void Baslik_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void btnKucult_Click(object sender, RoutedEventArgs e)
         {
-            if (e.ButtonState == MouseButtonState.Pressed) DragMove();
+            WindowState = WindowState.Minimized;
+        }
+
+        private void btnBuyut_Click(object sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState == WindowState.Maximized
+                ? WindowState.Normal
+                : WindowState.Maximized;
         }
 
         private void btnKapat_Click(object sender, RoutedEventArgs e)

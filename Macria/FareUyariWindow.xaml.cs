@@ -3,9 +3,12 @@ using System.Windows.Input;
 
 namespace Macria
 {
-    // Toplu export baslamadan once cikan bilgilendirme. Export sirasinda
-    // fare imleci ogretilmis konuma tikladigi icin kullanicinin fareye
-    // dokunmamasi gerekir; "bir daha gosterme" secimi profile yazilir.
+    // Export baslamadan once cikan bilgilendirme.
+    //
+    // Fare imleci kendi kendine hareket edip tikladigi icin ekran, bilgisayar
+    // ele gecirilmis gibi gorunuyor. Once bunun ne oldugu anlatilir, sonra
+    // fareye dokunmama uyarisi verilir. "Bir daha gosterme" secimi profile
+    // yazilir; varsayilan olarak isaretsizdir.
     public partial class FareUyariWindow : Window
     {
         public bool BirDahaGosterme
@@ -18,8 +21,8 @@ namespace Macria
             InitializeComponent();
             WindowEffects.RoundCorners(this);
 
-            // Windows'un uyari sesi: pencere gorunurken calsin
-            Loaded += (s, e) => System.Media.SystemSounds.Exclamation.Play();
+            // Bilgi sesi; uyari sesi "bir sey ters gitti" izlenimi verirdi
+            Loaded += (s, e) => System.Media.SystemSounds.Asterisk.Play();
         }
 
         private void btnBaslat_Click(object sender, RoutedEventArgs e)

@@ -41,6 +41,13 @@
         <SolidColorBrush x:Key="TileNeutralAltBrush" Color="#4A4944"/>
         <SolidColorBrush x:Key="TileTealBrush" Color="#2F6E6A"/>
 
+        <!-- Ham sac hatirlatmasi ve degistirilmis satirlar -->
+        <SolidColorBrush x:Key="HamSacReminderBrush" Color="#223B39"/>
+        <SolidColorBrush x:Key="HamSacReminderBorderBrush" Color="#3B7772"/>
+        <SolidColorBrush x:Key="HamSacReminderTextBrush" Color="#9ADDD6"/>
+        <SolidColorBrush x:Key="HamSacChangedRowBrush" Color="#244744"/>
+        <SolidColorBrush x:Key="HamSacChangedRowHoverBrush" Color="#2B5652"/>
+
         <!-- Ozet kartlari (Agirlik ve Maliyet) -->
         <SolidColorBrush x:Key="KpiNeutralBgBrush" Color="#2F2F2C"/>
         <SolidColorBrush x:Key="KpiNeutralBorderBrush" Color="#3D3D39"/>

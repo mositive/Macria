@@ -177,10 +177,43 @@ namespace Macria
             costGrid.Items.Refresh();
         }
 
+        // Bu iki pencere de konsol gibi modelsiz acilir: kipli olsalardi simge
+        // durumuna kucultuldugunde ana pencere kilitli kalirdi. Ikinci kez
+        // acilmazlar, one getirilirler.
+        private GrafikWindow _grafikWindow;
+        private NestingWindow _nestingWindow;
+
         private void btnGrafikler_Click(object sender, RoutedEventArgs e)
         {
-            var pencere = new GrafikWindow(_costRows, Ayarlar.ParaBirimi) { Owner = this };
-            pencere.ShowDialog();
+            if (OneGetir(_grafikWindow)) return;
+
+            _grafikWindow = new GrafikWindow(_costRows, Ayarlar.ParaBirimi) { Owner = this };
+            _grafikWindow.Closed += (s, ev) => _grafikWindow = null;
+            _grafikWindow.Show();
+        }
+
+        private void btnNesting_Click(object sender, RoutedEventArgs e)
+        {
+            if (OneGetir(_nestingWindow)) return;
+
+            _nestingWindow = new NestingWindow(_costRows, Ayarlar.Yogunluk,
+                                               Ayarlar.KgFiyat, Ayarlar.ParaBirimi)
+            { Owner = this };
+
+            _nestingWindow.Closed += (s, ev) => _nestingWindow = null;
+            _nestingWindow.Show();
+        }
+
+        // Acik pencere varsa simge durumundan cikarip one alir
+        private static bool OneGetir(Window pencere)
+        {
+            if (pencere == null) return false;
+
+            if (pencere.WindowState == WindowState.Minimized)
+                pencere.WindowState = WindowState.Normal;
+
+            pencere.Activate();
+            return true;
         }
 
         private static string BaglantiYolu(SutunTanimi s)

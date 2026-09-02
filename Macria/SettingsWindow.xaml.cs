@@ -31,17 +31,27 @@ namespace Macria
                 Loaded += (s, e) => btnOgret_Click(btnOgret, null);
         }
 
+        // Goruntu ogrenilemediyse sebebi burada tutulur
+        private string _gorselNot = "";
+
         // Kayitli konumun tek satirlik ozeti
-        private static string DurumMetni()
+        private string DurumMetni()
         {
             if (!Ayarlar.KonumVar)
                 return "Henüz öğretilmedi — export bu konum öğretilene kadar başlatılamaz.";
 
-            return "Öğretildi: pencere sol üstünden " +
-                   Ayarlar.Dx + ", " + Ayarlar.Dy + " piksel" +
-                   (Ayarlar.PencereSinifi.Length > 0
-                       ? "  (" + Ayarlar.PencereSinifi + ")"
-                       : "");
+            string temel =
+                "Öğretildi: pencere sol üstünden " +
+                Ayarlar.Dx + ", " + Ayarlar.Dy + " piksel" +
+                (Ayarlar.PencereSinifi.Length > 0
+                    ? "  (" + Ayarlar.PencereSinifi + ")"
+                    : "");
+
+            if (_gorselNot.Length > 0) return temel + "\n" + _gorselNot;
+
+            return temel + (SaveAsBulucu.VarMi()
+                ? "\nDüğmenin görüntüsü de öğrenildi — panel taşınsa da bulunur."
+                : "\nDüğme görüntüsü yok; yalnızca koordinata tıklanır.");
         }
 
         private void KonumYaz()
@@ -133,6 +143,20 @@ namespace Macria
             Ayarlar.KonumVar = true;
             Ayarlar.Kaydet();
 
+            // Koordinatin yaninda dugmenin goruntusu de saklanir; panel
+            // tasinir ya da boyutu degisirse arama bunun uzerinden yapilir
+            string gorselHata;
+
+            if (!SaveAsBulucu.Ogret(p.X, p.Y, out gorselHata))
+            {
+                SaveAsBulucu.Sil();
+                _gorselNot = "Görüntü öğrenilemedi: " + gorselHata;
+            }
+            else
+            {
+                _gorselNot = "";
+            }
+
             KonumYaz();
             Activate();
         }
@@ -146,6 +170,9 @@ namespace Macria
         private void btnTemizle_Click(object sender, RoutedEventArgs e)
         {
             Ayarlar.KonumuTemizle();
+            SaveAsBulucu.Sil();
+
+            _gorselNot = "";
             KonumYaz();
         }
 

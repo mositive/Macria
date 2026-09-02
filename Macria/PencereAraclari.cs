@@ -135,6 +135,13 @@ namespace Macria
         }
 
         // Ogretme aninda kaydedilen pencereye en yakin pencereyi bulur
+        // Ogretme aninda kullanilan pencereye en yakin aday; gorsel arama da
+        // taramayi bu pencereyle sinirlar
+        public static IntPtr HedefPencere()
+        {
+            return KayitliPencere();
+        }
+
         private static IntPtr KayitliPencere()
         {
             if (Ayarlar.PencereSinifi.Length == 0) return AnaPencere();
