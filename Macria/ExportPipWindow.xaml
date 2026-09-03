@@ -9,80 +9,310 @@
         FontFamily="{StaticResource AppFont}"
         UseLayoutRounding="True">
 
+    <Window.Resources>
+        <!-- Acinimin dis konturu: yuvarlatilmis koseler, ust kenarda bir
+             centik, sag ust kosede pah. Hem cizilen yol hem de kesim
+             kafasinin izledigi yol ayni geometridir; ikisi asla ayrisamaz.
+             Cevresi ~158 birim; kesikli desen buna gore ayarli. -->
+        <PathGeometry x:Key="AcinimYolu"
+                      Figures="M3,0 H13 V4 H21 V0 H45 A3,3 0 0 1 48,3 V27 A3,3 0 0 1 45,30 H3 A3,3 0 0 1 0,27 V3 A3,3 0 0 1 3,0 Z"/>
+    </Window.Resources>
+
     <Border Background="{StaticResource BgBrush}"
             BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-            CornerRadius="6" Padding="14,10">
-        <StackPanel Orientation="Horizontal">
-            <TextBlock x:Name="pipSpinner" Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="15"
-                       Foreground="{StaticResource LogInfoBrush}"
-                       VerticalAlignment="Center"
-                       RenderTransformOrigin="0.5,0.5">
-                <TextBlock.RenderTransform>
-                    <RotateTransform x:Name="pipSpin"/>
-                </TextBlock.RenderTransform>
-            </TextBlock>
-            <TextBlock x:Name="pipStateIcon" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="15"
-                       Foreground="{StaticResource LogSuccessBrush}"
-                       VerticalAlignment="Center" Visibility="Collapsed"/>
-            <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
-                <TextBlock FontSize="12" Foreground="{StaticResource TextPrimaryBrush}">
-                    <Run Text="Macria" FontWeight="Bold"/>
-                    <Run x:Name="pipTitleText" Text=" · Başlatılıyor..." FontWeight="SemiBold"/>
-                </TextBlock>
-                <TextBlock x:Name="pipDetail" Text="" FontSize="11"
-                           Foreground="{StaticResource TextSecondaryBrush}"
-                           Margin="0,2,0,0" MaxWidth="240"
-                           TextTrimming="CharacterEllipsis"/>
-                <TextBlock x:Name="pipLastLog" Text="" FontSize="10"
-                           FontFamily="Cascadia Mono, Consolas"
-                           Foreground="{StaticResource TextSecondaryBrush}"
-                           Margin="0,3,0,0" MaxWidth="240"
-                           TextTrimming="CharacterEllipsis"/>
-            </StackPanel>
+            CornerRadius="7" Padding="16,13,16,14">
+        <StackPanel>
 
-            <Button x:Name="btnStop" Click="btnStop_Click" Focusable="False"
-                    Margin="16,0,0,0" VerticalAlignment="Center"
-                    ToolTip="Acil Durdurma">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Background" Value="#B3342B"/>
-                        <Setter Property="Foreground" Value="#FFFFFF"/>
-                        <Setter Property="FontSize" Value="12"/>
-                        <Setter Property="FontWeight" Value="SemiBold"/>
-                        <Setter Property="Padding" Value="10,6"/>
-                        <Setter Property="SnapsToDevicePixels" Value="True"/>
-                        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="Button">
-                                    <Border x:Name="bd" Background="{TemplateBinding Background}"
-                                            CornerRadius="4" Padding="{TemplateBinding Padding}">
-                                        <ContentPresenter HorizontalAlignment="Center"
-                                                          VerticalAlignment="Center"/>
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="bd" Property="Background" Value="#C9453B"/>
-                                        </Trigger>
-                                        <Trigger Property="IsPressed" Value="True">
-                                            <Setter TargetName="bd" Property="Background" Value="#93281F"/>
-                                        </Trigger>
-                                        <Trigger Property="IsEnabled" Value="False">
-                                            <Setter TargetName="bd" Property="Background" Value="#4A2320"/>
-                                            <Setter Property="Foreground" Value="#B79E9B"/>
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-                </Button.Style>
-                <StackPanel Orientation="Horizontal">
-                    <Rectangle Width="9" Height="9" Fill="#FFFFFF" RadiusX="1" RadiusY="1"
-                               VerticalAlignment="Center" Margin="0,0,6,0"/>
-                    <TextBlock Text="Durdur"/>
+            <!-- ================================================================ -->
+            <!-- ANIMASYON — yazilarin ustunde                                     -->
+            <!-- ================================================================ -->
+            <Grid HorizontalAlignment="Center" Margin="0,0,0,12">
+
+                <!-- DXF: bukulu parcadan acinim cikiyor ve konturu ciziliyor -->
+                <Canvas x:Name="animDxf" Width="152" Height="50" Visibility="Collapsed">
+
+                    <!-- ======== KAYNAK: BUKULU SAC PARCA ======== -->
+                    <!-- Sagdaki acinimin katlanmis hali. Centik, iki delik ve
+                         bukum cizgisi ikisinde de ayni yerde; boylece "ayni
+                         parcanin acilmis hali" oldugu anlasiliyor. -->
+
+                    <!-- Taban yuzeyi; uzak kenarinda centik var -->
+                    <Path Data="M0,24 L8.9,20.75 L10.5,21.3 L16,19.3 L14.4,18.75 L22,16 L34,20 L12,28 Z"
+                          Fill="{StaticResource TextSecondaryBrush}"
+                          Stroke="{StaticResource TextSecondaryBrush}" StrokeThickness="1"
+                          StrokeLineJoin="Round" Opacity="0.32"/>
+
+                    <!-- Yukari bukulmus flans; acinimda bukum cizgisinin sagi -->
+                    <Path Data="M22,16 L29,8 L41,12 L34,20 Z"
+                          Fill="{StaticResource TextSecondaryBrush}"
+                          Stroke="{StaticResource TextSecondaryBrush}" StrokeThickness="1"
+                          StrokeLineJoin="Round" Opacity="0.5"/>
+
+                    <!-- Bukum kenari: acinimdaki kesikli cizginin karsiligi -->
+                    <Path Data="M22,16 L34,20"
+                          Stroke="{StaticResource TextSecondaryBrush}" StrokeThickness="1.1"
+                          StrokeDashArray="2 2.4" StrokeDashCap="Round" Opacity="0.75"/>
+
+                    <!-- Delikler: acinimdakilerle ayni iki delik, perspektifte.
+                         Sac delindigi icin icleri siyah; boylece dolu bir daire
+                         degil, gercek bir delik gibi duruyor. -->
+                    <Ellipse Canvas.Left="11.1" Canvas.Top="22.4" Width="6" Height="3"
+                             Fill="#000000"
+                             Stroke="{StaticResource TextSecondaryBrush}" StrokeThickness="0.9"
+                             Opacity="0.55"/>
+                    <Ellipse Canvas.Left="28.6" Canvas.Top="12.6" Width="5" Height="2.6"
+                             Fill="#000000"
+                             Stroke="{StaticResource TextSecondaryBrush}" StrokeThickness="0.9"
+                             Opacity="0.55"/>
+
+                    <!-- Akis: sirayla parlayan uc ok -->
+                    <Path x:Name="okA" Canvas.Left="52" Canvas.Top="14"
+                          Data="M0,0 L4,4 L0,8"
+                          Stroke="{StaticResource LogInfoBrush}" StrokeThickness="1.6"
+                          StrokeLineJoin="Round" StrokeStartLineCap="Round"
+                          StrokeEndLineCap="Round" Opacity="0.2"/>
+                    <Path x:Name="okB" Canvas.Left="59" Canvas.Top="14"
+                          Data="M0,0 L4,4 L0,8"
+                          Stroke="{StaticResource LogInfoBrush}" StrokeThickness="1.6"
+                          StrokeLineJoin="Round" StrokeStartLineCap="Round"
+                          StrokeEndLineCap="Round" Opacity="0.2"/>
+                    <Path x:Name="okC" Canvas.Left="66" Canvas.Top="14"
+                          Data="M0,0 L4,4 L0,8"
+                          Stroke="{StaticResource LogInfoBrush}" StrokeThickness="1.6"
+                          StrokeLineJoin="Round" StrokeStartLineCap="Round"
+                          StrokeEndLineCap="Round" Opacity="0.2"/>
+
+                    <!-- Hedef: kendi kendini cizen acinim -->
+                    <Path x:Name="dxfKontur" Canvas.Left="84" Canvas.Top="3"
+                          Data="{StaticResource AcinimYolu}"
+                          Stroke="{StaticResource TextPrimaryBrush}" StrokeThickness="1.5"
+                          StrokeLineJoin="Round" StrokeDashCap="Round"
+                          StrokeDashArray="106 106" StrokeDashOffset="106"/>
+
+                    <!-- Bukum cizgisi: 3B parcanin katlandigi kenar -->
+                    <Path x:Name="bukumCizgisi" Canvas.Left="116" Canvas.Top="6"
+                          Data="M0,0 V24" Opacity="0"
+                          Stroke="{StaticResource TextPrimaryBrush}" StrokeThickness="1.2"
+                          StrokeDashArray="2 2.4" StrokeDashCap="Round"/>
+
+                    <!-- Delikler: 3B parcadaki iki delik, acilmis halde -->
+                    <Ellipse x:Name="delikA" Canvas.Left="90.5" Canvas.Top="17.5"
+                             Width="7" Height="7" Opacity="0"
+                             Stroke="{StaticResource TextPrimaryBrush}" StrokeThickness="1.3"
+                             RenderTransformOrigin="0.5,0.5">
+                        <Ellipse.RenderTransform>
+                            <ScaleTransform x:Name="delikAOlcek"/>
+                        </Ellipse.RenderTransform>
+                    </Ellipse>
+
+                    <Ellipse x:Name="delikB" Canvas.Left="121" Canvas.Top="14"
+                             Width="6" Height="6" Opacity="0"
+                             Stroke="{StaticResource TextPrimaryBrush}" StrokeThickness="1.3"
+                             RenderTransformOrigin="0.5,0.5">
+                        <Ellipse.RenderTransform>
+                            <ScaleTransform x:Name="delikBOlcek"/>
+                        </Ellipse.RenderTransform>
+                    </Ellipse>
+
+                    <!-- Ne uretildigi yazsin: cizimin altinda dosya turu -->
+                    <TextBlock Canvas.Left="84" Canvas.Top="36" Width="48"
+                               Text="DXF" TextAlignment="Center"
+                               FontSize="10" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               Opacity="0.75"/>
+                </Canvas>
+
+                <!-- ================================================================ -->
+                <!-- HESAPLAMA: ayni parca tartiliyor                                 -->
+                <!-- ================================================================ -->
+                <!-- DXF ile ayni kurgu: solda ayni parca, ortada akis, sagda
+                     bu kez uretilen sey agirlik. Parcanin ayni olmasi iki
+                     akisin ayni is uzerinde calistigini gosteriyor. -->
+                <Canvas x:Name="animHesap" Width="152" Height="50" Visibility="Collapsed">
+
+                    <Path Data="M0,24 L8.9,20.75 L10.5,21.3 L16,19.3 L14.4,18.75 L22,16 L34,20 L12,28 Z"
+                          Fill="{StaticResource TextSecondaryBrush}"
+                          Stroke="{StaticResource TextSecondaryBrush}" StrokeThickness="1"
+                          StrokeLineJoin="Round" Opacity="0.32"/>
+
+                    <Path Data="M22,16 L29,8 L41,12 L34,20 Z"
+                          Fill="{StaticResource TextSecondaryBrush}"
+                          Stroke="{StaticResource TextSecondaryBrush}" StrokeThickness="1"
+                          StrokeLineJoin="Round" Opacity="0.5"/>
+
+                    <Path Data="M22,16 L34,20"
+                          Stroke="{StaticResource TextSecondaryBrush}" StrokeThickness="1.1"
+                          StrokeDashArray="2 2.4" StrokeDashCap="Round" Opacity="0.75"/>
+
+                    <Ellipse Canvas.Left="11.1" Canvas.Top="22.4" Width="6" Height="3"
+                             Fill="#000000"
+                             Stroke="{StaticResource TextSecondaryBrush}" StrokeThickness="0.9"
+                             Opacity="0.55"/>
+                    <Ellipse Canvas.Left="28.6" Canvas.Top="12.6" Width="5" Height="2.6"
+                             Fill="#000000"
+                             Stroke="{StaticResource TextSecondaryBrush}" StrokeThickness="0.9"
+                             Opacity="0.55"/>
+
+                    <!-- Akis oklari: bu akista turkuaz -->
+                    <Path x:Name="okD" Canvas.Left="52" Canvas.Top="14"
+                          Data="M0,0 L4,4 L0,8"
+                          Stroke="{StaticResource HamSacReminderTextBrush}" StrokeThickness="1.6"
+                          StrokeLineJoin="Round" StrokeStartLineCap="Round"
+                          StrokeEndLineCap="Round" Opacity="0.2"/>
+                    <Path x:Name="okE" Canvas.Left="59" Canvas.Top="14"
+                          Data="M0,0 L4,4 L0,8"
+                          Stroke="{StaticResource HamSacReminderTextBrush}" StrokeThickness="1.6"
+                          StrokeLineJoin="Round" StrokeStartLineCap="Round"
+                          StrokeEndLineCap="Round" Opacity="0.2"/>
+                    <Path x:Name="okF" Canvas.Left="66" Canvas.Top="14"
+                          Data="M0,0 L4,4 L0,8"
+                          Stroke="{StaticResource HamSacReminderTextBrush}" StrokeThickness="1.6"
+                          StrokeLineJoin="Round" StrokeStartLineCap="Round"
+                          StrokeEndLineCap="Round" Opacity="0.2"/>
+
+                    <!-- ======== AGIRLIK VE PARA ======== -->
+                    <!-- Olcumun urettigi iki deger: kilo ve para. Once agirlik
+                         yerine iner, sonra yanina paralar gelir. -->
+
+                    <!-- Tartilarin uzerine konan klasik agirlik -->
+                    <Canvas x:Name="agirlikGrup" Canvas.Left="84" Canvas.Top="3"
+                            Width="30" Height="30">
+                        <Canvas.RenderTransform>
+                            <TranslateTransform x:Name="agirlikKay"/>
+                        </Canvas.RenderTransform>
+
+                        <!-- Sap -->
+                        <Path Data="M9,11 A5,5 0 0 1 19,11"
+                              Stroke="{StaticResource TextPrimaryBrush}" StrokeThickness="2"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                              Opacity="0.9"/>
+
+                        <!-- Govde -->
+                        <Path Data="M5,11 L23,11 L26,25 L2,25 Z"
+                              Fill="{StaticResource TextPrimaryBrush}" Opacity="0.28"/>
+                        <Path Data="M5,11 L23,11 L26,25 L2,25 Z"
+                              Stroke="{StaticResource TextPrimaryBrush}" StrokeThickness="1.4"
+                              StrokeLineJoin="Round" Opacity="0.9"/>
+                    </Canvas>
+
+                    <!-- Maliyeti temsil eden paralar -->
+                    <Ellipse x:Name="paraArka" Canvas.Left="115" Canvas.Top="8"
+                             Width="13" Height="13" Opacity="0"
+                             Fill="{StaticResource HamSacReminderTextBrush}"
+                             RenderTransformOrigin="0.5,0.5">
+                        <Ellipse.RenderTransform>
+                            <ScaleTransform x:Name="paraArkaOlcek"/>
+                        </Ellipse.RenderTransform>
+                    </Ellipse>
+
+                    <Canvas x:Name="paraOn" Canvas.Left="120" Canvas.Top="14"
+                            Width="15" Height="15" Opacity="0"
+                            RenderTransformOrigin="0.5,0.5">
+                        <Canvas.RenderTransform>
+                            <ScaleTransform x:Name="paraOnOlcek"/>
+                        </Canvas.RenderTransform>
+
+                        <Ellipse Width="15" Height="15"
+                                 Fill="{StaticResource HamSacReminderTextBrush}"/>
+                        <TextBlock Width="15" Text="₺" TextAlignment="Center"
+                                   FontSize="10" FontWeight="SemiBold"
+                                   Canvas.Top="0.5"
+                                   Foreground="{StaticResource BgBrush}"/>
+                    </Canvas>
+
+                    <!-- Uretilen iki deger -->
+                    <TextBlock x:Name="kgYazi" Canvas.Left="84" Canvas.Top="36" Width="48"
+                               Text="kg · ₺" TextAlignment="Center"
+                               FontSize="10" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               Opacity="0.75" RenderTransformOrigin="0.5,0.5">
+                        <TextBlock.RenderTransform>
+                            <ScaleTransform x:Name="kgOlcek"/>
+                        </TextBlock.RenderTransform>
+                    </TextBlock>
+                </Canvas>
+            </Grid>
+
+            <!-- ================================================================ -->
+            <!-- METINLER VE DURDUR                                                -->
+            <!-- ================================================================ -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock x:Name="pipStateIcon" Text="&#xE73E;"
+                                   FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                   Foreground="{StaticResource LogSuccessBrush}"
+                                   VerticalAlignment="Center" Margin="0,0,8,0"
+                                   Visibility="Collapsed"/>
+
+                        <TextBlock FontSize="13" Foreground="{StaticResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center">
+                            <Run Text="Macria" FontWeight="Bold"/>
+                            <Run x:Name="pipTitleText" Text=" · Başlatılıyor..." FontWeight="SemiBold"/>
+                        </TextBlock>
+                    </StackPanel>
+
+                    <TextBlock x:Name="pipDetail" Text="" FontSize="12"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Margin="0,3,0,0" MaxWidth="300"
+                               TextTrimming="CharacterEllipsis"/>
+
+                    <TextBlock x:Name="pipLastLog" Text="" FontSize="10.5"
+                               FontFamily="Cascadia Mono, Consolas"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Margin="0,4,0,0" MaxWidth="300"
+                               TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
-            </Button>
+
+                <Button Grid.Column="1" x:Name="btnStop" Click="btnStop_Click" Focusable="False"
+                        Margin="18,0,0,0" VerticalAlignment="Center"
+                        ToolTip="Acil Durdurma">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="#B3342B"/>
+                            <Setter Property="Foreground" Value="#FFFFFF"/>
+                            <Setter Property="FontSize" Value="12"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="Padding" Value="11,7"/>
+                            <Setter Property="SnapsToDevicePixels" Value="True"/>
+                            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="bd" Property="Background" Value="#C9453B"/>
+                                            </Trigger>
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter TargetName="bd" Property="Background" Value="#93281F"/>
+                                            </Trigger>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter TargetName="bd" Property="Background" Value="#4A2320"/>
+                                                <Setter Property="Foreground" Value="#B79E9B"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                    <StackPanel Orientation="Horizontal">
+                        <Rectangle Width="9" Height="9" Fill="#FFFFFF" RadiusX="1" RadiusY="1"
+                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Durdur"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
         </StackPanel>
     </Border>
 </Window>
