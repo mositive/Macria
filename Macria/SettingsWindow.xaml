@@ -62,6 +62,39 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Buküm Bilgisi -->
+                <TextBlock Text="Büküm Bilgisi (Bend Information)" FontSize="12"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="0,20,0,0"/>
+
+                <Border Background="{StaticResource CardBrush}"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                        CornerRadius="4" Padding="14" Margin="0,8,0,0">
+                    <StackPanel>
+                        <CheckBox x:Name="chkBukumKapat"
+                                  Content="Export Öncesi Kutuyu Kaldır"/>
+
+                        <TextBlock TextWrapping="Wrap" FontSize="12.5" LineHeight="19"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="24,8,0,0"
+                                   Text="Save as Dxf panelindeki &quot;Bend Information&quot; işaretliyken CATIA bazı parçalarda çökebiliyor. Macria, Save As'e basmadan hemen önce kutuyu kaldırır. Kutunun yerini bir kez öğretmeniz gerekir: panelde kutu İŞARETLİYKEN üzerine gelip F8'e basın."/>
+
+                        <TextBlock x:Name="txtBukum" FontSize="12.5" Margin="24,10,0,0"
+                                   TextWrapping="Wrap"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+
+                        <StackPanel Orientation="Horizontal" Margin="24,12,0,0">
+                            <Button x:Name="btnBukumOgret" Style="{StaticResource PrimaryButton}"
+                                    Content="Kutuyu Öğret" Height="30" Padding="14,0"
+                                    Click="btnBukumOgret_Click"/>
+                            <Button x:Name="btnBukumTemizle" Style="{StaticResource SecondaryButton}"
+                                    Content="Temizle" Height="30" Padding="14,0"
+                                    Margin="8,0,0,0" Click="btnBukumTemizle_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
                 <!-- Zamanlama -->
                 <TextBlock Text="Zamanlama" FontSize="12" FontWeight="SemiBold"
                            Foreground="{StaticResource TextSecondaryBrush}"

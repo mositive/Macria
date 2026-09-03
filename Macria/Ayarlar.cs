@@ -26,6 +26,12 @@ namespace Macria
         public static int PencereGenislik;      // ogretme anindaki pencere olcusu
         public static int PencereYukseklik;
 
+        // Bend Information onay kutusu (bkz. BukumBulucu). Kutu isaretliyken
+        // CATIA bazi parcalarda cokuyor; export oncesi kaldiriliyor.
+        public static bool BukumKapat = true;
+        public static double BukumGri = -1;         // ogretme anindaki kutu parlakligi
+        public static double BukumDoygunluk = -1;   // ve renk doygunlugu
+
         // Agirlik ve maliyet sekmesi
         public static string MalzemeAdi = "DKP / St37 (Çelik)";
         public static double Yogunluk = 7.85;   // g/cm3
@@ -88,6 +94,9 @@ namespace Macria
                         case "Dy": Dy = Sayi(deger, Dy); break;
                         case "PencereGenislik": PencereGenislik = Sayi(deger, PencereGenislik); break;
                         case "PencereYukseklik": PencereYukseklik = Sayi(deger, PencereYukseklik); break;
+                        case "BukumKapat": BukumKapat = deger == "1"; break;
+                        case "BukumGri": BukumGri = Ondalik(deger, BukumGri); break;
+                        case "BukumDoygunluk": BukumDoygunluk = Ondalik(deger, BukumDoygunluk); break;
 
                         case "MalzemeAdi": if (deger.Length > 0) MalzemeAdi = deger; break;
                         case "Yogunluk": Yogunluk = Ondalik(deger, Yogunluk); break;
@@ -130,6 +139,9 @@ namespace Macria
                     "Dy=" + Dy,
                     "PencereGenislik=" + PencereGenislik,
                     "PencereYukseklik=" + PencereYukseklik,
+                    "BukumKapat=" + (BukumKapat ? "1" : "0"),
+                    "BukumGri=" + BukumGri.ToString(CultureInfo.InvariantCulture),
+                    "BukumDoygunluk=" + BukumDoygunluk.ToString(CultureInfo.InvariantCulture),
 
                     "MalzemeAdi=" + MalzemeAdi,
                     "Yogunluk=" + Yogunluk.ToString(CultureInfo.InvariantCulture),

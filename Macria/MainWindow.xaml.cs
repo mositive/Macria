@@ -2562,6 +2562,9 @@ namespace Macria
                 // tarafindan yanitlanir; burada sadece panelin acilmasi beklenir
                 await System.Threading.Tasks.Task.Delay(Ayarlar.PanelBekleme);
 
+                // Bend Information isaretli kalirsa CATIA cokebiliyor
+                await BukumBilgisiniKapat();
+
                 hSave = await SaveAsBas(hCatia, deneme);
 
                 if (hSave == IntPtr.Zero)
@@ -2657,6 +2660,66 @@ namespace Macria
 
             LogInfo("Öğretilmiş Konuma Tıklanıyor: " + x + ", " + y);
             return true;
+        }
+
+        // ================= BEND INFORMATION KUTUSU =================
+        //
+        // Panelde "Bend Information" isaretliyken CATIA bazi parcalarda
+        // cokuyor. Kutu, Save As'e basilmadan hemen once kaldiriliyor.
+        //
+        // Tiklama yalnizca kutu gercekten isaretli gorunuyorsa yapilir:
+        // satir bulunamadiysa ya da rengi okunamadiysa hicbir sey yapilmaz,
+        // cunku bos bir kutuya tiklamak onu isaretlerdi (bkz. BukumBulucu).
+        private static bool _bukumUyarisiVerildi;
+
+        private async System.Threading.Tasks.Task BukumBilgisiniKapat()
+        {
+            if (!Ayarlar.BukumKapat) return;
+
+            if (!BukumBulucu.VarMi())
+            {
+                if (!_bukumUyarisiVerildi)
+                {
+                    _bukumUyarisiVerildi = true;
+
+                    LogInfo("Bend Information Kutusu Öğretilmemiş — Kutu " +
+                            "Kapatılmayacak. Ayarlar'dan Öğretebilirsiniz.");
+                }
+
+                return;
+            }
+
+            BukumBulucu.Durum d = BukumBulucu.Bul(PencereAraclari.HedefPencere());
+
+            if (!d.Bulundu)
+            {
+                LogInfo("Bend Information Satırı Panelde Bulunamadı — Atlandı.");
+                return;
+            }
+
+            if (!d.Isaretli)
+            {
+                LogInfo("Bend Information Zaten Kapalı.");
+                return;
+            }
+
+            LogInfo("Bend Information İşaretli — Kaldırılıyor (Benzerlik %" +
+                    Math.Round(d.Skor * 100) + ").");
+
+            ClickAt(d.X, d.Y);
+            await System.Threading.Tasks.Task.Delay(400);
+
+            double gri, doygunluk;
+
+            if (BukumBulucu.Olc(d.X, d.Y, out gri, out doygunluk) &&
+                BukumBulucu.Isaretli(gri, doygunluk))
+            {
+                LogError("Bend Information Kutusu Kapatılamadı — CATIA Bu Parçada " +
+                         "Çökebilir.");
+                return;
+            }
+
+            LogSuccess("Bend Information Kutusu Kapatıldı.");
         }
 
         private async System.Threading.Tasks.Task<IntPtr> SaveAsBas(IntPtr hCatia, int deneme)
