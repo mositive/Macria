@@ -5,6 +5,8 @@ using System.Linq;
 
 namespace Macria;
 
+// hello
+
 public sealed record CatiaScanSnapshotItem(string ReferenceTitle, string PlmName, string Revision,
     string ReferenceKey, int? Quantity, bool SheetMetalConfirmed);
 

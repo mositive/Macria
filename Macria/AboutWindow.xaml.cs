@@ -7,6 +7,7 @@ using System.Windows.Input;
 namespace Macria
 {
     // Uygulama kimligi, gelistiriciler ve calisma ortami bilgisini gosteren pencere.
+    // merhaba test
     public partial class AboutWindow : Window
     {
         public AboutWindow()
