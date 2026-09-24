@@ -10,23 +10,44 @@
 		<ApplicationIcon>Assets\macria.ico</ApplicationIcon>
 
 		<Product>Macria</Product>
-		<Version>1.8.1</Version>
+    <Version>1.11.1</Version>
+    <FileVersion>1.11.1.0</FileVersion>
+    <AssemblyVersion>1.11.1.0</AssemblyVersion>
+    <InformationalVersion>1.11.1</InformationalVersion>
 		<Company>BMC</Company>
 		<Authors>Enes Yeşilöz, Emre Koçak</Authors>
 		<Copyright> © Macria 2026 | Tüm hakları saklıdır. </Copyright>
-		<Description>CATIA / 3DEXPERIENCE montajlarındaki sac parçaları listeleyen ve DXF olarak dışa aktaran masaüstü uygulaması.</Description>
+		<Description>CATIA / 3DEXPERIENCE montajlarında sac parçaları DXF'e aktaran; deneysel kutu profil teşhisi ve seçili STEP dışa aktarımı sunan masaüstü uygulaması.</Description>
+		<GeometryEngineRuntimeDirectory>$(MSBuildProjectDirectory)\..\GeometryEngineRuntime</GeometryEngineRuntimeDirectory>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Reference Include="Microsoft.VisualBasic" />
-	</ItemGroup>
-
-	<ItemGroup>
+		<!-- The independently deployed native engine is copied, never loaded into Macria. -->
+		<Content Include="$(GeometryEngineRuntimeDirectory)\**\*">
+			<Link>GeometryEngine\%(RecursiveDir)%(Filename)%(Extension)</Link>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+		</Content>
 		<Resource Include="Assets\macria-logo.png" />
 		<Resource Include="Assets\tutorial-1.png" />
 		<Resource Include="Assets\tutorial-2.png" />
 		<Resource Include="Assets\tutorial-3.png" />
 		<Resource Include="Assets\tutorial-4.png" />
+		<Resource Include="Assets\status-sad.png" />
+		<Resource Include="Assets\status-thinking.png" />
+		<Resource Include="Assets\status-hidden.png" />
+		<Resource Include="Assets\coffee-walk-01.png" />
+		<Resource Include="Assets\coffee-walk-02.png" />
+		<Resource Include="Assets\coffee-walk-03.png" />
+		<Resource Include="Assets\coffee-walk-04.png" />
+		<Resource Include="Assets\coffee-walk-05.png" />
+		<Resource Include="Assets\coffee-walk-06.png" />
+		<Resource Include="Assets\coffee-walk-07.png" />
+		<Resource Include="Assets\coffee-walk-08.png" />
+		<Resource Include="Assets\coffee-friends-barrel-transparent.png" />
+		<Resource Include="Assets\coffee-friends-barrel-v2-transparent.png" />
+		<Resource Include="Assets\turan-vehicle-white.png" />
 	</ItemGroup>
 
 </Project>

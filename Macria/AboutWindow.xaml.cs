@@ -30,7 +30,7 @@ namespace Macria
             var asm = Assembly.GetExecutingAssembly();
 
             var bilgi = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-            string s = bilgi == null ? null : bilgi.InformationalVersion;
+            string? s = bilgi == null ? null : bilgi.InformationalVersion;
 
             if (string.IsNullOrWhiteSpace(s))
             {

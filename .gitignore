@@ -16,11 +16,16 @@
 [Pp]ublish/
 *.publishsettings
 PublishScripts/
+*.zip
+ExeArsivi/
+Macria-v1.11.0-IsYeri-Test/
+Macria_v1.11.1_IsYeri_Test/
 
 # ReSharper / Rider
 _ReSharper*/
 *.[Rr]e[Ss]harper
 .idea/
+.vscode/
 
 # NuGet
 *.nupkg

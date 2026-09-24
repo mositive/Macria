@@ -73,7 +73,7 @@ namespace Macria
             var dugme = sender as Button;
             if (dugme == null) return;
 
-            string etiket = dugme.Tag as string;
+            string? etiket = dugme.Tag as string;
             if (string.IsNullOrEmpty(etiket)) return;
 
             string[] parca = etiket.Split('x');

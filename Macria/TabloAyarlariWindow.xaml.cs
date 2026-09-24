@@ -53,7 +53,7 @@ namespace Macria
 
         // ================= SUTUN DUGMELERI =================
 
-        private static SutunSatiri Satir(object sender)
+        private static SutunSatiri? Satir(object sender)
         {
             var oge = sender as FrameworkElement;
             return oge == null ? null : oge.DataContext as SutunSatiri;
@@ -61,7 +61,7 @@ namespace Macria
 
         private void btnYukari_Click(object sender, RoutedEventArgs e)
         {
-            SutunSatiri s = Satir(sender);
+            SutunSatiri? s = Satir(sender);
             int i = s == null ? -1 : _sutunlar.IndexOf(s);
 
             if (i > 0) _sutunlar.Move(i, i - 1);
@@ -69,7 +69,7 @@ namespace Macria
 
         private void btnAsagi_Click(object sender, RoutedEventArgs e)
         {
-            SutunSatiri s = Satir(sender);
+            SutunSatiri? s = Satir(sender);
             int i = s == null ? -1 : _sutunlar.IndexOf(s);
 
             if (i >= 0 && i < _sutunlar.Count - 1) _sutunlar.Move(i, i + 1);
@@ -77,7 +77,7 @@ namespace Macria
 
         private void btnSutunSil_Click(object sender, RoutedEventArgs e)
         {
-            SutunSatiri s = Satir(sender);
+            SutunSatiri? s = Satir(sender);
             if (s == null || !s.Ozel) return;
 
             if (!OnayWindow.Sor(this, "Sütunu Sil",
@@ -169,11 +169,13 @@ namespace Macria
 
             foreach (ParametreSatiri p in _parametreler)
             {
-                string hata;
-                ParametreTanimi tanim = p.Tanim(kullanilanAdlar, out hata);
+                string? hata;
+                ParametreTanimi? tanim = p.Tanim(kullanilanAdlar, out hata);
 
                 if (hata != null) { Uyar(hata); return; }
 
+                // Tanim hata sonucunda null döner; mevcut hata mesajı yukarıda korunur.
+                if (tanim == null) return;
                 kullanilanAdlar.Add(tanim.Anahtar);
                 parametreler.Add(tanim);
             }
@@ -192,11 +194,12 @@ namespace Macria
 
             foreach (SutunSatiri s in _sutunlar)
             {
-                string hata;
-                SutunTanimi tanim = s.Tanim(kullanilanAdlar, out hata);
+                string? hata;
+                SutunTanimi? tanim = s.Tanim(kullanilanAdlar, out hata);
 
                 if (hata != null) { Uyar(hata); return; }
 
+                if (tanim == null) return;
                 sutunlar.Add(tanim);
             }
 
@@ -323,7 +326,7 @@ namespace Macria
             get { return Kaynak.Metin ? Visibility.Collapsed : Visibility.Visible; }
         }
 
-        internal SutunTanimi Tanim(HashSet<string> bilinenAdlar, out string hata)
+        internal SutunTanimi? Tanim(HashSet<string> bilinenAdlar, out string? hata)
         {
             hata = null;
 
@@ -362,7 +365,7 @@ namespace Macria
                 }
 
                 // Tam ad: bu sinifta "Formul" adinda bir ozellik de var
-                string formulHatasi;
+                string? formulHatasi;
                 if (!Macria.Formul.Gecerli(t.Formul, bilinenAdlar, out formulHatasi))
                 {
                     hata = "\"" + t.Baslik + "\" formülü: " + formulHatasi;
@@ -393,7 +396,7 @@ namespace Macria
         public string Birim { get; set; }
         public string Deger { get; set; }
 
-        internal ParametreTanimi Tanim(HashSet<string> bilinenAdlar, out string hata)
+        internal ParametreTanimi? Tanim(HashSet<string> bilinenAdlar, out string? hata)
         {
             hata = null;
 

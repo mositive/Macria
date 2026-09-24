@@ -438,7 +438,7 @@ namespace Macria
         }
 
         // Acil durdurma istegi; MainWindow dinler
-        public event Action StopRequested;
+        public event Action? StopRequested;
 
         private void btnStop_Click(object sender, RoutedEventArgs e)
         {

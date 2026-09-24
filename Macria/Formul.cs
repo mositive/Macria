@@ -35,7 +35,7 @@ namespace Macria
         // Ifadeyi hesaplar. Hata yoksa hata=null doner.
         // Sonuc null ise: ya deger eksik ya da tanimsiz islem (0'a bolme).
         public static double? Hesapla(string ifade, IDictionary<string, double?> degerler,
-                                      out string hata)
+                                      out string? hata)
         {
             hata = null;
 
@@ -61,7 +61,7 @@ namespace Macria
         }
 
         // Diyalogda formulu denemek icin: butun degiskenlere 1 verilir
-        public static bool Gecerli(string ifade, IEnumerable<string> degiskenler, out string hata)
+        public static bool Gecerli(string ifade, IEnumerable<string> degiskenler, out string? hata)
         {
             var deneme = new Dictionary<string, double?>(StringComparer.OrdinalIgnoreCase);
             foreach (string d in degiskenler) deneme[d] = 1.0;
@@ -254,35 +254,41 @@ namespace Macria
                 if (argumanlar.Count != beklenen)
                     throw new FormulHatasi(ad + " fonksiyonu " + beklenen + " değer ister.");
 
+                // Eksik argüman aynı şekilde null sonuç verir; hesap yardımcısına
+                // yalnızca doğrulanmış gerçek sayılar aktarılır.
+                var sayilar = new List<double>(argumanlar.Count);
                 foreach (double? a in argumanlar)
-                    if (!a.HasValue) return null;
+                {
+                    if (a is not double sayi) return null;
+                    sayilar.Add(sayi);
+                }
 
-                return Uygula(ad, argumanlar);
+                return Uygula(ad, sayilar);
             }
 
-            private static double? Uygula(string ad, List<double?> a)
+            private static double? Uygula(string ad, List<double> a)
             {
                 switch (ad.ToLowerInvariant())
                 {
                     case "mutlak":
-                    case "abs": return Math.Abs(a[0].Value);
+                    case "abs": return Math.Abs(a[0]);
 
                     case "kok":
-                    case "sqrt": return a[0].Value < 0 ? (double?)null : Math.Sqrt(a[0].Value);
+                    case "sqrt": return a[0] < 0 ? (double?)null : Math.Sqrt(a[0]);
 
                     case "tavan":
-                    case "ceil": return Math.Ceiling(a[0].Value);
+                    case "ceil": return Math.Ceiling(a[0]);
 
                     case "taban":
-                    case "floor": return Math.Floor(a[0].Value);
+                    case "floor": return Math.Floor(a[0]);
 
                     case "yuvarla":
                     case "round":
-                        int basamak = (int)Math.Max(0, Math.Min(15, a[1].Value));
-                        return Math.Round(a[0].Value, basamak, MidpointRounding.AwayFromZero);
+                        int basamak = (int)Math.Max(0, Math.Min(15, a[1]));
+                        return Math.Round(a[0], basamak, MidpointRounding.AwayFromZero);
 
-                    case "min": return Math.Min(a[0].Value, a[1].Value);
-                    case "max": return Math.Max(a[0].Value, a[1].Value);
+                    case "min": return Math.Min(a[0], a[1]);
+                    case "max": return Math.Max(a[0], a[1]);
                 }
 
                 throw new FormulHatasi("Bilinmeyen fonksiyon: " + ad);

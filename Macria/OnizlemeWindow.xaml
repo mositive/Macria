@@ -9,7 +9,21 @@
         Foreground="{StaticResource TextPrimaryBrush}"
         FontFamily="{StaticResource AppFont}"
         UseLayoutRounding="True"
+        PreviewKeyDown="OnizlemeWindow_PreviewKeyDown"
         WindowStartupLocation="CenterOwner">
+
+    <Window.Resources>
+        <Style x:Key="EditIconButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="3,0,0,0"/>
+            <Setter Property="FontSize" Value="24"/>
+            <Setter Property="FontFamily" Value="Segoe UI Emoji"/>
+            <Setter Property="ToolTipService.InitialShowDelay" Value="500"/>
+            <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
+        </Style>
+    </Window.Resources>
 
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="38"
@@ -48,7 +62,7 @@
                     <Image Source="Assets/macria-logo.png" Width="18" Height="18"
                            RenderOptions.BitmapScalingMode="HighQuality"
                            VerticalAlignment="Center"/>
-                    <TextBlock Text="DXF Önizleme" FontSize="12" FontWeight="SemiBold"
+                    <TextBlock x:Name="txtBaslik" Text="DXF Önizleme" FontSize="12" FontWeight="SemiBold"
                                Foreground="{StaticResource TextSecondaryBrush}"
                                VerticalAlignment="Center" Margin="9,0,0,0"/>
                 </StackPanel>
@@ -79,7 +93,13 @@
 
             <!-- ======== PARCA SERIDI ======== -->
             <Grid Grid.Row="1" Margin="16,0,16,10">
-                <StackPanel VerticalAlignment="Center" Margin="0,0,190,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <StackPanel VerticalAlignment="Center">
                     <TextBlock x:Name="txtParca" FontSize="15" FontWeight="SemiBold"
                                TextTrimming="CharacterEllipsis"
                                Text="Listeden Bir Parça Seçin"/>
@@ -88,8 +108,20 @@
                                TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
-                            VerticalAlignment="Center">
+                <WrapPanel Grid.Row="1" HorizontalAlignment="Right" Margin="0,8,0,0">
+                    <Button x:Name="btnSec" Style="{StaticResource SecondaryButton}"
+                        Content="Seç" Height="30" Padding="12,0"
+                        Click="btnSec_Click"/>
+                    <Button x:Name="btnMesafe" Style="{StaticResource SecondaryButton}"
+                        Content="Mesafe" Height="30" Padding="12,0" Margin="6,0,0,0"
+                        Click="btnMesafe_Click"/>
+                    <Button x:Name="btnCizgiCizgi" Style="{StaticResource SecondaryButton}"
+                        Content="Çizgi-Çizgi" Height="30" Padding="12,0" Margin="6,0,0,0"
+                        ToolTip="İki paralel LINE seç, ölçüyü üçüncü tıkla yerleştir (ESC: iptal)"
+                        Click="btnCizgiCizgi_Click"/>
+                    <Button x:Name="btnTemizle" Style="{StaticResource SecondaryButton}"
+                        Content="Temizle" Height="30" Padding="12,0" Margin="6,0,8,0"
+                        Click="btnTemizle_Click"/>
                     <Button x:Name="btnSigdir" Style="{StaticResource SecondaryButton}"
                             Content="Sığdır" Height="30" Padding="14,0"
                             ToolTip="Yakınlaştırmayı Sıfırla"
@@ -98,7 +130,65 @@
                             Content="Dosyayı Aç" Height="30" Padding="14,0" Margin="8,0,0,0"
                             IsEnabled="False"
                             Click="btnAc_Click"/>
-                </StackPanel>
+                </WrapPanel>
+                <Grid Grid.Row="2" Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <CheckBox x:Name="chkEditModu" Content="Edit Modu" VerticalAlignment="Center"
+                              Margin="0,0,10,0" Checked="EditModu_Degisti" Unchecked="EditModu_Degisti"
+                              ToolTip="Yalnızca kaynak LINE / CIRCLE / ARC kayıtlarını düzenle"/>
+                    <TextBlock x:Name="txtEditDurumu" Text="EDIT" FontWeight="SemiBold"
+                               Foreground="{StaticResource AccentHoverBrush}"
+                               VerticalAlignment="Center" Margin="0,0,10,0" Visibility="Collapsed"/>
+                    </StackPanel>
+                    <Border x:Name="editAraclari" Grid.Column="1" Visibility="Collapsed" Padding="6,3"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="3">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="btnEditSec" Style="{StaticResource EditIconButton}" Content="🖱️"
+                            AutomationProperties.Name="Seç" ToolTip="Seç&#10;Entity seçer. Ctrl ile çoklu seçim yapabilirsiniz." Click="btnSec_Click"/>
+                    <Button x:Name="btnSil" Style="{StaticResource EditIconButton}" Content="🗑️" IsEnabled="False"
+                            AutomationProperties.Name="Sil" ToolTip="Sil&#10;Seçili entity veya entity'leri siler (Delete)." Click="btnSil_Click"/>
+                    <Button x:Name="btnBirlestir" Style="{StaticResource EditIconButton}" Content="🔗" IsEnabled="False"
+                            AutomationProperties.Name="Birleştir" ToolTip="Birleştir&#10;İki LINE'ı kesişim noktasına uzatır veya kısaltır. Önizleme sonrası Uygula." Click="btnBirlestir_Click"/>
+                    <Button x:Name="btnPah" Style="{StaticResource EditIconButton}" Content="◢" FontSize="28" IsEnabled="False"
+                            AutomationProperties.Name="Pah" ToolTip="Pah&#10;Köşeye veya kapalı konturun köşelerine pah uygular." Click="btnPah_Click"/>
+                    <Button x:Name="btnRadius" Style="{StaticResource EditIconButton}" Content="◜" FontSize="30" IsEnabled="False"
+                            AutomationProperties.Name="Radius" ToolTip="Radius&#10;Köşeyi veya kapalı konturun köşelerini yuvarlatır." Click="btnRadius_Click"/>
+                    <Border Width="1" Margin="10,4,4,4" Background="{StaticResource BorderBrush}"/>
+                    <Button x:Name="btnUndo" Style="{StaticResource EditIconButton}" Content="↩️" IsEnabled="False"
+                            AutomationProperties.Name="Geri Al" ToolTip="Geri Al&#10;Son düzenleme işlemini geri alır (Ctrl+Z)." Click="btnUndo_Click"/>
+                    <Button x:Name="btnRedo" Style="{StaticResource EditIconButton}" Content="↪️" IsEnabled="False"
+                            AutomationProperties.Name="Yinele" ToolTip="Yinele&#10;Geri alınan işlemi yeniden uygular (Ctrl+Y)." Click="btnRedo_Click"/>
+                    <Button x:Name="btnKaydet" Style="{StaticResource EditIconButton}" Content="💾" IsEnabled="False"
+                            AutomationProperties.Name="Kaydet" ToolTip="Kaydet&#10;Kullanıcı onayı ve yedek ile mevcut DXF üzerine güvenli kaydeder (Ctrl+S)."
+                            Click="btnKaydet_Click"/>
+                    <Button x:Name="btnFarkliKaydet" Style="{StaticResource EditIconButton}" Content="📤" IsEnabled="False"
+                            AutomationProperties.Name="Farklı Kaydet" ToolTip="Farklı Kaydet&#10;Düzenlenmiş DXF'i yeni dosyaya kaydeder; mevcut dosyanın üzerine yazmaz."
+                            Click="btnFarkliKaydet_Click"/>
+                    </StackPanel>
+                    </ScrollViewer>
+                    </Border>
+                </Grid>
+                <WrapPanel x:Name="koseSecenekleri" Grid.Row="3" Visibility="Collapsed" Margin="0,7,0,0"
+                           VerticalAlignment="Center">
+                    <TextBlock x:Name="txtKoseKomutu" Text="Pah:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBox x:Name="txtKoseDegeri" Text="5.00" Width="72" Height="28"
+                             VerticalContentAlignment="Center" TextChanged="KoseSecenekleri_Degisti"/>
+                    <TextBlock x:Name="txtKoseBirimi" Text="mm" VerticalAlignment="Center" Margin="6,0,14,0"/>
+                    <StackPanel x:Name="koseScopeSecimi" Orientation="Horizontal" VerticalAlignment="Center">
+                        <RadioButton x:Name="rbTekKose" Content="Tek Köşe" GroupName="KoseScope" IsChecked="True"
+                                     Margin="0,0,10,0" Checked="KoseScope_Degisti"/>
+                        <RadioButton x:Name="rbSeciliKontur" Content="Seçili Kontur" GroupName="KoseScope"
+                                     Margin="0,0,10,0" Checked="KoseScope_Degisti"/>
+                        <RadioButton x:Name="rbTumKonturlar" Content="Tüm Güvenilir Konturlar" GroupName="KoseScope"
+                                     Margin="0,0,10,0" Checked="KoseScope_Degisti"/>
+                    </StackPanel>
+                    <Button x:Name="btnKoseUygula" Style="{StaticResource SecondaryButton}" Content="Uygula"
+                            Height="28" Padding="10,0" IsEnabled="False" Click="btnKoseUygula_Click"/>
+                    <Button Style="{StaticResource SecondaryButton}" Content="İptal" Height="28" Padding="10,0"
+                            Margin="6,0,0,0" Click="btnKoseIptal_Click"/>
+                </WrapPanel>
             </Grid>
 
             <!-- ======== CIZIM ======== -->
@@ -109,24 +199,55 @@
                     BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                     CornerRadius="4" ClipToBounds="True">
                 <Grid x:Name="cizimAlani" Background="Transparent"
+                      SizeChanged="cizimAlani_SizeChanged"
                       MouseWheel="cizimAlani_MouseWheel"
                       MouseLeftButtonDown="cizimAlani_MouseLeftButtonDown"
                       MouseMove="cizimAlani_MouseMove"
                       MouseLeftButtonUp="cizimAlani_MouseLeftButtonUp">
-                    <Grid x:Name="cizimKatmani" RenderTransformOrigin="0.5,0.5">
-                        <Grid.RenderTransform>
+                    <Canvas x:Name="cizimKatmani" RenderTransformOrigin="0.5,0.5">
+                        <Canvas.RenderTransform>
                             <TransformGroup>
                                 <ScaleTransform x:Name="olcek"/>
                                 <TranslateTransform x:Name="kaydir"/>
                             </TransformGroup>
-                        </Grid.RenderTransform>
+                        </Canvas.RenderTransform>
 
-                        <Path x:Name="cizim" Stretch="Uniform"
+                        <Path x:Name="cizim" Stretch="None"
                               Stroke="{StaticResource TextPrimaryBrush}"
                               StrokeThickness="1"
                               StrokeLineJoin="Round"
                               Visibility="Collapsed"/>
-                    </Grid>
+                        <Path x:Name="seciliCizim" Stretch="None"
+                            Stroke="{StaticResource AccentHoverBrush}"
+                            StrokeThickness="2"
+                            StrokeLineJoin="Round"
+                            IsHitTestVisible="False"
+                            Visibility="Collapsed"/>
+                        <Path x:Name="mesafeCizgisi" Stretch="None"
+                            Stroke="{StaticResource AccentHoverBrush}" StrokeThickness="2"
+                            IsHitTestVisible="False"
+                            Visibility="Collapsed"/>
+                        <Path x:Name="mesafeNoktasiIsareti" Stretch="None"
+                            Fill="{StaticResource AccentHoverBrush}"
+                            Stroke="{StaticResource TextPrimaryBrush}" StrokeThickness="1"
+                            IsHitTestVisible="False" Visibility="Collapsed"/>
+                        <Path x:Name="olcuYazisi" Stretch="None"
+                            Fill="{StaticResource TextPrimaryBrush}"
+                            IsHitTestVisible="False" Visibility="Collapsed"/>
+                        <Path x:Name="snapIsareti" Stretch="None"
+                            Stroke="{StaticResource AccentHoverBrush}" StrokeThickness="1.5"
+                            IsHitTestVisible="False" Visibility="Collapsed"/>
+                        <Path x:Name="koseOnizlemesi" Stretch="None" Stroke="{StaticResource AccentHoverBrush}"
+                              StrokeDashArray="3,2" IsHitTestVisible="False" Visibility="Collapsed"/>
+                        <Path x:Name="koseIsareti" Stretch="None" Stroke="{StaticResource AccentHoverBrush}"
+                              IsHitTestVisible="False" Visibility="Collapsed"/>
+                    </Canvas>
+
+                    <Canvas IsHitTestVisible="False">
+                        <Rectangle x:Name="secimCercevesi" Visibility="Collapsed"
+                                   Stroke="{StaticResource AccentHoverBrush}" StrokeThickness="1"
+                                   Fill="#226D8AE8"/>
+                    </Canvas>
 
                     <TextBlock x:Name="txtMesaj" FontSize="13"
                                TextWrapping="Wrap" TextAlignment="Center"
@@ -140,13 +261,22 @@
 
             <!-- ======== ALT SERIT ======== -->
             <Grid Grid.Row="3" Margin="16,10,16,16">
-                <TextBlock x:Name="txtOlcu" FontSize="12.5"
+                <StackPanel>
+                    <TextBlock x:Name="txtOlcu" FontSize="12.5"
                            Foreground="{StaticResource TextSecondaryBrush}"
                            VerticalAlignment="Center"/>
+                    <TextBlock x:Name="txtEntityInfo" FontSize="12"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               TextWrapping="Wrap" Margin="0,4,0,0"/>
+                </StackPanel>
                 <TextBlock x:Name="txtYakinlik" FontSize="12.5"
                            HorizontalAlignment="Right" VerticalAlignment="Center"
                            Foreground="{StaticResource TextDisabledBrush}"
                            Text="%100"/>
+                <TextBlock x:Name="txtSnap" FontSize="12"
+                           HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                           Margin="0,0,0,2"
+                           Foreground="{StaticResource AccentHoverBrush}"/>
             </Grid>
         </Grid>
     </Border>

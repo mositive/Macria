@@ -14,7 +14,7 @@ namespace Macria
         public string Etiket = "";
         public string AltEtiket = "";
         public double Deger;
-        public Brush Renk;
+        public Brush? Renk;
     }
 
     // Grafikler bir Canvas uzerine elle cizilir. Dis kutuphane yok; uygulama
@@ -233,7 +233,7 @@ namespace Macria
             if (veriler != null)
                 foreach (GrafikDeger d in veriler) if (d.Deger > 0) toplam += d.Deger;
 
-            if (toplam <= 0) { BosYaz(tuval); return; }
+            if (veriler == null || toplam <= 0) { BosYaz(tuval); return; }
 
             double aciklamaEni = Math.Min(190, g * 0.46);
             double cizimEni = g - aciklamaEni;

@@ -27,7 +27,7 @@ namespace Macria
             public Border Kart;
             public TextBlock Yazi;
             public TextBlock Sayac;
-            public DispatcherTimer Zaman;
+            public DispatcherTimer? Zaman;
             public string Metin = "";
             public int Tekrar = 1;
         }

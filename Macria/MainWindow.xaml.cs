@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Automation;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -17,9 +19,148 @@ namespace Macria
     {
         private double _thickness;
         private string _hamSacKalinligiMetni = "";
+        private string _dxfDurumKodu = "";
+        private string _dxfDurumAciklamasi = "";
+        private Renklendirme2UiSatiri? _renklendirme2;
 
         public string ProductName { get; set; } = "";
         public string PartName { get; set; } = "";
+        // COM referansi sozlugunde kullanilan, kullaniciya gosterilmeyen anahtar.
+        // Title'a gore tekillestirilen satirin ilk saglam representation'ini isaret eder.
+        public string ReferenceKey { get; set; } = "";
+        // Renklendirme 2.0 kimliği Title değildir; doğrulanmış PLM ExternalID + version anahtarıdır.
+        public string Renklendirme2ReferenceKey { get; set; } = "";
+        public Renklendirme2UiSatiri? Renklendirme2
+        {
+            get => _renklendirme2;
+            set
+            {
+                if (ReferenceEquals(_renklendirme2, value)) return;
+                _renklendirme2 = value;
+                OnPropertyChanged(nameof(Renklendirme2));
+            }
+        }
+        public string ReferenceName { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Revision { get; set; } = "";
+        public bool IsSheetMetal { get; set; } = true;
+        public bool CokluBodyMi { get; set; }
+        public bool GizliPhysicalProductMu { get; set; }
+        public string Not { get; set; } = "";
+        public string UrunAgaciNotu { get; set; } = "";
+
+        public bool DxfBasarisizMi
+        {
+            get { return DxfDurumKodu == "Basarisiz"; }
+        }
+
+        // Durum sutunu taramadan sonra bos kalir. Basarili DXF yesil tik,
+        // genel export hatasi uzgun surat, Coklu Body ise ayri bir karisik
+        // surat ile gosterilir.
+        public string DxfDurumKodu
+        {
+            get { return _dxfDurumKodu; }
+            private set
+            {
+                if (_dxfDurumKodu == value) return;
+                _dxfDurumKodu = value ?? "";
+                OnPropertyChanged(nameof(DxfDurumKodu));
+                OnPropertyChanged(nameof(DxfDurumIkonu));
+                OnPropertyChanged(nameof(DxfBasarisizMi));
+            }
+        }
+
+        public string DxfDurumIkonu
+        {
+            get
+            {
+                if (DxfDurumKodu == "Basarili") return "✓";
+                if (DxfDurumKodu == "Editlendi") return "🛠️";
+                return "";
+            }
+        }
+
+        public string DxfDurumAciklamasi
+        {
+            get { return _dxfDurumAciklamasi; }
+            private set
+            {
+                string yeni = value ?? "";
+                if (_dxfDurumAciklamasi == yeni) return;
+                _dxfDurumAciklamasi = yeni;
+                OnPropertyChanged(nameof(DxfDurumAciklamasi));
+            }
+        }
+
+        public void DxfDurumunuTemizle()
+        {
+            if (CokluBodyMi) return;
+            if (GizliPhysicalProductMu)
+            {
+                DxfDurumKodu = "Gizli";
+                DxfDurumAciklamasi = "Gizlenmiş Physical Product öğesi.";
+            }
+            else
+            {
+                DxfDurumKodu = "";
+                DxfDurumAciklamasi = "";
+            }
+        }
+
+        public void DxfGizli()
+        {
+            if (CokluBodyMi) return;
+            DxfDurumKodu = "Gizli";
+            DxfDurumAciklamasi = "Gizlenmiş Physical Product öğesi.";
+        }
+
+        public void DxfBasarili(string yol)
+        {
+            DxfDurumKodu = "Basarili";
+            DxfDurumAciklamasi = string.IsNullOrWhiteSpace(yol)
+                ? "DXF başarıyla oluşturuldu."
+                : "DXF başarıyla oluşturuldu: " + yol;
+        }
+
+        public void DxfEditKaydedildi()
+        {
+            DxfDurumKodu = "Editlendi";
+            DxfDurumAciklamasi = "🛠️ Editlendi ve kaydedildi";
+        }
+
+        public void DxfBasarisiz(string neden)
+        {
+            DxfDurumKodu = "Basarisiz";
+            DxfDurumAciklamasi = string.IsNullOrWhiteSpace(neden)
+                ? "DXF oluşturulamadı. Ayrıntı için konsolu kontrol edin."
+                : neden.Trim();
+        }
+
+        public void DxfCokluBody(string neden)
+        {
+            DxfDurumKodu = "CokluBody";
+            DxfDurumAciklamasi = string.IsNullOrWhiteSpace(neden)
+                ? "Çoklu Body nedeniyle DXF alınmadı."
+                : neden.Trim();
+        }
+
+        // Urun Agaci Komplesi sekmesinde sac olmayan parcalarin kalinlik
+        // alanlari sifir yerine cizgiyle gosterilir. Sac satirlari iki listede
+        // de ayni nesneyi kullandigi icin Ham Sac degisikligi aninda yansir.
+        public string ThicknessDisplay
+        {
+            get
+            {
+                return IsSheetMetal
+                    ? HamSacKalinliklari.Goster(Thickness)
+                    : "—";
+            }
+        }
+
+        public string HamSacDisplay
+        {
+            get { return IsSheetMetal ? HamSacKalinligiMetni : "—"; }
+        }
 
         public double Thickness
         {
@@ -29,6 +170,7 @@ namespace Macria
                 if (Math.Abs(_thickness - value) < 0.0001) return;
                 _thickness = value;
                 OnPropertyChanged(nameof(Thickness));
+                OnPropertyChanged(nameof(ThicknessDisplay));
                 OnPropertyChanged(nameof(HamSacFarkliMi));
             }
         }
@@ -42,6 +184,7 @@ namespace Macria
                 if (_hamSacKalinligiMetni == newValue) return;
                 _hamSacKalinligiMetni = newValue;
                 OnPropertyChanged(nameof(HamSacKalinligiMetni));
+                OnPropertyChanged(nameof(HamSacDisplay));
                 OnPropertyChanged(nameof(HamSacFarkliMi));
             }
         }
@@ -75,7 +218,7 @@ namespace Macria
         public int Quantity { get; set; }
 
         // Bu parcadan uretilen DXF'in yolu; onizleme buradan okur
-        public string DxfYolu { get; set; }
+        public string? DxfYolu { get; set; }
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -95,38 +238,109 @@ namespace Macria
     public partial class MainWindow : Window
     {
         private readonly ObservableCollection<SheetRow> _rows = new ObservableCollection<SheetRow>();
-        private readonly Dictionary<string, object> _repRefs = new Dictionary<string, object>();
+        private readonly ObservableCollection<SheetRow> _urunAgaciRows = new ObservableCollection<SheetRow>();
+        private readonly ObservableCollection<UrunAgaciNode> _hiyerarsiRoots =
+            new ObservableCollection<UrunAgaciNode>();
+        private readonly Dictionary<string, object> _repRefs =
+            new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
         private object _catia;
         private System.ComponentModel.ICollectionView _view;
+        private System.ComponentModel.ICollectionView _urunAgaciView;
         private string _searchText = "";
+        private bool _sacGizliDahil = true;
+        private bool _sacCokluBodyDahil = true;
+        private bool _urunAgaciGizliDahil = true;
         private readonly ObservableCollection<LogEntry> _logs = new ObservableCollection<LogEntry>();
-        private ExportPipWindow _pip;
-        private ConsoleWindow _logWindow;
+        private ExportPipWindow? _pip;
+        private KahveMolaWindow? _kahveMola;
+        private ConsoleWindow? _logWindow;
         private bool _stopRequested;
+        private SheetRow? _aktifExportSatiri;
+        private readonly List<string> _aktifExportHatalari = new List<string>();
+#if DEBUG
+        private bool _kahveDemoCalisiyor;
+#endif
+
+        private const string CokluBodyNotu = "Çoklu Body unsuru";
+        private const string GizlenmisOgeNotu = "Gizlenmiş öğe";
+        private const string CokluBodyDxfHatasi =
+            "Çoklu Body unsuru içermekte. Macria hangi açınımı alacağına karar veremedi.";
+
+        private static string SacSatirNotu(bool cokluBody, bool gizli)
+        {
+            if (cokluBody && gizli)
+                return CokluBodyNotu + " · " + GizlenmisOgeNotu;
+            if (cokluBody) return CokluBodyNotu;
+            return gizli ? GizlenmisOgeNotu : "";
+        }
 
         public MainWindow()
         {
             InitializeComponent();
             WindowEffects.RoundCorners(this);
 
+#if DEBUG
+            // CATIA bulunmayan gelistirme bilgisayarinda F9 ile kahve penceresi,
+            // PiP ve sonuc ekrani sahte verilerle bastan sona denenebilir.
+            PreviewKeyDown += DebugKahvePenceresi_KeyDown;
+#endif
+
             // Bekleme suresi, ogretilmis Save As konumu ve son kurlar
             // makineye ozel; her acilista kullanicinin profilinden okunur
             Ayarlar.Yukle();
 
+            // Ham Sac yalnizca acik tarama oturumunda yasasin. Eski surumlerin
+            // diske yazdigi degerler de ilk acilista temizlenir.
+            HamSacKalinliklari.KaliciKaydiSil();
+
             // Pencere kapanirken suren islem durdurulsun
-            Closing += (s, e) => { _stopRequested = true; };
+            Closing += (s, e) =>
+            {
+                if (_onizlemeWindow != null && !_onizlemeWindow.KapanisaIzinVer())
+                {
+                    e.Cancel = true;
+                    return;
+                }
+                _stopRequested = true;
+                ExternalStepOnizlemeyiKapat();
+                HideKahveMola();
+            };
 
             _view = System.Windows.Data.CollectionViewSource.GetDefaultView(_rows);
-            _view.Filter = FilterRow;
+            _view.Filter = FilterSacRow;
             grid.ItemsSource = _view;
 
-            logList.ItemsSource = _logs;
+            _urunAgaciView = System.Windows.Data.CollectionViewSource.GetDefaultView(_urunAgaciRows);
+            _urunAgaciView.Filter = FilterUrunAgaciRow;
+            gridUrunAgaci.ItemsSource = _urunAgaciView;
+            gridRenklendirmeEsiz.ItemsSource = _urunAgaciView;
+            treeUrunAgaci.ItemsSource = _hiyerarsiRoots;
+            treeRenklendirmeHiyerarsik.ItemsSource = _hiyerarsiRoots;
+
+            // Sac olmayan katilar icin deneysel kutu profil teshis/STEP modulu.
+            ProfilKur();
+            // Haricî STEP analizi CATIA/ProfilRow durumundan bağımsız, uygulama
+            // oturumunda yaşayan Dosya Analiz Merkezi koleksiyonunu kullanır.
+                ExternalStepProfilListesiniKur();
+                ExternalStepOnizlemesiniKur();
+                DxfDwgListesiniKur();
+
+            ParcaSutunDeposu.Yukle();
+            ParcaSutunlariniUygula();
+
+            // Kayitli sutun ayarlari veya tema yuklemesi bu sabit basligi
+            // degistiremesin. XAML'deki adla birlikte calisma aninda da zorlanir.
+            colSacDxfDurum.Header = "Durum";
+
+            _logs.CollectionChanged += AnaKonsolLoglariDegisti;
+            AnaKonsolBelgesiniYenile();
             txtMenuSurum.Text = "v" + AboutWindow.SurumMetni();
             MaliyetKur();
             KonsoluUygula();
             OnizlemeyiUygula();
 
-            LogInfo("Macria Hazır — Sheet Metal filtresi TR/EN / Teşhis açık.");
+            LogInfo("Macria v" + AboutWindow.SurumMetni() +
+                    " Hazır — Sheet Metal filtresi TR/EN / Teşhis açık.");
 
             if (Ayarlar.KonumVar)
                 LogInfo(SaveAsBulucu.VarMi()
@@ -140,15 +354,48 @@ namespace Macria
         private void LogSuccess(string message) { AddLog(message, "LogSuccessBrush"); }
         private void LogError(string message) { AddLog(message, "LogErrorBrush"); }
 
+        private void IslemSuresiniYaz(
+            string islemAdi, System.Diagnostics.Stopwatch kronometre)
+        {
+            if (kronometre == null || !kronometre.IsRunning) return;
+
+            kronometre.Stop();
+            LogInfo(islemAdi + " Süresi: " + SureMetni(kronometre.Elapsed));
+        }
+
+        private static string SureMetni(TimeSpan sure)
+        {
+            if (sure.TotalHours >= 1)
+                return ((int)sure.TotalHours) + " sa " + sure.Minutes + " dk " +
+                       sure.Seconds + " sn";
+
+            if (sure.TotalMinutes >= 1)
+                return ((int)sure.TotalMinutes) + " dk " + sure.Seconds + " sn";
+
+            if (sure.TotalSeconds >= 1)
+                return sure.TotalSeconds.ToString(
+                           "0.0", System.Globalization.CultureInfo.CurrentCulture) + " sn";
+
+            return Math.Max(1, (int)Math.Round(sure.TotalMilliseconds)) + " ms";
+        }
+
         private void AddLog(string message, string brushKey)
         {
+            // Bir parcaya ait export devam ederken konsola dusen hata satirlari
+            // ayni zamanda basarisiz DXF simgesinin tooltip aciklamasi olur.
+            if (_aktifExportSatiri != null && brushKey == "LogErrorBrush" &&
+                !string.IsNullOrWhiteSpace(message) &&
+                !_aktifExportHatalari.Contains(message))
+            {
+                _aktifExportHatalari.Add(message);
+            }
+
             var entry = new LogEntry
             {
                 Text = "[" + DateTime.Now.ToString("HH:mm:ss") + "] " + message,
                 Color = (Brush)FindResource(brushKey)
             };
             _logs.Add(entry);
-            logScroll.ScrollToEnd();
 
             // Pip acikken son konsol satirini orada da goster
             if (_pip != null)
@@ -164,23 +411,381 @@ namespace Macria
         {
             _searchText = (txtSearch.Text ?? "").Trim();
             _view.Refresh();
+            _urunAgaciView.Refresh();
+            _profilView?.Refresh();
         }
 
-        private bool FilterRow(object item)
+        private bool FilterSacRow(object item)
+        {
+            SheetRow? row = item as SheetRow;
+            return row != null &&
+                   (_sacGizliDahil || !row.GizliPhysicalProductMu) &&
+                   (_sacCokluBodyDahil || !row.CokluBodyMi) &&
+                   AramaEslesiyor(row);
+        }
+
+        private bool FilterUrunAgaciRow(object item)
+        {
+            SheetRow? row = item as SheetRow;
+            return row != null &&
+                   (_urunAgaciGizliDahil || !row.GizliPhysicalProductMu) &&
+                   AramaEslesiyor(row);
+        }
+
+        private bool AramaEslesiyor(SheetRow row)
         {
             if (_searchText.Length == 0) return true;
 
-            SheetRow row = item as SheetRow;
-            if (row == null) return false;
-
             return ContainsText(row.ProductName, _searchText) ||
+                   ContainsText(row.ReferenceName, _searchText) ||
+                   ContainsText(row.Description, _searchText) ||
+                   ContainsText(row.Revision, _searchText) ||
+                   ContainsText(row.Not, _searchText) ||
+                   ContainsText(row.UrunAgaciNotu, _searchText) ||
                    ContainsText(row.PartName, _searchText);
+        }
+
+        private void GizliOgeFiltresi_Click(object sender, RoutedEventArgs e)
+        {
+            if (ReferenceEquals(sender, chkSacGizliDahil))
+            {
+                _sacGizliDahil = chkSacGizliDahil.IsChecked == true;
+                _view?.Refresh();
+
+                SheetRow? secili = grid.SelectedItem as SheetRow;
+                if (!_sacGizliDahil && secili != null && secili.GizliPhysicalProductMu)
+                {
+                    grid.SelectedItem = null;
+                    OnizlemeBosalt("Listeden Bir Parça Seçin",
+                                   "Gizli parça Sac Lazer listesinden çıkarıldı.");
+                }
+
+                LogInfo(_sacGizliDahil
+                    ? "Sac Lazer — Gizlenmiş öğeler listeye ve DXF işlemine dahil."
+                    : "Sac Lazer — Gizlenmiş öğeler listeden ve DXF işleminden çıkarıldı.");
+                return;
+            }
+
+            _urunAgaciGizliDahil = chkTreeGizliDahil.IsChecked == true;
+            _urunAgaciView?.Refresh();
+            if (!_urunAgaciGizliDahil &&
+                gridUrunAgaci.SelectedItem is SheetRow urun &&
+                urun.GizliPhysicalProductMu)
+                gridUrunAgaci.SelectedItem = null;
+
+            LogInfo(_urunAgaciGizliDahil
+                ? "Ürün Ağacı — Gizlenmiş öğeler listeye dahil."
+                : "Ürün Ağacı — Gizlenmiş öğeler listeden çıkarıldı.");
+        }
+
+        private void SacCokluBodyFiltresi_Click(object sender, RoutedEventArgs e)
+        {
+            _sacCokluBodyDahil = chkSacCokluBodyDahil.IsChecked == true;
+            _view?.Refresh();
+
+            SheetRow? secili = grid.SelectedItem as SheetRow;
+            if (!_sacCokluBodyDahil && secili != null && secili.CokluBodyMi)
+            {
+                grid.SelectedItem = null;
+                OnizlemeBosalt("Listeden Bir Parça Seçin",
+                               "Çoklu Body parçası Sac Lazer listesinden çıkarıldı.");
+            }
+
+            LogInfo(_sacCokluBodyDahil
+                ? "Sac Lazer — Çoklu Body öğeleri listede gösteriliyor; DXF işlemine alınmayacak."
+                : "Sac Lazer — Çoklu Body öğeleri listeden ve DXF işleminden çıkarıldı.");
         }
 
         private static bool ContainsText(string source, string query)
         {
             return source != null &&
                    source.IndexOf(query, StringComparison.CurrentCultureIgnoreCase) >= 0;
+        }
+
+        // ================= PARCA TABLOSU SUTUNLARI =================
+
+        private void btnParcaSutunlari_Click(object sender, RoutedEventArgs e)
+        {
+            var pencere = new ParcaSutunAyarlariWindow { Owner = this };
+            if (pencere.ShowDialog() != true) return;
+
+            ParcaSutunlariniUygula();
+            LogSuccess("Parça Tablosu Sütunları Güncellendi — Görünür: " +
+                       ParcaSutunDeposu.Sutunlar.FindAll(s => s.Gorunur).Count + ".");
+        }
+
+        private void ParcaSutunlariniUygula()
+        {
+            // Ayni duzen hem Sac Lazer Parca hem de Urun Agaci Komplesi
+            // sekmesine uygulanir. Sac listesindeki sabit Durum sutunu en solda,
+            // Not sutunu ise en sagda kalir.
+            for (int i = 0; i < ParcaSutunDeposu.Sutunlar.Count; i++)
+            {
+                ParcaSutunTanimi tanim = ParcaSutunDeposu.Sutunlar[i];
+                Visibility gorunurluk = tanim.Gorunur
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+
+                DataGridColumn? sac = SacSutunu(tanim.Anahtar);
+                DataGridColumn? agac = UrunAgaciSutunu(tanim.Anahtar);
+
+                if (sac != null) sac.Visibility = gorunurluk;
+                if (agac != null) agac.Visibility = gorunurluk;
+            }
+
+            // DisplayIndex degeri atanirken WPF diger sutunlari otomatik kaydirir.
+            // Sirayi soldan saga uygulamak iki tabloda da ayni sonucu verir.
+            for (int i = 0; i < ParcaSutunDeposu.Sutunlar.Count; i++)
+            {
+                string anahtar = ParcaSutunDeposu.Sutunlar[i].Anahtar;
+                DataGridColumn? sac = SacSutunu(anahtar);
+                DataGridColumn? agac = UrunAgaciSutunu(anahtar);
+
+                try { if (sac != null) sac.DisplayIndex = i + 1; } catch { }
+                try { if (agac != null) agac.DisplayIndex = i; } catch { }
+            }
+
+            try { colSacDxfDurum.DisplayIndex = 0; } catch { }
+            try { colSacNot.DisplayIndex = grid.Columns.Count - 1; } catch { }
+            try { colTreeNot.DisplayIndex = gridUrunAgaci.Columns.Count - 1; } catch { }
+        }
+
+        private DataGridColumn? SacSutunu(string anahtar)
+        {
+            switch (anahtar)
+            {
+                case "title": return colSacTitle;
+                case "name": return colSacName;
+                case "description": return colSacDescription;
+                case "revision": return colSacRevision;
+                case "thickness": return colSacThickness;
+                case "raw": return colSacRaw;
+                case "quantity": return colSacQuantity;
+                default: return null;
+            }
+        }
+
+        private DataGridColumn? UrunAgaciSutunu(string anahtar)
+        {
+            switch (anahtar)
+            {
+                case "title": return colTreeTitle;
+                case "name": return colTreeName;
+                case "description": return colTreeDescription;
+                case "revision": return colTreeRevision;
+                case "thickness": return colTreeThickness;
+                case "raw": return colTreeRaw;
+                case "quantity": return colTreeQuantity;
+                default: return null;
+            }
+        }
+
+        private void btnParcaTabloTemizle_Click(object sender, RoutedEventArgs e)
+        {
+            if (_rows.Count == 0 && _urunAgaciRows.Count == 0 &&
+                _profilRows.Count == 0 && _hiyerarsiRoots.Count == 0) return;
+
+            int parcaSayisi = _urunAgaciRows.Count;
+            if (!OnayWindow.Sor(this, "Tabloyu Temizle",
+                    "Sac Lazer Parça, Eşsiz Parça Listesi, Hiyerarşik Ürün Ağacı ve Kutu Profil " +
+                    "tablolarındaki " +
+                    parcaSayisi + " parça temizlenecek. Ham Sac değişiklikleri " +
+                    "unutulacak; yeniden listelemek için CATIA'yı tekrar taramanız gerekir. " +
+                    "Daha önce oluşturulan DXF ve STEP dosyaları silinmez.",
+                    "Temizle"))
+                return;
+
+            _rows.Clear();
+            _urunAgaciRows.Clear();
+            Renklendirme2DurumunuGuncelle();
+            _hiyerarsiRoots.Clear();
+            _profilRows.Clear();
+            _sonProfilRaporu = "";
+            _repRefs.Clear();
+            HamSacKalinliklari.KaliciKaydiSil();
+
+            grid.SelectedItem = null;
+            gridUrunAgaci.SelectedItem = null;
+            gridProfil.SelectedItem = null;
+            _onizlemeSonYol = "";
+            OnizlemeBosalt("Listeden Bir Parça Seçin",
+                           "Önizlemek için CATIA'yı yeniden tarayın.");
+            SacTaramaOzetiniTemizle();
+            UrunAgaciOzetleriniTemizle();
+            ProfilOzetiniTemizle();
+            ProfilButonlariniGuncelle();
+
+            LogInfo("Parça Tabloları Temizlendi — Ham Sac değerleri ve profil teşhis sonuçları unutuldu.");
+        }
+
+        private void btnSacExcel_Click(object sender, RoutedEventArgs e)
+        {
+            ParcaExcelAktar(SacListeSatirlari(), true);
+        }
+
+        private void btnUrunAgaciExcel_Click(object sender, RoutedEventArgs e)
+        {
+            ParcaExcelAktar(UrunAgaciIslemSatirlari(), false);
+        }
+
+        private List<SheetRow> SacListeSatirlari()
+        {
+            var sonuc = new List<SheetRow>();
+            foreach (SheetRow row in _rows)
+                if ((_sacGizliDahil || !row.GizliPhysicalProductMu) &&
+                    (_sacCokluBodyDahil || !row.CokluBodyMi))
+                    sonuc.Add(row);
+            return sonuc;
+        }
+
+        private List<SheetRow> SacDxfSatirlari()
+        {
+            var sonuc = new List<SheetRow>();
+            foreach (SheetRow row in _rows)
+                if (!row.CokluBodyMi &&
+                    (_sacGizliDahil || !row.GizliPhysicalProductMu))
+                    sonuc.Add(row);
+            return sonuc;
+        }
+
+        private List<SheetRow> UrunAgaciIslemSatirlari()
+        {
+            var sonuc = new List<SheetRow>();
+            foreach (SheetRow row in _urunAgaciRows)
+                if (_urunAgaciGizliDahil || !row.GizliPhysicalProductMu)
+                    sonuc.Add(row);
+            return sonuc;
+        }
+
+        private void ParcaExcelAktar(IList<SheetRow> satirlar, bool sadeceSac)
+        {
+            if (satirlar == null || satirlar.Count == 0)
+            {
+                LogInfo("Excel'e Aktarılacak Parça Yok — Önce CATIA'yı Tarayın.");
+                return;
+            }
+
+            string dosyaKoku = sadeceSac ? "Macria_Sac_Lazer_" : "Macria_Urun_Agaci_";
+            var kutu = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = sadeceSac
+                    ? "Sac Lazer Parça Listesini Kaydet"
+                    : "Eşsiz Parça Listesini Kaydet",
+                Filter = "Excel Çalışma Kitabı (*.xlsx)|*.xlsx",
+                DefaultExt = "xlsx",
+                AddExtension = true,
+                FileName = dosyaKoku +
+                           DateTime.Now.ToString("yyyyMMdd_HHmm",
+                               System.Globalization.CultureInfo.InvariantCulture) +
+                           ".xlsx"
+            };
+
+            if (kutu.ShowDialog() != true) return;
+
+            var sure = System.Diagnostics.Stopwatch.StartNew();
+
+            try
+            {
+                ExcelYazici.Yaz(ParcaRaporuHazirla(satirlar, sadeceSac), kutu.FileName);
+                LogSuccess("Excel Dosyası Oluşturuldu: " + kutu.FileName);
+            }
+            catch (Exception ex)
+            {
+                LogError("Excel Dosyası Yazılamadı: " + ex.Message);
+            }
+            finally
+            {
+                IslemSuresiniYaz(
+                    sadeceSac ? "Sac Lazer Excel Aktarımı" : "Ürün Ağacı Excel Aktarımı",
+                    sure);
+            }
+        }
+
+        private static Rapor ParcaRaporuHazirla(IList<SheetRow> satirlar, bool sadeceSac)
+        {
+            int toplamAdet = 0;
+            foreach (SheetRow row in satirlar) toplamAdet += row.Quantity;
+
+            var rapor = new Rapor
+            {
+                SayfaAdi = sadeceSac ? "Sac Lazer" : "Ürün Ağacı",
+                Baslik = sadeceSac
+                    ? "Sac Lazer Parça Listesi"
+                    : "Ürün Ağacı — Eşsiz Parçalar",
+                AltBaslik = "Eşsiz Parça: " + satirlar.Count +
+                            "   ·   Toplam Adet: " + toplamAdet,
+                Tarih = DateTime.Now
+            };
+
+            if (sadeceSac)
+                rapor.Sutunlar.Add(new RaporSutun
+                {
+                    Ad = "DXF Durumu", Genislik = 1.25
+                });
+
+            rapor.Sutunlar.Add(new RaporSutun { Ad = "Parça Kodu (Title)", Genislik = 1.8 });
+            rapor.Sutunlar.Add(new RaporSutun { Ad = "PLM Kimliği (Name)", Genislik = 2.1 });
+            rapor.Sutunlar.Add(new RaporSutun { Ad = "Tanım (Description)", Genislik = 2.2 });
+            rapor.Sutunlar.Add(new RaporSutun { Ad = "Revizyon", Genislik = 1.0 });
+            rapor.Sutunlar.Add(new RaporSutun
+            {
+                Ad = "Kalınlık (mm)", Genislik = 1.2, Sayi = true, Ondalik = 2
+            });
+            rapor.Sutunlar.Add(new RaporSutun
+            {
+                Ad = "Ham Sac (mm)", Genislik = 1.2, Sayi = true, Ondalik = 2
+            });
+            rapor.Sutunlar.Add(new RaporSutun
+            {
+                Ad = "Adet", Genislik = 0.8, Sayi = true, Ondalik = 0
+            });
+            rapor.Sutunlar.Add(new RaporSutun { Ad = "Not", Genislik = 2.2 });
+
+            foreach (SheetRow row in satirlar)
+            {
+                var hucreler = new List<object?>();
+                if (sadeceSac) hucreler.Add(DxfDurumMetni(row));
+
+                hucreler.Add(row.ProductName);
+                hucreler.Add(row.ReferenceName);
+                hucreler.Add(row.Description);
+                hucreler.Add(row.Revision);
+                hucreler.Add(row.IsSheetMetal ? (object)row.Thickness : null);
+
+                double hamSac;
+                hucreler.Add(row.IsSheetMetal &&
+                             HamSacKalinliklari.TryParse(
+                                 row.HamSacKalinligiMetni, out hamSac)
+                    ? (object)hamSac
+                    : null);
+
+                hucreler.Add((double)row.Quantity);
+                string not = sadeceSac
+                    ? (!string.IsNullOrWhiteSpace(row.Not)
+                        ? row.Not
+                        : (row.DxfBasarisizMi ? row.DxfDurumAciklamasi : ""))
+                    : row.UrunAgaciNotu;
+                hucreler.Add(not);
+                rapor.Satirlar.Add(hucreler.ToArray());
+            }
+
+            var toplam = new object?[rapor.Sutunlar.Count];
+            toplam[0] = "TOPLAM";
+            toplam[sadeceSac ? 7 : 6] = (double)toplamAdet;
+            rapor.Toplam = toplam;
+            return rapor;
+        }
+
+        private static string DxfDurumMetni(SheetRow row)
+        {
+            switch (row.DxfDurumKodu)
+            {
+                case "Basarili": return "Başarılı";
+                case "Editlendi": return "Editlendi ve kaydedildi";
+                case "Basarisiz": return "Başarısız";
+                case "CokluBody": return "Çoklu Body";
+                default: return "";
+            }
         }
 
         // ================= PENCERE KONTROLLERI =================
@@ -190,6 +795,98 @@ namespace Macria
         private void btnClearLog_Click(object sender, RoutedEventArgs e)
         {
             _logs.Clear();
+        }
+
+        private void AnaKonsolLoglariDegisti(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems != null)
+            {
+                foreach (object? item in e.NewItems)
+                {
+                    if (item is LogEntry entry)
+                        AnaKonsolSatiriEkle(entry);
+                }
+            }
+            else
+            {
+                AnaKonsolBelgesiniYenile();
+            }
+
+            logText.ScrollToEnd();
+        }
+
+        private void AnaKonsolSatiriEkle(LogEntry entry)
+        {
+            var satir = new Paragraph(new Run(entry.Text) { Foreground = entry.Color })
+            {
+                Margin = new Thickness(0, 1, 0, 1)
+            };
+            logText.Document.Blocks.Add(satir);
+        }
+
+        private void AnaKonsolBelgesiniYenile()
+        {
+            logText.Document.Blocks.Clear();
+            foreach (LogEntry entry in _logs)
+                AnaKonsolSatiriEkle(entry);
+        }
+
+        private void btnCopyLog_Click(object sender, RoutedEventArgs e)
+        {
+            string metin = TumLogMetni();
+            if (string.IsNullOrWhiteSpace(metin))
+            {
+                MessageBox.Show(this, "Kopyalanacak konsol kaydı yok.", "Konsol",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            try
+            {
+                Clipboard.SetText(metin);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "Konsol panoya kopyalanamadı: " + Kisa(ex.Message), "Konsol",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void btnCopySelectedLog_Click(object sender, RoutedEventArgs e)
+        {
+            RichTextBox? kaynak = null;
+            if (sender is MenuItem menuItem && menuItem.Parent is ContextMenu menu)
+                kaynak = menu.PlacementTarget as RichTextBox;
+
+            string metin = kaynak?.Selection.Text ?? "";
+            if (string.IsNullOrWhiteSpace(metin))
+            {
+                MessageBox.Show(this, "Önce konsoldan bir metin seçin.", "Konsol",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            try
+            {
+                Clipboard.SetText(metin);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "Seçili metin panoya kopyalanamadı: " + Kisa(ex.Message), "Konsol",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private string TumLogMetni()
+        {
+            var sonuc = new StringBuilder();
+            foreach (LogEntry entry in _logs)
+            {
+                if (sonuc.Length > 0) sonuc.AppendLine();
+                sonuc.Append(entry.Text);
+            }
+
+            return sonuc.ToString();
         }
 
         // Ayni koleksiyonu paylasan genis konsol; ikinci kez acilmaz, one getirilir
@@ -227,6 +924,8 @@ namespace Macria
         {
             SayfayiKapat(exportView);
             SayfayiKapat(costView);
+            SayfayiKapat(fileAnalysisView);
+            SayfayiKapat(coloringView);
             SayfayiAc(menuView, menuKaydir, -GecisKaymasi);
 
             btnBack.Visibility = Visibility.Collapsed;
@@ -246,7 +945,7 @@ namespace Macria
             btnTutorial.Visibility = btnSettings.Visibility;
             txtTitleBar.Text = "Macria — " + baslik;
 
-            logScroll.ScrollToEnd();
+            logText.ScrollToEnd();
         }
 
         // Gelen gorunum: yandan kayarak ve belirerek girer
@@ -314,7 +1013,7 @@ namespace Macria
             if (acik)
             {
                 TumBildirimleriKapat();
-                logScroll.ScrollToEnd();
+                logText.ScrollToEnd();
             }
         }
 
@@ -430,6 +1129,66 @@ namespace Macria
             KurlariTazele();
         }
 
+        private void tileFileAnalysis_Click(object sender, RoutedEventArgs e)
+        {
+            SayfaAc(fileAnalysisView, fileAnalysisKaydir, "Dosya Analiz Merkezi", false);
+            DosyaAnalizAnaMenusunuGoster();
+        }
+
+        private void tileColoring_Click(object sender, RoutedEventArgs e)
+        {
+            SayfaAc(coloringView, coloringKaydir, "Renklendirme", false);
+            RenklendirmeCalismaGorunumunuSec(esizGorunum: true);
+            Renklendirme2DurumunuGuncelle();
+        }
+
+        private void RenklendirmeEsizGorunum_Click(object sender, RoutedEventArgs e) =>
+            RenklendirmeCalismaGorunumunuSec(esizGorunum: true);
+
+        private void RenklendirmeHiyerarsikGorunum_Click(object sender, RoutedEventArgs e) =>
+            RenklendirmeCalismaGorunumunuSec(esizGorunum: false);
+
+        private void RenklendirmeCalismaGorunumunuSec(bool esizGorunum)
+        {
+            renklendirmeEsizPanel.Visibility = esizGorunum
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+            renklendirmeHiyerarsikPanel.Visibility = esizGorunum
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+            btnRenklendirmeEsizGorunum.Tag = esizGorunum ? "Active" : "Inactive";
+            btnRenklendirmeHiyerarsikGorunum.Tag = esizGorunum ? "Inactive" : "Active";
+        }
+
+        private void btnFileAnalysisStep_Click(object sender, RoutedEventArgs e)
+        {
+            fileAnalysisMenu.Visibility = Visibility.Collapsed;
+            fileAnalysisDxfDwgWorkspace.Visibility = Visibility.Collapsed;
+            fileAnalysisStepWorkspace.Visibility = Visibility.Visible;
+            fileAnalysisStepResults.Visibility = Visibility.Visible;
+        }
+
+        private void btnFileAnalysisDxfDwg_Click(object sender, RoutedEventArgs e)
+        {
+            fileAnalysisMenu.Visibility = Visibility.Collapsed;
+            fileAnalysisStepWorkspace.Visibility = Visibility.Collapsed;
+            fileAnalysisStepResults.Visibility = Visibility.Collapsed;
+            fileAnalysisDxfDwgWorkspace.Visibility = Visibility.Visible;
+        }
+
+        private void btnFileAnalysisHome_Click(object sender, RoutedEventArgs e)
+        {
+            DosyaAnalizAnaMenusunuGoster();
+        }
+
+        private void DosyaAnalizAnaMenusunuGoster()
+        {
+            fileAnalysisStepWorkspace.Visibility = Visibility.Collapsed;
+            fileAnalysisStepResults.Visibility = Visibility.Collapsed;
+            fileAnalysisDxfDwgWorkspace.Visibility = Visibility.Collapsed;
+            fileAnalysisMenu.Visibility = Visibility.Visible;
+        }
+
         private void btnAbout_Click(object sender, RoutedEventArgs e)
         {
             var pencere = new AboutWindow { Owner = this };
@@ -467,7 +1226,7 @@ namespace Macria
 
         // Gorev adi pencere gosterilmeden once verilir; aksi halde pip bir an
         // icin yanlis baslikla (varsayilan metniyle) cizilir
-        private ExportPipWindow EnsurePip(string gorevAdi = null)
+        private ExportPipWindow EnsurePip(string? gorevAdi = null)
         {
             if (_pip == null)
             {
@@ -498,6 +1257,84 @@ namespace Macria
             EnsurePip().SetState(ExportPipWindow.PipState.Running, detail);
         }
 
+#if DEBUG
+        private async void DebugKahvePenceresi_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.F9 || _kahveDemoCalisiyor || _exporting) return;
+
+            e.Handled = true;
+            _kahveDemoCalisiyor = true;
+
+            try
+            {
+                HidePip();
+                ShowPipStart("Demo hazırlanıyor...");
+                ShowKahveMolaStart(12);
+
+                for (int i = 1; i <= 12; i++)
+                {
+                    string denemeParcasi = "TEST-PARCA-" + i.ToString("00");
+                    ShowPip("(" + i + "/12) " + denemeParcasi);
+                    UpdateKahveMola(i, 12, denemeParcasi);
+                    // Yeni kahve-ekip yolculuğunun tamamı CATIA olmadan da
+                    // görülebilsin diye demo gerçek aktarımdan biraz yavaştır.
+                    await System.Threading.Tasks.Task.Delay(650);
+                }
+
+                CompleteKahveMola(11, 1, false);
+                await FinishPip(ExportPipWindow.PipState.Done, "Başarılı: 11 / 12");
+            }
+            finally
+            {
+                _kahveDemoCalisiyor = false;
+            }
+        }
+#endif
+
+        // Kahve penceresi yalnizca toplu DXF akisi icindir. Tek parca DXF ve
+        // hesaplama islemleri mevcut kompakt PiP'i kullanmaya devam eder.
+        private void ShowKahveMolaStart(int toplam)
+        {
+            HideKahveMola();
+
+            try
+            {
+                _kahveMola = new KahveMolaWindow(_pip);
+                _kahveMola.IlerlemeyiGoster(0, toplam, "");
+                _kahveMola.Show();
+            }
+            catch (Exception ex)
+            {
+                _kahveMola = null;
+                LogInfo("Kahve molası penceresi açılamadı: " + ex.Message);
+            }
+        }
+
+        private void UpdateKahveMola(int sira, int toplam, string ogeAdi)
+        {
+            if (_kahveMola != null)
+                _kahveMola.IlerlemeyiGoster(sira, toplam, ogeAdi);
+        }
+
+        private void CompleteKahveMola(int basarili, int kontrolBekleyen, bool durduruldu)
+        {
+            if (_kahveMola == null) return;
+
+            if (durduruldu)
+                _kahveMola.Durduruldu(basarili, kontrolBekleyen);
+            else
+                _kahveMola.Tamamlandi(basarili, kontrolBekleyen);
+        }
+
+        private void HideKahveMola()
+        {
+            if (_kahveMola == null) return;
+
+            try { _kahveMola.Close(); }
+            catch { }
+            _kahveMola = null;
+        }
+
         // Sonuc durumunu bir sure gosterip pip'i kapatir
         private async System.Threading.Tasks.Task FinishPip(ExportPipWindow.PipState state, string detail)
         {
@@ -506,19 +1343,23 @@ namespace Macria
             _pip.SetState(state, detail);
 
             int session = _pipSession;
-            await System.Threading.Tasks.Task.Delay(2500);
+            int bekleme = _kahveMola != null ? 4500 : 2500;
+            await System.Threading.Tasks.Task.Delay(bekleme);
             if (_pipSession == session) HidePip();
         }
 
         private void OnPipStopRequested()
         {
             _stopRequested = true;
+            _geometryLabTestCts?.Cancel();
             if (_pip != null) _pip.SetDetail("Durduruluyor...");
             LogError("Acil Durdurma İstendi — İşlem Kesiliyor...");
         }
 
         private void HidePip()
         {
+            HideKahveMola();
+
             if (_pip != null)
             {
                 _pip.Close();
@@ -534,7 +1375,7 @@ namespace Macria
         // cevaplanir. Cizim, disa aktarilmis dosyadan okunur.
 
         private string _onizlemeSonYol = "";
-        private OnizlemeWindow _onizlemeWindow;
+        private OnizlemeWindow? _onizlemeWindow;
 
         // Ayni cizimi gosteren genis pencere; ikinci kez acilmaz, one getirilir
         private void btnOnizlemePopOut_Click(object sender, RoutedEventArgs e)
@@ -549,6 +1390,21 @@ namespace Macria
             }
 
             _onizlemeWindow = new OnizlemeWindow { Owner = this };
+            _onizlemeWindow.OrijinalEditKaydedildi += kaydedilenYol =>
+            {
+                foreach (SheetRow row in _rows)
+                    if (!string.IsNullOrWhiteSpace(row.DxfYolu) && string.Equals(
+                        System.IO.Path.GetFullPath(row.DxfYolu), System.IO.Path.GetFullPath(kaydedilenYol),
+                        StringComparison.OrdinalIgnoreCase)) row.DxfEditKaydedildi();
+            };
+            _onizlemeWindow.Kaydedildi += kaydedilenYol =>
+            {
+                if (!string.Equals(_onizlemeSonYol, kaydedilenYol,
+                                   StringComparison.OrdinalIgnoreCase)) return;
+                // Yalnizca disk kaydindan sonra ana paneli yenile; edit oturumunu ezme.
+                _onizlemeSonYol = "";
+                OnizlemeyiYenile();
+            };
             _onizlemeWindow.Closed += (s, ev) => _onizlemeWindow = null;
             _onizlemeWindow.Show();
 
@@ -598,13 +1454,13 @@ namespace Macria
                 return;
             }
 
-            txtOnizlemeParca.Text = row.PartName;
+            txtOnizlemeParca.Text = row.ProductName;
 
-            string yol = OnizlemeDosyasi(row);
+            string? yol = OnizlemeDosyasi(row);
 
             if (yol == null)
             {
-                OnizlemeBosalt(row.PartName,
+                OnizlemeBosalt(row.ProductName,
                     "Bu parçanın DXF'i bulunamadı.\n" +
                     "Dışa aktardıktan sonra burada görünür; dosyalar başka " +
                     "bir klasördeyse \"Klasör Seç\" ile gösterin.");
@@ -615,8 +1471,8 @@ namespace Macria
             if (yol == _onizlemeSonYol) return;
             _onizlemeSonYol = yol;
 
-            string hata;
-            DxfCizim cizim = DxfOkuyucu.Oku(yol, out hata);
+            string? hata;
+            DxfCizim? cizim = DxfOkuyucu.Oku(yol, out hata);
 
             txtOnizlemeDosya.Text = System.IO.Path.GetFileName(yol);
             txtOnizlemeDosya.ToolTip = yol;
@@ -634,7 +1490,7 @@ namespace Macria
                 txtOnizlemeOlcu.Text = "";
 
                 if (_onizlemeWindow != null)
-                    _onizlemeWindow.Bosalt(row.PartName, sorun, yol);
+                    _onizlemeWindow.Bosalt(row.ProductName, sorun, yol);
 
                 return;
             }
@@ -655,7 +1511,7 @@ namespace Macria
             txtOnizlemeOlcu.Text = olcu;
 
             if (_onizlemeWindow != null)
-                _onizlemeWindow.Goster(row.PartName, sekil, olcu, yol);
+                _onizlemeWindow.Goster(row.ProductName, cizim, olcu, yol);
         }
 
         private void OnizlemeBosalt(string parca, string mesaj)
@@ -680,7 +1536,7 @@ namespace Macria
 
         // Once export sirasinda kaydedilen yol, yoksa son cikti klasorunde
         // ayni adla duran dosya aranir
-        private static string OnizlemeDosyasi(SheetRow row)
+        private static string? OnizlemeDosyasi(SheetRow row)
         {
             try
             {
@@ -729,10 +1585,11 @@ namespace Macria
         private void OnizlemeyeYaz(SheetRow row, string yol)
         {
             row.DxfYolu = yol;
+            row.DxfBasarili(yol);
 
             try
             {
-                string klasor = System.IO.Path.GetDirectoryName(yol);
+                string? klasor = System.IO.Path.GetDirectoryName(yol);
 
                 if (!string.IsNullOrEmpty(klasor) && klasor != Ayarlar.SonCiktiKlasoru)
                 {
@@ -753,7 +1610,7 @@ namespace Macria
 
         // Parcalarin gercek olcusu ve konturu sadece DXF'te oldugu icin
         // yerlesim bu sayfadan acilir; kaynagi listedeki satirlar.
-        private YerlesimWindow _yerlesimWindow;
+        private YerlesimWindow? _yerlesimWindow;
 
         // Konsol gibi modelsiz acilir: kipli olsaydi simge durumuna
         // kucultuldugunde ana pencere kilitli kalir, ekranda tutunacak bir sey
@@ -785,7 +1642,7 @@ namespace Macria
         private void HamSacTextBox_GotKeyboardFocus(
             object sender, KeyboardFocusChangedEventArgs e)
         {
-            DependencyObject current = sender as DependencyObject;
+            DependencyObject? current = sender as DependencyObject;
 
             while (current != null && !(current is DataGridRow))
             {
@@ -798,7 +1655,7 @@ namespace Macria
                     break;
             }
 
-            DataGridRow dataGridRow = current as DataGridRow;
+            DataGridRow? dataGridRow = current as DataGridRow;
             if (dataGridRow == null) return;
 
             dataGridRow.IsSelected = true;
@@ -847,11 +1704,20 @@ namespace Macria
         private bool TumHamSacGirdileriniDogrula(
             out Dictionary<SheetRow, double> values)
         {
+            return TumHamSacGirdileriniDogrula(_rows, out values);
+        }
+
+        private bool TumHamSacGirdileriniDogrula(
+            IEnumerable<SheetRow> satirlar,
+            out Dictionary<SheetRow, double> values)
+        {
             values = new Dictionary<SheetRow, double>();
             GridDegisikliginiTamamla();
 
-            foreach (SheetRow row in _rows)
+            foreach (SheetRow row in satirlar)
             {
+                if (row.CokluBodyMi) continue;
+
                 double value;
                 if (!HamSacSatiriniDogrula(row, out value)) return false;
                 values[row] = value;
@@ -877,7 +1743,7 @@ namespace Macria
 
         // Kullanici daha once export almissa once o bagli yol, sonra son cikti
         // klasorundeki eski ham sac ve model kalinligi adlari denenir.
-        private static string EskiDxfYolunuBul(SheetRow row)
+        private static string? EskiDxfYolunuBul(SheetRow row)
         {
             try
             {
@@ -922,20 +1788,20 @@ namespace Macria
             Dictionary<SheetRow, double> values;
             if (!TumHamSacGirdileriniDogrula(out values)) return;
 
+            var sure = System.Diagnostics.Stopwatch.StartNew();
+
             int renamed = 0;
             int unchanged = 0;
             int renameError = 0;
 
             foreach (SheetRow row in _rows)
             {
-                double value = values[row];
-                string source = EskiDxfYolunuBul(row);
+                // Coklu Body parcasi icin DXF olusturma ve dosya adi guncelleme
+                // bilincli olarak devre disidir; taramadaki kirmizi durum korunur.
+                if (row.CokluBodyMi) continue;
 
-                HamSacKalinliklari.Ayarla(
-                    row.ProductName,
-                    row.PartName,
-                    value,
-                    row.Thickness);
+                double value = values[row];
+                string? source = EskiDxfYolunuBul(row);
 
                 row.HamSacKalinligiMetni = HamSacKalinliklari.Goster(value);
                 row.UygulananHamSacKalinligi = value;
@@ -944,7 +1810,7 @@ namespace Macria
 
                 try
                 {
-                    string folder = System.IO.Path.GetDirectoryName(source);
+                    string? folder = System.IO.Path.GetDirectoryName(source);
                     if (string.IsNullOrWhiteSpace(folder)) continue;
 
                     string target = System.IO.Path.Combine(folder, MakeFileName(row, value));
@@ -952,6 +1818,7 @@ namespace Macria
                     if (AyniDosyaYolu(source, target))
                     {
                         row.DxfYolu = source;
+                        row.DxfBasarili(source);
                         unchanged++;
                     }
                     else if (System.IO.File.Exists(target))
@@ -959,6 +1826,7 @@ namespace Macria
                         // Var olan dosyanin ustune yazilmaz. Hedef zaten varsa
                         // onizleme ona baglanir, eski dosya guvenlik icin korunur.
                         row.DxfYolu = target;
+                        row.DxfBasarili(target);
                         unchanged++;
                         LogInfo(
                             "DXF hedef adı zaten mevcut; eski dosyaya dokunulmadı: " +
@@ -968,6 +1836,7 @@ namespace Macria
                     {
                         System.IO.File.Move(source, target);
                         row.DxfYolu = target;
+                        row.DxfBasarili(target);
                         renamed++;
                         LogSuccess(
                             "DXF Adı Güncellendi: " +
@@ -978,28 +1847,26 @@ namespace Macria
                 catch (Exception ex)
                 {
                     renameError++;
-                    LogError(
+                    string hata =
                         "DXF Adı Güncellenemedi — " + row.ProductName + ": " +
-                        ex.Message);
+                        ex.Message;
+                    row.DxfBasarisiz(hata);
+                    LogError(hata);
                 }
             }
 
-            string saveError;
-            if (!HamSacKalinliklari.Kaydet(out saveError))
-            {
-                LogError("Ham Sac değerleri kaydedilemedi: " + saveError);
-                return;
-            }
-
             grid.Items.Refresh();
+            gridUrunAgaci.Items.Refresh();
             _onizlemeSonYol = "";
             OnizlemeyiYenile();
 
             LogSuccess(
-                "Ham Sac Değerleri Kaydedildi — Satır: " + _rows.Count +
+                "Ham Sac Değerleri Bu Taramaya Uygulandı — Satır: " + _rows.Count +
                 ", DXF Adı Değişen: " + renamed +
                 (unchanged > 0 ? ", Zaten Güncel: " + unchanged : "") +
-                (renameError > 0 ? ", Hata: " + renameError : ""));
+                (renameError > 0 ? ", Hata: " + renameError : "") +
+                ". Program kapatıldığında veya yeniden tarandığında bu değerler unutulur.");
+            IslemSuresiniYaz("Ham Sac Güncelleme", sure);
         }
 
         private void btnOnizlemeAc_Click(object sender, RoutedEventArgs e)
@@ -1007,7 +1874,7 @@ namespace Macria
             var row = grid.SelectedItem as SheetRow;
             if (row == null) return;
 
-            string yol = OnizlemeDosyasi(row);
+            string? yol = OnizlemeDosyasi(row);
             if (yol != null) OpenExported(yol);
         }
 
@@ -1025,8 +1892,18 @@ namespace Macria
 
         private async void btnScan_Click(object sender, RoutedEventArgs e)
         {
+            var sure = System.Diagnostics.Stopwatch.StartNew();
+
             _rows.Clear();
+            _urunAgaciRows.Clear();
+            Renklendirme2DurumunuGuncelle();
+            _hiyerarsiRoots.Clear();
+            _profilRows.Clear();
+            _sonProfilRaporu = "";
             _repRefs.Clear();
+            SacTaramaOzetiniTemizle();
+            UrunAgaciOzetleriniTemizle();
+            ProfilOzetiniTemizle();
 
             SetScanning(true);
             LogInfo("CATIA Taraması Başlatıldı.");
@@ -1048,10 +1925,24 @@ namespace Macria
                 _catia = GetCatia() ?? result.Catia;
 
                 foreach (var row in result.Rows) _rows.Add(row);
+                Renklendirme2SatirlariniHazirla(result.AllRows);
+                foreach (var row in result.AllRows) _urunAgaciRows.Add(row);
+                Renklendirme2DurumunuGuncelle();
+                foreach (var node in result.TreeRoots) _hiyerarsiRoots.Add(node);
+                foreach (var row in result.ProfileRows) _profilRows.Add(row);
                 foreach (var kv in result.RepRefs) _repRefs[kv.Key] = kv.Value;
+                _lastSuccessfulCatiaSnapshot = CatiaScanSnapshot.FromAllRows(result.AllRows);
 
-                LogSuccess("Tarama Tamamlandı — Sac Parça Çeşidi: " + _rows.Count +
-                           ", Toplam Adet: " + result.Total);
+                SacTaramaOzetiniYaz(result);
+                UrunAgaciOzetleriniYaz(result);
+                ProfilOzetiniYaz();
+
+                LogSuccess("Tarama Tamamlandı — Eşsiz Sac Referansı: " + _rows.Count +
+                           ", Montajdaki Kullanım: " + result.Total +
+                           " | Eşsiz Parça Referansı: " + _urunAgaciRows.Count +
+                           ", Montajdaki Kullanım: " + result.AllTotal +
+                           " | Ürün Grubu: " + result.AssemblyGroupCount +
+                           " | Profil Teşhis Adayı: " + _profilRows.Count);
             }
             catch (Exception ex)
             {
@@ -1060,18 +1951,108 @@ namespace Macria
             finally
             {
                 SetScanning(false);
+                IslemSuresiniYaz("CATIA Tarama", sure);
             }
+        }
+
+        private void SacTaramaOzetiniTemizle()
+        {
+            txtSacTaramaOzeti.Text = "";
+            txtSacTaramaOzeti.Visibility = Visibility.Collapsed;
+        }
+
+        private void SacTaramaOzetiniYaz(ScanOutput result)
+        {
+            int gizliEsiz = 0;
+            int gizliKullanim = 0;
+            int cokluBodyEsiz = 0;
+            int cokluBodyKullanim = 0;
+
+            foreach (SheetRow row in result.Rows)
+            {
+                if (row.GizliPhysicalProductMu)
+                {
+                    gizliEsiz++;
+                    gizliKullanim += row.Quantity;
+                }
+                if (row.CokluBodyMi)
+                {
+                    cokluBodyEsiz++;
+                    cokluBodyKullanim += row.Quantity;
+                }
+            }
+
+            int dxfAlinabilirEsiz = Math.Max(0, result.Rows.Count - cokluBodyEsiz);
+            int dxfAlinabilirKullanim = Math.Max(0, result.Total - cokluBodyKullanim);
+
+            txtSacTaramaOzeti.Text =
+                "Eşsiz sac parça: " + result.Rows.Count +
+                "   •   Toplam kullanım: " + result.Total + " adet" +
+                "   •   Gizli: " + gizliEsiz + " eşsiz" +
+                "   •   Çoklu Body: " + cokluBodyEsiz + " eşsiz" +
+                "   •   DXF alınabilir: " + dxfAlinabilirEsiz + " eşsiz";
+            txtSacTaramaOzeti.ToolTip =
+                "Her stabil PLM ReferenceKey yalnızca bir kez teşhis edilir. Montajdaki occurrence'lar sadece Adet hesabına eklenir.\n" +
+                "Gizli kullanım: " + gizliKullanim + " adet. Çoklu Body kullanım: " +
+                cokluBodyKullanim + " adet. DXF alınabilir kullanım: " +
+                dxfAlinabilirKullanim + " adet.";
+            txtSacTaramaOzeti.Visibility = Visibility.Visible;
+        }
+
+        private void UrunAgaciOzetleriniTemizle()
+        {
+            txtUrunAgaciOzeti.Text = "";
+            txtUrunAgaciOzeti.Visibility = Visibility.Collapsed;
+            txtHiyerarsiOzeti.Text = "";
+            txtHiyerarsiOzeti.Visibility = Visibility.Collapsed;
+        }
+
+        private void UrunAgaciOzetleriniYaz(ScanOutput result)
+        {
+            int sacEsiz = 0;
+            int gizliEsiz = 0;
+            foreach (SheetRow row in result.AllRows)
+            {
+                if (row.IsSheetMetal) sacEsiz++;
+                if (row.GizliPhysicalProductMu) gizliEsiz++;
+            }
+
+            txtUrunAgaciOzeti.Text =
+                "Eşsiz parça: " + result.AllRows.Count +
+                "   •   Toplam kullanım: " + result.AllTotal + " adet" +
+                "   •   Sac: " + sacEsiz + " eşsiz" +
+                "   •   Sac olmayan: " + (result.AllRows.Count - sacEsiz) + " eşsiz" +
+                "   •   Gizli: " + gizliEsiz + " eşsiz";
+            txtUrunAgaciOzeti.ToolTip =
+                "Montaj grupları bu düz listeye alınmaz. Aynı PLM ReferenceKey yalnızca bir satırdır; Adet sütunu bütün occurrence'ların toplamıdır.";
+            txtUrunAgaciOzeti.Visibility = Visibility.Visible;
+
+            txtHiyerarsiOzeti.Text =
+                "Ürün grubu: " + result.AssemblyGroupCount +
+                "   •   Parça yerleşimi: " + result.AllTotal +
+                "   •   Eşsiz parça: " + result.AllRows.Count +
+                "   •   Gizli ağaç öğesi: " + result.HiddenHierarchyNodeCount;
+            txtHiyerarsiOzeti.ToolTip =
+                "Bu sekme CATIA occurrence yapısını korur; aynı parçanın her yerleşimi kendi montaj seviyesinde görünür.";
+            txtHiyerarsiOzeti.Visibility = Visibility.Visible;
         }
 
         private class ScanOutput
         {
             public List<SheetRow> Rows = new List<SheetRow>();
-            public Dictionary<string, object> RepRefs = new Dictionary<string, object>();
+            public List<SheetRow> AllRows = new List<SheetRow>();
+            public List<ProfilRow> ProfileRows = new List<ProfilRow>();
+            public List<UrunAgaciNode> TreeRoots = new List<UrunAgaciNode>();
+            public Dictionary<string, object> RepRefs =
+                new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             public object Catia;
             public int Total;
-            public string Error;
+            public int AllTotal;
+            public int PartOccurrenceCount;
+            public int AssemblyGroupCount;
+            public int HiddenHierarchyNodeCount;
+            public string? Error;
             public List<DiagLine> Diag = new List<DiagLine>();
-            public bool UrunDokuldu;    // teshis satiri bir kez yazilsin
             public bool ParcaDokuldu;
         }
 
@@ -1086,7 +2067,7 @@ namespace Macria
         {
             var result = new ScanOutput();
 
-            object catiaObj = CatiaConnect.Connect(result.Diag);
+            object? catiaObj = CatiaConnect.Connect(result.Diag);
             if (catiaObj == null)
             {
                 result.Diag.AddRange(CatiaConnect.Teshis());
@@ -1105,15 +2086,75 @@ namespace Macria
                 return result;
             }
 
-            var found = new Dictionary<string, ScanItem>();
-            ScanNode(root, "", found, result);
+            // Kullanici icin parcanin tekil kimligi Reference Title'dir. Ayni
+            // Title montajda kac occurrence olursa olsun geometri sadece bir kez
+            // incelenir; tekrarlar yalnizca Count alanini artirir.
+            var found = new Dictionary<string, ScanItem>(StringComparer.OrdinalIgnoreCase);
+            dynamic? taramaSecimi = null;
+            List<object> oncekiSecim = new List<object>();
+
+            try
+            {
+                taramaSecimi = editor.Selection;
+                oncekiSecim = SecimiSakla(taramaSecimi);
+            }
+            catch { }
+
+            try
+            {
+                UrunAgaciNode rootNode = ScanNode(
+                    root, null, found, result, taramaSecimi, false);
+                if (rootNode != null) result.TreeRoots.Add(rootNode);
+                result.Diag.Add(new DiagLine(
+                    "PLM ReferenceKey tekilleştirme — Parça occurrence: " +
+                    result.PartOccurrenceCount + ", Eşsiz referans: " + found.Count +
+                    ", Geometrik teşhis sayısı: " + found.Count +
+                    ". Aynı referans tekrarları yalnızca Adet hesabına eklendi; " +
+                    "stabil PLM kimliği okunamayan kayıtlarda mevcut Title fallback'i kullanıldı.",
+                    DiagLevel.Success));
+            }
+            finally
+            {
+                SecimiGeriYukle(taramaSecimi, oncekiSecim);
+            }
 
             foreach (var kv in found)
             {
+                int katiBodySayisi;
+                string bodyAdlari;
+                bool cokluBody = TryGetSolidBodyInfo(
+                    kv.Value.Part, out katiBodySayisi, out bodyAdlari) &&
+                    katiBodySayisi > 1;
+
                 bool kalintiThickness;
+                double bulunanThickness;
                 List<string> sacTeshisi;
                 double thk = GetThickness(
-                    kv.Value.Part, out kalintiThickness, out sacTeshisi);
+                    kv.Value.Part, out kalintiThickness, out bulunanThickness,
+                    out sacTeshisi);
+
+                // Bazi 3DEXPERIENCE kurulumlari ana Body'deki Sheet Metal
+                // feature'ini COM Shapes agacinda gostermiyor. Parca birden fazla
+                // kati Body ve gercek Sheet Metal Thickness parametresi iceriyorsa
+                // listeden dusurmek yerine guvenlik adayi olarak listele. Zaten
+                // Coklu Body oldugu icin DXF'i kesinlikle alinmayacak.
+                bool cokluBodyGuvenlikAdayi =
+                    thk <= 0 && cokluBody && bulunanThickness > 0;
+
+                if (cokluBodyGuvenlikAdayi)
+                {
+                    thk = bulunanThickness;
+                    result.Diag.Add(new DiagLine(
+                        "Çoklu Body güvenlik adayı — " + kv.Value.ProductName +
+                        ": " + katiBodySayisi + " Body ve Sheet Metal Thickness bulundu" +
+                        (string.IsNullOrWhiteSpace(bodyAdlari)
+                            ? "."
+                            : " (" + bodyAdlari + ").") +
+                        " Ana Body feature ağacı bu CATIA sürümünde okunamadı; " +
+                        "parça Sac Lazer listesine uyarılı eklendi ve DXF'i engellendi.",
+                        DiagLevel.Error));
+                }
+
                 if (thk <= 0)
                 {
                     if (kalintiThickness)
@@ -1130,27 +2171,97 @@ namespace Macria
                                 DiagLevel.Info));
                         }
                     }
+
+                    // Sac filtresine girmeyen kati parca DXF listesine alinmaz;
+                    // ancak komple urun agacinda adet bilgisiyle birlikte gorunur.
+                    var allRow = new SheetRow
+                    {
+                        ProductName = kv.Value.ProductName,
+                        PartName = kv.Value.PartName,
+                        ReferenceKey = kv.Key,
+                        Renklendirme2ReferenceKey = kv.Value.Renklendirme2ReferenceKey,
+                        ReferenceName = kv.Value.ReferenceName,
+                        Description = kv.Value.Description,
+                        Revision = kv.Value.Revision,
+                        IsSheetMetal = false,
+                        GizliPhysicalProductMu = kv.Value.GizliPhysicalProductMu,
+                        UrunAgaciNotu = kv.Value.GizliPhysicalProductMu
+                            ? GizlenmisOgeNotu
+                            : "",
+                        Quantity = kv.Value.Count
+                    };
+                    result.AllRows.Add(allRow);
+
+                    // Feature gecmisi olmayan As Result parcalari da kacirmamak
+                    // icin sac olmayan her kati parca deneysel profil aday
+                    // listesine girer. Kesin siniflandirma secili satirin detayli
+                    // geometri teshisinde yapilir.
+                    result.ProfileRows.Add(ProfilSatiriOlustur(
+                        kv.Value.ProductName,
+                        kv.Value.PartName,
+                        kv.Value.ReferenceName,
+                        kv.Value.Description,
+                        kv.Value.Revision,
+                        kv.Value.Count,
+                        kv.Value.GizliPhysicalProductMu,
+                        kv.Value.Part,
+                        kv.Value.RepRef,
+                        katiBodySayisi,
+                        bodyAdlari));
+                    result.AllTotal += kv.Value.Count;
                     continue;
                 }
 
                 double modelKalinligi = Math.Round(thk, 2);
-                double hamSacKalinligi = HamSacKalinliklari.Getir(
-                    kv.Value.ProductName,
-                    kv.Value.PartName,
-                    modelKalinligi);
+                // Her CATIA taramasi temiz bir tablo uretir. Ham Sac onceki
+                // taramadan veya programin onceki acilisindan devralinmaz.
+                double hamSacKalinligi = modelKalinligi;
 
-                result.Rows.Add(new SheetRow
+                var sheetRow = new SheetRow
                 {
                     ProductName = kv.Value.ProductName,
                     PartName = kv.Value.PartName,
+                    ReferenceKey = kv.Key,
+                    Renklendirme2ReferenceKey = kv.Value.Renklendirme2ReferenceKey,
+                    ReferenceName = kv.Value.ReferenceName,
+                    Description = kv.Value.Description,
+                    Revision = kv.Value.Revision,
+                    IsSheetMetal = true,
                     Thickness = modelKalinligi,
                     HamSacKalinligiMetni = HamSacKalinliklari.Goster(hamSacKalinligi),
                     UygulananHamSacKalinligi = hamSacKalinligi,
-                    Quantity = kv.Value.Count
-                });
+                    Quantity = kv.Value.Count,
+                    CokluBodyMi = cokluBody,
+                    GizliPhysicalProductMu = kv.Value.GizliPhysicalProductMu,
+                    UrunAgaciNotu = kv.Value.GizliPhysicalProductMu
+                        ? GizlenmisOgeNotu
+                        : "",
+                    Not = SacSatirNotu(cokluBody, kv.Value.GizliPhysicalProductMu)
+                };
 
-                result.RepRefs[kv.Value.PartName] = kv.Value.RepRef;
+                if (cokluBody)
+                {
+                    sheetRow.DxfCokluBody(CokluBodyDxfHatasi);
+                    result.Diag.Add(new DiagLine(
+                        "DXF güvenliği — " + kv.Value.ProductName +
+                        ": Çoklu Body bulundu (" + katiBodySayisi + ")" +
+                        (string.IsNullOrWhiteSpace(bodyAdlari)
+                            ? "."
+                            : ": " + bodyAdlari + ".") +
+                        " Toplu DXF sırasında atlanacak.",
+                        DiagLevel.Error));
+                }
+                else if (sheetRow.GizliPhysicalProductMu)
+                {
+                    sheetRow.DxfGizli();
+                }
+
+                result.Rows.Add(sheetRow);
+                result.AllRows.Add(sheetRow);
+
+                result.RepRefs[kv.Key] = kv.Value.RepRef;
                 result.Total += kv.Value.Count;
+                result.AllTotal += kv.Value.Count;
             }
 
             return result;
@@ -1165,7 +2276,26 @@ namespace Macria
             btnScan.IsEnabled = !active;
             btnExportAll.IsEnabled = !active;
             btnHamSacGuncelle.IsEnabled = !active;
+            btnParcaSutunlari.IsEnabled = !active;
+            btnParcaTabloTemizle.IsEnabled = !active;
+            btnSacExcel.IsEnabled = !active;
+            btnUrunAgaciExcel.IsEnabled = !active;
+            chkSacGizliDahil.IsEnabled = !active;
+            chkSacCokluBodyDahil.IsEnabled = !active;
+            chkTreeGizliDahil.IsEnabled = !active;
             grid.IsEnabled = !active;
+            gridUrunAgaci.IsEnabled = !active;
+            treeUrunAgaci.IsEnabled = !active;
+            SetRenklendirme2PanelEnabled(!active);
+            if (chkProfilGizliDahil != null) chkProfilGizliDahil.IsEnabled = !active;
+            if (gridProfil != null) gridProfil.IsEnabled = !active;
+            if (active)
+            {
+                if (btnProfilTeshis != null) btnProfilTeshis.IsEnabled = false;
+                if (btnProfilStep != null) btnProfilStep.IsEnabled = false;
+                if (btnProfilRaporAc != null) btnProfilRaporAc.IsEnabled = false;
+            }
+            else ProfilButonlariniGuncelle();
         }
 
         // Tarama sirasinda butondaki donen gostergeyi acip kapatir
@@ -1174,7 +2304,26 @@ namespace Macria
             btnScan.IsHitTestVisible = !active;
             btnExportAll.IsEnabled = !active;
             btnHamSacGuncelle.IsEnabled = !active;
+            btnParcaSutunlari.IsEnabled = !active;
+            btnParcaTabloTemizle.IsEnabled = !active;
+            btnSacExcel.IsEnabled = !active;
+            btnUrunAgaciExcel.IsEnabled = !active;
+            chkSacGizliDahil.IsEnabled = !active;
+            chkSacCokluBodyDahil.IsEnabled = !active;
+            chkTreeGizliDahil.IsEnabled = !active;
             grid.IsEnabled = !active;
+            gridUrunAgaci.IsEnabled = !active;
+            treeUrunAgaci.IsEnabled = !active;
+            SetRenklendirme2PanelEnabled(!active);
+            if (chkProfilGizliDahil != null) chkProfilGizliDahil.IsEnabled = !active;
+            if (gridProfil != null) gridProfil.IsEnabled = !active;
+            if (active)
+            {
+                if (btnProfilTeshis != null) btnProfilTeshis.IsEnabled = false;
+                if (btnProfilStep != null) btnProfilStep.IsEnabled = false;
+                if (btnProfilRaporAc != null) btnProfilRaporAc.IsEnabled = false;
+            }
+            else ProfilButonlariniGuncelle();
 
             scanIcon.Visibility = active ? Visibility.Collapsed : Visibility.Visible;
             scanSpinner.Visibility = active ? Visibility.Visible : Visibility.Collapsed;
@@ -1196,7 +2345,7 @@ namespace Macria
         // ================= CATIA BAGLANTISI =================
 
         // Baglanti mantigi CatiaConnect icinde; burasi sadece sessiz bir sarmalayici
-        private static object GetCatia()
+        private static object? GetCatia()
         {
             try { return CatiaConnect.Connect(null); }
             catch { return null; }
@@ -1204,129 +2353,343 @@ namespace Macria
 
         private static bool HasOccurrences(dynamic node)
         {
-            try
-            {
-                dynamic subs = node.Occurrences;
-                if (subs == null) return false;
-                int c = subs.Count;
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
+            return OccurrenceSayisi(node) > 0;
         }
 
         // ================= AGAC TARAMA =================
 
-        private class ScanItem
+        private class ProductReferenceFields
         {
-            public object Part;
-            public object RepRef;
-            public string ProductName = "";
-            public string PartName = "";
-            public int Count;
+            public string Title = "";
+            public string Name = "";
+            public string Description = "";
+            public string Revision = "";
         }
 
-        private void ScanNode(dynamic node, string parentProd,
-                              Dictionary<string, ScanItem> found, ScanOutput result)
+        private class ScanItem
         {
-            // Urun adi yalnizca dugumun VPMReference nesnesindeki Title'dan okunur.
-            // node.Name instance adidir (orn. "hhh.1") ve parca/DXF adi icin kullanilmaz.
-            object dugumRef = ReferansAl(node);
-            string prodName = dugumRef == null ? "" : PlmBaslik(dugumRef);
+            public required object Part;
+            public required object RepRef;
+            public string ProductName = "";
+            public string PartName = "";
+            public string ReferenceName = "";
+            public string Description = "";
+            public string Revision = "";
+            public string Renklendirme2ReferenceKey = "";
+            public bool GizliPhysicalProductMu;
+            public int Count;
+            public bool FarkliRepresentationBildirildi;
+        }
 
-            if (string.IsNullOrWhiteSpace(prodName))
+        private UrunAgaciNode ScanNode(
+            dynamic node, ProductReferenceFields parentFields,
+            Dictionary<string, ScanItem> found, ScanOutput result,
+            dynamic taramaSecimi, bool ustUrunGizli)
+        {
+            // Parca kodu ve kurumsal alanlar dugumun VPMReference nesnesinden okunur.
+            // node.Name instance adidir (orn. "hhh.1") ve parca/DXF adi icin kullanilmaz.
+            object? dugumRef = ReferansAl(node);
+            ProductReferenceFields fields = ProductReferansAlanlari(dugumRef, parentFields);
+            string prodName = fields.Title;
+            int altOccurrenceSayisi = OccurrenceSayisi(node);
+            bool urunGrubu = altOccurrenceSayisi > 0;
+
+            // RepOccurrence/3D Shape degil, yalnizca onu tasiyan Physical Product
+            // occurrence'in Show/NoShow durumu okunur. Kok dugum isaretlenmez.
+            bool kendiGizli = parentFields != null &&
+                              PhysicalProductGizliMi(taramaSecimi, node);
+            bool gizliPhysicalProduct = ustUrunGizli || kendiGizli;
+
+            if (kendiGizli)
             {
-                // Title okunamazsa instance ada geri donmek ayni referansin .1, .2...
-                // seklinde farkli adlarla listelenmesine neden olur. Bu nedenle yedek ad da
-                // Reference uzerindeki kalici PLM kimliginden alinir.
-                prodName = dugumRef == null ? "" : PlmDeger(dugumRef, "PLM_ExternalID");
+                result.Diag.Add(new DiagLine(
+                    "Gizlenmiş Physical Product — " +
+                    (string.IsNullOrWhiteSpace(prodName) ? "(adsız)" : prodName) +
+                    ": Ürün Ağacı Komplesi listesine notuyla eklenecek.",
+                    DiagLevel.Info));
             }
 
-            if (string.IsNullOrWhiteSpace(prodName))
-                prodName = string.IsNullOrWhiteSpace(parentProd)
-                    ? "REFERENCE_TITLE_OKUNAMADI"
-                    : parentProd;
-
-            try
+            var treeNode = new UrunAgaciNode
             {
-                dynamic reps = node.RepOccurrences;
-                if (reps != null)
+                Title = prodName,
+                ReferenceName = fields.Name,
+                Description = fields.Description,
+                Revision = fields.Revision,
+                InstanceName = DugumInstanceAdi(node),
+                UrunGrubuMu = urunGrubu,
+                GizliMi = gizliPhysicalProduct
+            };
+
+            if (urunGrubu) result.AssemblyGroupCount++;
+            if (gizliPhysicalProduct) result.HiddenHierarchyNodeCount++;
+
+            // Alt occurrence'i olan Physical Product bir montaj grubudur. Duz
+            // "Esiz Parcalar" listesine girmez; yalnizca hiyerarsik agacta kalir.
+            // Yaprakta birden fazla representation olsa bile ilk Part/CATIAPart
+            // occurrence'i secilir ve o Physical Product occurrence'i adede bir
+            // kez eklenir.
+            if (!urunGrubu)
+            {
+                string repTitle = "";
+                object? part = null;
+                object? repRefObj = null;
+
+                try
                 {
-                    int cnt = reps.Count;
-                    for (int i = 1; i <= cnt; i++)
+                    dynamic reps = node.RepOccurrences;
+                    if (reps != null)
                     {
-                        string key = "";
-                        object part = null;
-                        object repRefObj = null;
-
-                        try
+                        int cnt = Convert.ToInt32(reps.Count);
+                        for (int i = 1; i <= cnt; i++)
                         {
-                            dynamic repOcc = reps.Item(i);
-                            dynamic repInst = repOcc.RelatedRepInstance;
-                            dynamic repRef = repInst.ReferenceInstanceOf;
-                            repRefObj = repRef;
-
-                            if (!result.ParcaDokuldu)
+                            try
                             {
-                                result.ParcaDokuldu = true;
-                                UyeDok(result.Diag, "Ürün Düğümü", (object)node, true);
-                                if (dugumRef != null)
-                                    UyeDok(result.Diag, "Ürün Referansı", dugumRef, true);
-                                UyeDok(result.Diag, "Parça Occurrence", (object)repOcc);
-                                UyeDok(result.Diag, "Parça Instance", (object)repInst);
-                                UyeDok(result.Diag, "Parça Referansı", repRefObj, true);
+                                dynamic repOcc = reps.Item(i);
+                                dynamic repInst = repOcc.RelatedRepInstance;
+                                dynamic repRef = repInst.ReferenceInstanceOf;
+                                object adayRef = repRef;
+                                object? adayPart = ParcaNesnesiAl(adayRef);
+
+                                // Drawing ve diger representation tiplerini atla.
+                                if (adayRef == null || adayPart == null) continue;
+
+                                repRefObj = adayRef;
+                                part = adayPart;
+                                repTitle = PlmBaslik(adayRef);
+                                if (string.IsNullOrWhiteSpace(repTitle))
+                                    repTitle = PlmDeger(adayRef, "PLM_ExternalID");
+
+                                if (!result.ParcaDokuldu)
+                                {
+                                    result.ParcaDokuldu = true;
+                                    UyeDok(result.Diag, "Ürün Düğümü", (object)node, true);
+                                    if (dugumRef != null)
+                                        UyeDok(result.Diag, "Ürün Referansı", dugumRef, true);
+                                    UyeDok(result.Diag, "Parça Occurrence", (object)repOcc);
+                                    UyeDok(result.Diag, "Parça Instance", (object)repInst);
+                                    UyeDok(result.Diag, "Parça Referansı", repRefObj, true);
+                                }
+
+                                break;
                             }
-
-                            key = PlmBaslik(repRefObj);
-                            part = ParcaNesnesiAl(repRefObj);
-                        }
-                        catch { }
-
-                        // Drawing gibi Part/CATIAPart nesnesi olmayan representation'lar
-                        // sac taramasina ve adet hesabina girmemeli.
-                        if (key.Length == 0 || part == null || repRefObj == null) continue;
-
-                        // Ayni parca farkli urunler altinda ayri satir olsun diye
-                        // urun+parca ciftiyle grupla
-                        string mapKey = prodName + "||" + key;
-
-                        ScanItem item;
-                        if (found.TryGetValue(mapKey, out item))
-                        {
-                            item.Count++;
-                        }
-                        else
-                        {
-                            found[mapKey] = new ScanItem
-                            {
-                                Part = part,
-                                RepRef = repRefObj,
-                                ProductName = prodName,
-                                PartName = key,
-                                Count = 1
-                            };
+                            catch { }
                         }
                     }
                 }
+                catch { }
+
+                if (part != null && repRefObj != null)
+                {
+                    result.PartOccurrenceCount++;
+                    treeNode.ParcaMi = true;
+                    treeNode.RepresentationTitle = repTitle;
+
+                    string renklendirme2ReferenceKey =
+                        AkilliRenklendirmeMantigi.ReferansAnahtari(
+                            fields.Name,
+                            fields.Revision) ?? "";
+                    string mapKey = string.IsNullOrWhiteSpace(renklendirme2ReferenceKey)
+                        ? EsizTitleAnahtari(prodName, fields.Name, repTitle)
+                        : renklendirme2ReferenceKey;
+
+                    ScanItem? item;
+                    if (found.TryGetValue(mapKey, out item))
+                    {
+                        item.Count++;
+                        // Eşsiz satırın tamamı yalnızca bütün occurrence'lar
+                        // gizliyse "gizli" sayılır. Aynı referansın görünür bir
+                        // occurrence'ı varsa filtre kapatıldığında parça kaybolmaz.
+                        item.GizliPhysicalProductMu =
+                            item.GizliPhysicalProductMu && gizliPhysicalProduct;
+
+                        if (!item.FarkliRepresentationBildirildi &&
+                            !string.Equals(item.PartName, repTitle,
+                                StringComparison.OrdinalIgnoreCase))
+                        {
+                            item.FarkliRepresentationBildirildi = true;
+                            result.Diag.Add(new DiagLine(
+                                "Aynı PLM referansı birleştirildi — " + prodName +
+                                ": farklı 3B representation adları bulundu (" +
+                                item.PartName + " / " + repTitle +
+                                "). Geometri ilk occurrence üzerinden yalnızca bir kez tarandı.",
+                                DiagLevel.Info));
+                        }
+                    }
+                    else
+                    {
+                        found[mapKey] = new ScanItem
+                        {
+                            Part = part,
+                            RepRef = repRefObj,
+                            ProductName = prodName,
+                            PartName = repTitle,
+                            ReferenceName = fields.Name,
+                            Description = fields.Description,
+                            Revision = fields.Revision,
+                            Renklendirme2ReferenceKey = renklendirme2ReferenceKey,
+                            GizliPhysicalProductMu = gizliPhysicalProduct,
+                            Count = 1
+                        };
+                    }
+                }
             }
-            catch { }
 
             try
             {
                 dynamic subs = node.Occurrences;
                 if (subs != null)
                 {
-                    int cnt = subs.Count;
-                    for (int i = 1; i <= cnt; i++)
-                        ScanNode(subs.Item(i), prodName, found, result);
+                    for (int i = 1; i <= altOccurrenceSayisi; i++)
+                    {
+                        UrunAgaciNode child = ScanNode(
+                            subs.Item(i), fields, found, result,
+                            taramaSecimi, gizliPhysicalProduct);
+                        if (child != null) treeNode.Children.Add(child);
+                    }
+                }
+            }
+            catch { }
+
+            return treeNode;
+        }
+
+        private static int OccurrenceSayisi(dynamic node)
+        {
+            try
+            {
+                dynamic subs = node.Occurrences;
+                return subs == null ? 0 : Math.Max(0, Convert.ToInt32(subs.Count));
+            }
+            catch { return 0; }
+        }
+
+        private static string DugumInstanceAdi(dynamic node)
+        {
+            try
+            {
+                string value = Convert.ToString(node.Name);
+                return string.IsNullOrWhiteSpace(value) ? "" : value.Trim();
+            }
+            catch { return ""; }
+        }
+
+        private static string EsizTitleAnahtari(
+            string title, string referenceName, string representationTitle)
+        {
+            string duzeltilmis = BosluklariTekillestir(title);
+            if (!string.IsNullOrWhiteSpace(duzeltilmis))
+                return "TITLE:" + duzeltilmis;
+
+            // Title okunamayan bozuk datalarda alakasiz parcalari tek satirda
+            // birlestirmemek icin yalnizca ic anahtar olarak Name/representation
+            // kullanilir. Bu degerler kullaniciya parca kodu diye gosterilmez.
+            duzeltilmis = BosluklariTekillestir(referenceName);
+            if (!string.IsNullOrWhiteSpace(duzeltilmis))
+                return "NAME:" + duzeltilmis;
+
+            return "REP:" + BosluklariTekillestir(representationTitle);
+        }
+
+        private static string BosluklariTekillestir(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return "";
+
+            var sb = new StringBuilder(value.Length);
+            bool boslukYazildi = false;
+            foreach (char c in value.Trim())
+            {
+                if (char.IsWhiteSpace(c))
+                {
+                    if (!boslukYazildi) sb.Append(' ');
+                    boslukYazildi = true;
+                }
+                else
+                {
+                    sb.Append(c);
+                    boslukYazildi = false;
+                }
+            }
+            return sb.ToString();
+        }
+
+        // CATIA V6/3DEXPERIENCE'te gorunurluk ActiveEditor.Selection uzerindeki
+        // VisProperties.GetShow ile okunur. 0=Show, 1=NoShow kabul edilir.
+        private static bool PhysicalProductGizliMi(dynamic selection, dynamic node)
+        {
+            if (selection == null || node == null) return false;
+
+            try
+            {
+                selection.Clear();
+                selection.Add(node);
+
+                dynamic visProperties = selection.VisProperties;
+                int showState = 0;
+                visProperties.GetShow(ref showState);
+                return showState == 1;
+            }
+            catch
+            {
+                return false;
+            }
+            finally
+            {
+                try { selection.Clear(); } catch { }
+            }
+        }
+
+        private static List<object> SecimiSakla(dynamic selection)
+        {
+            var secilenler = new List<object>();
+            if (selection == null) return secilenler;
+
+            int count = 0;
+            try { count = (int)selection.Count2; }
+            catch
+            {
+                try { count = (int)selection.Count; }
+                catch { return secilenler; }
+            }
+
+            for (int i = 1; i <= count; i++)
+            {
+                try
+                {
+                    object value = selection.Item2(i).Value;
+                    if (value != null) secilenler.Add(value);
+                    continue;
+                }
+                catch { }
+
+                try
+                {
+                    object value = selection.Item(i).Value;
+                    if (value != null) secilenler.Add(value);
+                }
+                catch { }
+            }
+
+            return secilenler;
+        }
+
+        private static void SecimiGeriYukle(dynamic selection, List<object> secilenler)
+        {
+            if (selection == null) return;
+
+            try
+            {
+                selection.Clear();
+                if (secilenler == null) return;
+
+                foreach (object value in secilenler)
+                {
+                    try { selection.Add(value); } catch { }
                 }
             }
             catch { }
         }
 
-        private static object ParcaNesnesiAl(object repRef)
+        private static object? ParcaNesnesiAl(object repRef)
         {
             if (repRef == null) return null;
 
@@ -1348,15 +2711,58 @@ namespace Macria
             return null;
         }
 
+        // Part.Bodies yalnizca kati Body nesnelerini verir; HybridBody / Geometrical
+        // Set bu sayima dahil degildir. Koleksiyon okunamazsa parcayi yanlislikla
+        // engellememek icin false donulur.
+        private static bool TryGetSolidBodyInfo(
+            object partObj, out int bodyCount, out string bodyNames)
+        {
+            bodyCount = 0;
+            bodyNames = "";
+            if (partObj == null) return false;
+
+            dynamic bodies;
+            try { bodies = ((dynamic)partObj).Bodies; }
+            catch { return false; }
+
+            if (bodies == null) return false;
+
+            try { bodyCount = Convert.ToInt32(bodies.Count); }
+            catch { return false; }
+
+            var names = new List<string>();
+            for (int i = 1; i <= bodyCount; i++)
+            {
+                try
+                {
+                    dynamic body = bodies.Item(i);
+                    string name = body == null ? "" : Convert.ToString(body.Name).Trim();
+                    if (!string.IsNullOrWhiteSpace(name)) names.Add(name);
+                }
+                catch { }
+            }
+
+            bodyNames = string.Join(", ", names);
+            return true;
+        }
+
         // ================= PLM AD/BASLIK =================
         //
         // 3DEXPERIENCE'ta Properties > Reference bolumundeki alanlar:
         //   Title -> V_Name         (kullanicinin verdigi referans basligi)
         //   Name  -> PLM_ExternalID (kalici PLM kimligi)
-        // Liste ve DXF adi icin yalnizca Reference Title kullanilir.
+        //   Description -> V_description
+        //   Revision -> revision
+        // DXF adi Reference Title ile uretilmeye devam eder.
 
         private static readonly string[] BaslikUyeleri = { "V_Name", "Title" };
-        private static readonly string[] TumUyeler = { "V_Name", "Title", "Name", "PLM_ExternalID" };
+        private static readonly string[] AdUyeleri = { "PLM_ExternalID", "Name" };
+        private static readonly string[] AciklamaUyeleri =
+            { "V_description", "V_Description", "Description", "description" };
+        private static readonly string[] RevizyonUyeleri =
+            { "revision", "Revision", "V_revision", "V_Revision", "V_version", "V_Version", "PLM_Revision" };
+        private static readonly string[] TumUyeler =
+            { "V_Name", "PLM_ExternalID", "V_description", "revision", "Title", "Name", "Description", "Revision" };
 
         // dynamic uzerinde uye adi degisken olamaz; her aday ayri ayri denenir
         private static string PlmDeger(object nesne, string uye)
@@ -1378,7 +2784,7 @@ namespace Macria
             try
             {
                 dynamic d = nesne;
-                object v = null;
+                object? v = null;
 
                 switch (uye)
                 {
@@ -1386,6 +2792,17 @@ namespace Macria
                     case "Title": v = d.Title; break;
                     case "Name": v = d.Name; break;
                     case "PLM_ExternalID": v = d.PLM_ExternalID; break;
+                    case "V_description": v = d.V_description; break;
+                    case "V_Description": v = d.V_Description; break;
+                    case "Description": v = d.Description; break;
+                    case "description": v = d.description; break;
+                    case "revision": v = d.revision; break;
+                    case "Revision": v = d.Revision; break;
+                    case "V_revision": v = d.V_revision; break;
+                    case "V_Revision": v = d.V_Revision; break;
+                    case "V_version": v = d.V_version; break;
+                    case "V_Version": v = d.V_Version; break;
+                    case "PLM_Revision": v = d.PLM_Revision; break;
                 }
 
                 return v == null ? "" : Convert.ToString(v).Trim();
@@ -1404,6 +2821,52 @@ namespace Macria
             }
 
             return "";
+        }
+
+        private static string PlmIlkDeger(object nesne, string[] uyeler)
+        {
+            if (nesne == null) return "";
+
+            foreach (string uye in uyeler)
+            {
+                string value = PlmDeger(nesne, uye);
+                if (!string.IsNullOrWhiteSpace(value)) return value;
+            }
+
+            return "";
+        }
+
+        private static ProductReferenceFields ProductReferansAlanlari(
+            object? referans, ProductReferenceFields parentFields)
+        {
+            if (referans == null)
+            {
+                if (parentFields != null) return parentFields;
+
+                return new ProductReferenceFields
+                {
+                    Title = "REFERENCE_TITLE_OKUNAMADI"
+                };
+            }
+
+            var fields = new ProductReferenceFields
+            {
+                Title = PlmBaslik(referans),
+                Name = PlmIlkDeger(referans, AdUyeleri),
+                Description = PlmIlkDeger(referans, AciklamaUyeleri),
+                Revision = PlmIlkDeger(referans, RevizyonUyeleri)
+            };
+
+            // Instance Name (.1, .2...) hicbir zaman yedek ad olarak kullanilmaz.
+            // Title bos ise ayni Reference'in kalici PLM Name alani gosterilir.
+            if (string.IsNullOrWhiteSpace(fields.Title))
+                fields.Title = !string.IsNullOrWhiteSpace(fields.Name)
+                    ? fields.Name
+                    : (parentFields == null
+                        ? "REFERENCE_TITLE_OKUNAMADI"
+                        : parentFields.Title);
+
+            return fields;
         }
 
         // Hangi uyenin ne dondurdugunu konsola yazar; tarama basina bir kez cagrilir
@@ -1439,14 +2902,14 @@ namespace Macria
         }
 
         // Bir occurrence'in VPMReference nesnesi; Title mutlaka buradan okunur.
-        private static object ReferansAl(dynamic node)
+        private static object? ReferansAl(dynamic node)
         {
             // VPMOccurrence -> VPMInstance -> VPMReference
             // 3DEXPERIENCE Product Modeler'in standart occurrence yolu budur.
             try
             {
                 dynamic ins = node.InstanceOccurrenceOf;
-                object r = InstanceReferansi(ins);
+                object? r = InstanceReferansi(ins);
                 if (r != null) return r;
             }
             catch { }
@@ -1455,7 +2918,7 @@ namespace Macria
             try
             {
                 dynamic ins = node.InstanceOccurrenceOf();
-                object r = InstanceReferansi(ins);
+                object? r = InstanceReferansi(ins);
                 if (r != null) return r;
             }
             catch { }
@@ -1465,7 +2928,7 @@ namespace Macria
             try
             {
                 dynamic ins = node.PLMEntity;
-                object r = InstanceReferansi(ins);
+                object? r = InstanceReferansi(ins);
                 if (r != null) return r;
             }
             catch { }
@@ -1478,7 +2941,7 @@ namespace Macria
             try
             {
                 dynamic ins = node.RelatedInstance;
-                object r = InstanceReferansi(ins);
+                object? r = InstanceReferansi(ins);
                 if (r != null) return r;
             }
             catch { }
@@ -1489,7 +2952,7 @@ namespace Macria
             return null;
         }
 
-        private static object InstanceReferansi(object instance)
+        private static object? InstanceReferansi(object? instance)
         {
             if (instance == null) return null;
 
@@ -1547,12 +3010,15 @@ namespace Macria
                 { "kenardaduvar", "Wall on Edge" },
                 { "kenaruzerindeduvar", "Wall on Edge" },
                 { "kenaruzerindekiduvar", "Wall on Edge" },
+                { "kenardabukumluduvar", "Wall on Edge" },
 
                 { "bend", "Bend" },
                 { "sheetmetalbend", "Bend" },
                 { "bukum", "Bend" },
+                { "silindirikbukum", "Bend" },
                 { "bendfromflat", "Bend From Flat" },
                 { "duzdenbukum", "Bend From Flat" },
+                { "duzdenbuk", "Bend From Flat" },
 
                 { "flange", "Flange" },
                 { "sheetmetalflange", "Flange" },
@@ -1591,13 +3057,16 @@ namespace Macria
                 { "rolledwall", "Rolled Wall" },
                 { "ruloduvar", "Rolled Wall" },
                 { "haddelenmisduvar", "Rolled Wall" },
+                { "yuvarlanmisduvar", "Rolled Wall" },
                 { "sweptwall", "Swept Wall" },
                 { "supurmeduvar", "Swept Wall" },
                 { "supurulmusduvar", "Swept Wall" },
                 { "joggle", "Joggle" },
+                { "jog", "Joggle" },
                 { "kademelendirme", "Joggle" },
                 { "ofsetbukum", "Joggle" },
                 { "zofset", "Joggle" },
+                { "basamak", "Joggle" },
 
                 // Kesimler, koseler ve sac delikleri
                 { "cutout", "Cutout" },
@@ -1663,13 +3132,15 @@ namespace Macria
         private static double GetThickness(
             object partObj,
             out bool kalintiThickness,
+            out double bulunanThickness,
             out List<string> teshis)
         {
             kalintiThickness = false;
+            bulunanThickness = 0;
             teshis = new List<string>();
             if (partObj == null) return 0;
 
-            dynamic parameters = null;
+            dynamic? parameters = null;
 
             try { parameters = ((dynamic)partObj).Parameters; }
             catch { return 0; }
@@ -1696,7 +3167,7 @@ namespace Macria
 
             for (int i = 1; i <= parameterCount; i++)
             {
-                dynamic parameter = null;
+                dynamic? parameter = null;
                 try { parameter = parameters.Item(i); }
                 catch { continue; }
 
@@ -1705,7 +3176,7 @@ namespace Macria
                 string parameterName = GetParameterName(parameter);
                 if (string.IsNullOrWhiteSpace(parameterName)) continue;
 
-                object rawValue = GetParameterRawValue(parameter);
+                object? rawValue = GetParameterRawValue(parameter);
                 string displayValue = GetParameterDisplayValue(parameter);
 
                 // Yalnizca Activity ile biten yollara bagli kalma. Feature'a ait
@@ -1741,6 +3212,7 @@ namespace Macria
                     if (candidateMm >= 0.05 && candidateMm <= 100)
                     {
                         thicknessMm = candidateMm;
+                        bulunanThickness = candidateMm;
                         thicknessFound = true;
                     }
                 }
@@ -1797,7 +3269,7 @@ namespace Macria
             return 0;
         }
 
-        private static string ParametreDegerMetni(object value)
+        private static string ParametreDegerMetni(object? value)
         {
             if (value == null) return "(yok)";
 
@@ -1824,7 +3296,7 @@ namespace Macria
             catch { return ""; }
         }
 
-        private static object GetParameterRawValue(dynamic parameter)
+        private static object? GetParameterRawValue(dynamic parameter)
         {
             try { return parameter.Value; }
             catch { return null; }
@@ -1864,7 +3336,7 @@ namespace Macria
             return sheetMetalPath && IsThicknessName(LastSegment(parameterName));
         }
 
-        private static double NormalizeLengthMillimeters(object rawValue, string displayValue)
+        private static double NormalizeLengthMillimeters(object? rawValue, string displayValue)
         {
             double displayNumber;
             string displayUnit;
@@ -1937,7 +3409,7 @@ namespace Macria
             return true;
         }
 
-        private static bool TryConvertDouble(object value, out double number)
+        private static bool TryConvertDouble(object? value, out double number)
         {
             number = 0;
             if (value == null) return false;
@@ -1951,7 +3423,7 @@ namespace Macria
             }
             catch { }
 
-            string text;
+            string? text;
             try { text = Convert.ToString(value); }
             catch { return false; }
 
@@ -1998,7 +3470,7 @@ namespace Macria
             // Son segment parametrenin kendisidir; yalnizca ust yol feature olabilir.
             for (int i = bodyIndex + 1; i < segments.Length - 1; i++)
             {
-                string canonicalName;
+                string? canonicalName;
                 if (!SheetMetalFeatureAliases.TryGetValue(
                         Fold(segments[i]), out canonicalName))
                     continue;
@@ -2018,12 +3490,12 @@ namespace Macria
             taninanFeature = "";
             if (partObj == null) return false;
 
-            dynamic bodies = null;
+            dynamic? bodies = null;
             try { bodies = ((dynamic)partObj).Bodies; }
             catch { }
 
             // Dil ve kullanici tarafindan verilen govde adindan bagimsiz ana yol.
-            dynamic mainBody = null;
+            dynamic? mainBody = null;
             try { mainBody = ((dynamic)partObj).MainBody; }
             catch { }
 
@@ -2045,7 +3517,7 @@ namespace Macria
 
             for (int bodyNo = 1; bodyNo <= bodyCount; bodyNo++)
             {
-                dynamic body = null;
+                dynamic? body = null;
                 try { body = bodies.Item(bodyNo); }
                 catch { continue; }
 
@@ -2072,7 +3544,7 @@ namespace Macria
             taninanFeature = "";
             if (body == null) return false;
 
-            dynamic shapes = null;
+            dynamic? shapes = null;
             try { shapes = body.Shapes; }
             catch { return false; }
 
@@ -2086,7 +3558,7 @@ namespace Macria
             // Part Design unsurunun once veya sonra olmasi sonucu degistirmez.
             for (int shapeNo = 1; shapeNo <= shapeCount; shapeNo++)
             {
-                dynamic shape = null;
+                dynamic? shape = null;
                 try { shape = shapes.Item(shapeNo); }
                 catch { continue; }
 
@@ -2096,7 +3568,7 @@ namespace Macria
                 try { shapeName = Convert.ToString(shape.Name).Trim(); }
                 catch { }
 
-                string canonicalName;
+                string? canonicalName;
                 if (!SheetMetalFeatureAliases.TryGetValue(
                         Fold(shapeName), out canonicalName))
                     continue;
@@ -2137,7 +3609,7 @@ namespace Macria
 
         private static bool IsTrueParameter(dynamic parameter)
         {
-            object rawValue = GetParameterRawValue(parameter);
+            object? rawValue = GetParameterRawValue(parameter);
 
             if (rawValue is bool) return (bool)rawValue;
 
@@ -2209,7 +3681,7 @@ namespace Macria
         // ================= WINDOWS API =================
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+        private static extern IntPtr FindWindow(string? lpClassName, string? lpWindowName);
 
         [DllImport("user32.dll")]
         private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
@@ -2385,10 +3857,29 @@ namespace Macria
 
         // ================= DXF EXPORT =================
 
+        private void DxfTakibiniBaslat(SheetRow row)
+        {
+            _aktifExportSatiri = row;
+            _aktifExportHatalari.Clear();
+            row.DxfDurumunuTemizle();
+        }
+
+        private string AktifDxfHataAciklamasi(string varsayilan)
+        {
+            if (_aktifExportHatalari.Count == 0) return varsayilan;
+            return string.Join(Environment.NewLine, _aktifExportHatalari);
+        }
+
+        private void DxfTakibiniBitir()
+        {
+            _aktifExportSatiri = null;
+            _aktifExportHatalari.Clear();
+        }
+
         // Sag tiklanan satiri secili yapar; boylece menu her zaman dogru parcayla calisir
         private void grid_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
-            DependencyObject dep = e.OriginalSource as DependencyObject;
+            DependencyObject? dep = e.OriginalSource as DependencyObject;
             while (dep != null && !(dep is DataGridRow))
             {
                 if (dep is Visual || dep is System.Windows.Media.Media3D.Visual3D)
@@ -2416,13 +3907,23 @@ namespace Macria
 
             SheetRow row = (SheetRow)grid.SelectedItem;
 
+            if (row.CokluBodyMi)
+            {
+                row.DxfCokluBody(CokluBodyDxfHatasi);
+                LogError("DXF Atlandı — " + row.ProductName + ": " + CokluBodyDxfHatasi);
+                return;
+            }
+
             GridDegisikliginiTamamla();
             double hamSacKalinligi;
             if (!HamSacSatiriniDogrula(row, out hamSacKalinligi)) return;
 
-            if (!_repRefs.ContainsKey(row.PartName) || _repRefs[row.PartName] == null)
+            object? repRef;
+            if (!_repRefs.TryGetValue(row.ReferenceKey, out repRef) || repRef == null)
             {
-                LogError("Parça Referansı Bulunamadı: " + row.PartName);
+                string hata = "Parça Referansı Bulunamadı: " + row.ProductName;
+                row.DxfBasarisiz(hata);
+                LogError(hata);
                 return;
             }
 
@@ -2435,11 +3936,13 @@ namespace Macria
             dlg.FileName = MakeFileName(row, hamSacKalinligi);
             if (dlg.ShowDialog() != true) return;
 
+            var sure = System.Diagnostics.Stopwatch.StartNew();
+            DxfTakibiniBaslat(row);
             try
             {
-                LogInfo("DXF Export Başladı: " + row.PartName);
+                LogInfo("DXF Export Başladı: " + row.ProductName);
                 _stopRequested = false;
-                ShowPipStart(row.PartName);
+                ShowPipStart(row.ProductName);
 
                 // Islem devam ettigi surece fiziksel girdi kilitli (Macria pencereleri haric)
                 SetExporting(true);
@@ -2448,17 +3951,21 @@ namespace Macria
                 bool ok;
                 try
                 {
-                    ok = await ExportOne(_repRefs[row.PartName], dlg.FileName);
+                    ok = await ExportOne(repRef, dlg.FileName);
                 }
                 finally
                 {
                     SetExporting(false);
                 }
 
+                IslemSuresiniYaz("Tek Parça DXF", sure);
+
                 if (_stopRequested)
                 {
-                    LogError("Export Durduruldu: " + row.PartName);
-                    await FinishPip(ExportPipWindow.PipState.Stopped, row.PartName);
+                    LogError("Export Durduruldu: " + row.ProductName);
+                    row.DxfBasarisiz(AktifDxfHataAciklamasi(
+                        "Export kullanıcı tarafından durduruldu."));
+                    await FinishPip(ExportPipWindow.PipState.Stopped, row.ProductName);
                 }
                 else if (ok)
                 {
@@ -2466,17 +3973,26 @@ namespace Macria
 
                     if (chkOpenAfter.IsChecked == true)
                         OpenExported(dlg.FileName);
-                    await FinishPip(ExportPipWindow.PipState.Done, row.PartName);
+                    await FinishPip(ExportPipWindow.PipState.Done, row.ProductName);
                 }
                 else
                 {
-                    await FinishPip(ExportPipWindow.PipState.Error, row.PartName);
+                    row.DxfBasarisiz(AktifDxfHataAciklamasi(
+                        "DXF oluşturulamadı. Ayrıntı için konsolu kontrol edin."));
+                    await FinishPip(ExportPipWindow.PipState.Error, row.ProductName);
                 }
             }
             catch (Exception ex)
             {
                 LogError("Hata: " + ex.Message);
+                row.DxfBasarisiz(AktifDxfHataAciklamasi("Hata: " + ex.Message));
+                IslemSuresiniYaz("Tek Parça DXF", sure);
                 await FinishPip(ExportPipWindow.PipState.Error, ex.Message);
+            }
+            finally
+            {
+                IslemSuresiniYaz("Tek Parça DXF", sure);
+                DxfTakibiniBitir();
             }
         }
 
@@ -2491,8 +4007,6 @@ namespace Macria
         {
             return DxfAdi.Uret(row.ProductName, hamSacKalinligi, row.Quantity);
         }
-
-        private bool _ilkKayitYapildi = false;
 
 
         private async System.Threading.Tasks.Task<bool> ExportOne(object repRef, string fullPath)
@@ -2524,7 +4038,7 @@ namespace Macria
             // 1) parcayi yeni pencerede ac
             LogInfo("Parça Açılıyor...");
             dynamic svc = catia.ActiveEditor.GetService("PLMOpenService");
-            object newEd = null;
+            object? newEd = null;
             svc.PLMOpenInNewWindow(repRef, ref newEd);
 
             await System.Threading.Tasks.Task.Delay(2500);
@@ -2562,7 +4076,8 @@ namespace Macria
                 // tarafindan yanitlanir; burada sadece panelin acilmasi beklenir
                 await System.Threading.Tasks.Task.Delay(Ayarlar.PanelBekleme);
 
-                // Bend Information isaretli kalirsa CATIA cokebiliyor
+                // Bend Information isaretli kalirsa CATIA bazi parcalarda
+                // cokebiliyor; kullanici ogrettiyse guvenli bicimde kaldir.
                 await BukumBilgisiniKapat();
 
                 hSave = await SaveAsBas(hCatia, deneme);
@@ -2599,7 +4114,6 @@ namespace Macria
             // 6) dosya olusana kadar bekle
             LogInfo("Dosya Bekleniyor...");
             bool ok = await WaitForFile(fullPath, 20000);
-            if (ok) _ilkKayitYapildi = true;
 
             // 7) pencereler kapansin, sonra parcayi kapat
             await WaitForNoSaveDialog(10000);
@@ -2666,10 +4180,8 @@ namespace Macria
         //
         // Panelde "Bend Information" isaretliyken CATIA bazi parcalarda
         // cokuyor. Kutu, Save As'e basilmadan hemen once kaldiriliyor.
-        //
-        // Tiklama yalnizca kutu gercekten isaretli gorunuyorsa yapilir:
-        // satir bulunamadiysa ya da rengi okunamadiysa hicbir sey yapilmaz,
-        // cunku bos bir kutuya tiklamak onu isaretlerdi (bkz. BukumBulucu).
+        // Yalnizca kutu gercekten isaretli gorunuyorsa tiklanir; satir ya da
+        // renk okunamazsa bos kutuyu yanlislikla isaretlememek icin atlanir.
         private static bool _bukumUyarisiVerildi;
 
         private async System.Threading.Tasks.Task BukumBilgisiniKapat()
@@ -2681,7 +4193,6 @@ namespace Macria
                 if (!_bukumUyarisiVerildi)
                 {
                     _bukumUyarisiVerildi = true;
-
                     LogInfo("Bend Information Kutusu Öğretilmemiş — Kutu " +
                             "Kapatılmayacak. Ayarlar'dan Öğretebilirsiniz.");
                 }
@@ -2710,7 +4221,6 @@ namespace Macria
             await System.Threading.Tasks.Task.Delay(400);
 
             double gri, doygunluk;
-
             if (BukumBulucu.Olc(d.X, d.Y, out gri, out doygunluk) &&
                 BukumBulucu.Isaretli(gri, doygunluk))
             {
@@ -2732,7 +4242,7 @@ namespace Macria
             // Goruntu henuz ogretilmemisse, tiklamadan hemen once dugmenin
             // resmi alinir. Panel su an acik oldugu icin dogru an burasi;
             // ornek yalnizca tiklama tutarsa saklanir.
-            SaveAsBulucu.OrnekAdayi aday = null;
+            SaveAsBulucu.OrnekAdayi? aday = null;
 
             if (!gorselden && !SaveAsBulucu.VarMi())
             {
@@ -2926,8 +4436,6 @@ namespace Macria
             return yol;
         }
 
-        private bool _dumpYazildi;
-
         // "&Save As" gibi hizlandirici isaretlerini temizler
         private static string CleanButtonText(string s)
         {
@@ -3009,7 +4517,7 @@ namespace Macria
         //   2) Metinle — Evet ve Hayir yazili iki dugmeyi birlikte tasiyan pencere
         // Iki dugmeyi birden sart kosmak, tek basina "Tamam" tasiyan alakasiz
         // panellerin yanlislikla onaylanmasini onler.
-        private static string TryConfirmDialog()
+        private static string? TryConfirmDialog()
         {
             IntPtr hDlg = IntPtr.Zero;
             IntPtr hEvet = IntPtr.Zero;
@@ -3077,7 +4585,7 @@ namespace Macria
         // Export suresince arka planda calisip cikan onay kutularini yanitlar.
         // Kutunun ne zaman ciktigini onceden bilemedigimiz icin sabit bir
         // bekleme penceresi yerine surekli izleme kullanilir.
-        private System.Threading.CancellationTokenSource _onayCts;
+        private System.Threading.CancellationTokenSource? _onayCts;
 
         private void OnayIzleyiciBaslat()
         {
@@ -3090,7 +4598,7 @@ namespace Macria
             {
                 while (!token.IsCancellationRequested)
                 {
-                    string baslik = null;
+                    string? baslik = null;
                     try { baslik = TryConfirmDialog(); }
                     catch { }
 
@@ -3235,14 +4743,19 @@ namespace Macria
             if (_exporting) return;
             if (!ExportIzinliMi()) return;
 
-            if (_rows.Count == 0)
+            List<SheetRow> aktarimSatirlari = SacDxfSatirlari();
+
+            if (aktarimSatirlari.Count == 0)
             {
-                LogInfo("Önce Tarama Yapın.");
+                LogInfo(_rows.Count == 0
+                    ? "Önce Tarama Yapın."
+                    : "DXF Alınacak Parça Yok — Gizlenmiş veya Çoklu Body öğeleri işlem dışında.");
                 return;
             }
 
             Dictionary<SheetRow, double> hamSacDegerleri;
-            if (!TumHamSacGirdileriniDogrula(out hamSacDegerleri)) return;
+            if (!TumHamSacGirdileriniDogrula(
+                    aktarimSatirlari, out hamSacDegerleri)) return;
 
             if (!FareUyarisiniGoster()) return;
 
@@ -3252,14 +4765,39 @@ namespace Macria
             if (fd.ShowDialog() != true) return;
 
             string folder = fd.FolderName;
+            var sure = System.Diagnostics.Stopwatch.StartNew();
 
             // Onizleme, aktarilmayan parcalari da bu klasorde arayabilsin
             Ayarlar.SonCiktiKlasoru = folder;
             Ayarlar.Kaydet();
 
-            LogInfo("Toplu DXF Export Başladı: " + _rows.Count + " Parça");
+            // Yeni toplu islem onceki basari/hata simgelerini temizler. Coklu Body
+            // satirlari taramada belirlenen guvenlik hatasini korur.
+            foreach (SheetRow satir in aktarimSatirlari)
+            {
+                if (satir.CokluBodyMi)
+                    satir.DxfCokluBody(CokluBodyDxfHatasi);
+                else
+                    satir.DxfDurumunuTemizle();
+            }
+
+            int gizliHaric = 0;
+            int cokluBodyHaric = 0;
+            foreach (SheetRow satir in _rows)
+            {
+                if (!_sacGizliDahil && satir.GizliPhysicalProductMu) gizliHaric++;
+                if (satir.CokluBodyMi) cokluBodyHaric++;
+            }
+            LogInfo("Toplu DXF Export Başladı: " + aktarimSatirlari.Count + " Parça" +
+                    (gizliHaric > 0
+                        ? " — " + gizliHaric + " Gizlenmiş Öğe İşlem Dışında"
+                        : "") +
+                    (cokluBodyHaric > 0
+                        ? " — " + cokluBodyHaric + " Çoklu Body İşlem Dışında"
+                        : ""));
             _stopRequested = false;
             ShowPipStart("Hazırlanıyor...");
+            ShowKahveMolaStart(aktarimSatirlari.Count);
 
             // Islem devam ettigi surece fiziksel girdi kilitli (Macria pencereleri haric)
             SetExporting(true);
@@ -3270,19 +4808,36 @@ namespace Macria
 
             try
             {
-                for (int i = 0; i < _rows.Count; i++)
+                for (int i = 0; i < aktarimSatirlari.Count; i++)
                 {
                     if (_stopRequested)
                     {
-                        LogError("Toplu Export Durduruldu (" + i + "/" + _rows.Count + " Tamamlandı).");
+                        LogError("Toplu Export Durduruldu (" + i + "/" +
+                                 aktarimSatirlari.Count + " Tamamlandı).");
                         break;
                     }
 
-                    SheetRow row = _rows[i];
+                    SheetRow row = aktarimSatirlari[i];
+                    UpdateKahveMola(i + 1, aktarimSatirlari.Count, row.ProductName);
 
-                    if (!_repRefs.ContainsKey(row.PartName) || _repRefs[row.PartName] == null)
+                    if (row.CokluBodyMi)
                     {
-                        failed.Add(row.PartName);
+                        string cokluBodyHatasi =
+                            "DXF Atlandı — " + row.ProductName + ": " + CokluBodyDxfHatasi;
+                        row.DxfCokluBody(CokluBodyDxfHatasi);
+                        LogError(cokluBodyHatasi);
+                        failed.Add(row.ProductName);
+                        continue;
+                    }
+
+                    object? repRef;
+                    if (!_repRefs.TryGetValue(row.ReferenceKey, out repRef) || repRef == null)
+                    {
+                        string referansHatasi =
+                            "Parça Referansı Bulunamadı: " + row.ProductName;
+                        row.DxfBasarisiz(referansHatasi);
+                        LogError(referansHatasi);
+                        failed.Add(row.ProductName);
                         continue;
                     }
 
@@ -3290,19 +4845,41 @@ namespace Macria
                         folder,
                         MakeFileName(row, hamSacDegerleri[row]));
 
-                    LogInfo("(" + (i + 1) + "/" + _rows.Count + ") " + row.PartName);
-                    ShowPip("(" + (i + 1) + "/" + _rows.Count + ") " + row.PartName);
+                    LogInfo("(" + (i + 1) + "/" + aktarimSatirlari.Count + ") " + row.ProductName);
+                    ShowPip("(" + (i + 1) + "/" + aktarimSatirlari.Count + ") " + row.ProductName);
 
+                    DxfTakibiniBaslat(row);
                     try
                     {
-                        bool done = await ExportOne(_repRefs[row.PartName], path);
+                        bool done = await ExportOne(repRef, path);
 
-                        if (done) { ok++; OnizlemeyeYaz(row, path); }
-                        else if (!_stopRequested) failed.Add(row.PartName);
+                        if (done)
+                        {
+                            ok++;
+                            OnizlemeyeYaz(row, path);
+                        }
+                        else
+                        {
+                            if (_stopRequested)
+                                LogError("Export Durduruldu: " + row.ProductName);
+
+                            row.DxfBasarisiz(AktifDxfHataAciklamasi(
+                                _stopRequested
+                                    ? "Export kullanıcı tarafından durduruldu."
+                                    : "DXF oluşturulamadı. Ayrıntı için konsolu kontrol edin."));
+                            failed.Add(row.ProductName);
+                        }
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        failed.Add(row.PartName);
+                        LogError("Hata: " + ex.Message);
+                        row.DxfBasarisiz(AktifDxfHataAciklamasi(
+                            "Hata: " + ex.Message));
+                        failed.Add(row.ProductName);
+                    }
+                    finally
+                    {
+                        DxfTakibiniBitir();
                     }
 
                     await System.Threading.Tasks.Task.Delay(800);
@@ -3317,14 +4894,21 @@ namespace Macria
                 SetExporting(false);
             }
 
+            IslemSuresiniYaz("Toplu DXF", sure);
+
             if (ok > 0)
-                LogSuccess("Toplu Export Bitti — Başarılı: " + ok + " / " + _rows.Count);
+                LogSuccess("Toplu Export Bitti — Başarılı: " + ok + " / " +
+                           aktarimSatirlari.Count);
             else
-                LogError("Toplu Export Bitti — Başarılı: 0 / " + _rows.Count);
+                LogError("Toplu Export Bitti — Başarılı: 0 / " +
+                         aktarimSatirlari.Count);
             if (failed.Count > 0)
                 LogError("Başarısız: " + string.Join(", ", failed));
 
-            string pipOzet = "Başarılı: " + ok + " / " + _rows.Count;
+            string pipOzet = "Başarılı: " + ok + " / " + aktarimSatirlari.Count;
+            int kontrolBekleyen = Math.Max(0, aktarimSatirlari.Count - ok);
+            CompleteKahveMola(ok, kontrolBekleyen, _stopRequested);
+
             if (_stopRequested)
                 await FinishPip(ExportPipWindow.PipState.Stopped, pipOzet);
             else if (ok > 0)
@@ -3361,7 +4945,7 @@ namespace Macria
                 if (found != IntPtr.Zero) return found;
 
                 // Kaydet penceresi yerine bir onay kutusu cikmis olabilir
-                string onay = TryConfirmDialog();
+                string? onay = TryConfirmDialog();
                 if (onay != null)
                     LogInfo("Onay Kutusu Yanıtlandı — Evet: " + onay);
 

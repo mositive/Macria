@@ -49,10 +49,10 @@ namespace Macria
         // Kutulari doldururken Ayar_TextChanged bos yere calismasin
         private bool _kuruluyor = true;
 
-        private YerlesimParca _secili;
+        private YerlesimParca? _secili;
 
         // Parca surukleme
-        private YerlesimParca _tasinan;
+        private YerlesimParca? _tasinan;
         private Point _fareBasi;
         private Point _parcaBasi;      // dunya koordinati
         private int _eskiPlaka;
@@ -203,7 +203,7 @@ namespace Macria
                 if (p.RenkIndeks == tur) p.Pay = pay;
 
             // Aciklik degisti, yerlesim bastan kurulur
-            YerlesimParca secili = _secili;
+            YerlesimParca? secili = _secili;
 
             YerlesimCozucu.Otomatik(_model);
 
@@ -285,7 +285,7 @@ namespace Macria
 
             // Geometri degismedi ama plaka etiketlerindeki fire agirligi da
             // yogunluga bagli, o yuzden tuval tazelenir
-            YerlesimParca secili = _secili;
+            YerlesimParca? secili = _secili;
 
             Ciz();
             Sec(secili);
@@ -331,6 +331,9 @@ namespace Macria
             return deger.ToString("0.##", CultureInfo.CurrentCulture);
         }
 
+        // Constructor bu metodu çağırır; başarıyla döndüğünde bütün fırçalar atanmıştır.
+        [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_plakaFirca), nameof(_plakaKenar),
+            nameof(_parcaKenar), nameof(_seciliKenar), nameof(_hataKenar), nameof(_yaziFirca), nameof(_solukYazi))]
         private void FircalariKur()
         {
             _plakaFirca = (Brush)FindResource("SurfaceBrush");
@@ -357,7 +360,7 @@ namespace Macria
 
         private Brush Dolgu(int indeks)
         {
-            Brush hazir;
+            Brush? hazir;
             if (_dolgular.TryGetValue(indeks, out hazir)) return hazir;
 
             Color c = GrafikCizer.Palet[indeks % GrafikCizer.Palet.Length];
@@ -374,7 +377,7 @@ namespace Macria
 
         private Brush PayFircasi(int indeks)
         {
-            Brush hazir;
+            Brush? hazir;
             if (_payFircalari.TryGetValue(indeks, out hazir)) return hazir;
 
             Color c = GrafikCizer.Palet[indeks % GrafikCizer.Palet.Length];
@@ -596,7 +599,7 @@ namespace Macria
         // otelemeyi RenderTransform yapar, yerlesim etkilenmez.
         private void KonumUygula(YerlesimParca p)
         {
-            System.Windows.Shapes.Path sekil;
+            System.Windows.Shapes.Path? sekil;
             if (!_gorseller.TryGetValue(p, out sekil)) return;
 
             Point d = ReferenceEquals(p, _tasinan) ? _geciciDunya : Dunya(p);
@@ -616,7 +619,7 @@ namespace Macria
             sekil.Stroke = hatali ? _hataKenar : (secili ? _seciliKenar : _parcaKenar);
 
             // Pay cercevesi parcayla birlikte tasinir
-            System.Windows.Shapes.Rectangle halka;
+            System.Windows.Shapes.Rectangle? halka;
             if (!_halkalar.TryGetValue(p, out halka)) return;
 
             if (p.Pay <= 0)
@@ -670,9 +673,9 @@ namespace Macria
             }
         }
 
-        private System.Windows.Shapes.Path SeciliSekil()
+        private System.Windows.Shapes.Path? SeciliSekil()
         {
-            System.Windows.Shapes.Path sekil;
+            System.Windows.Shapes.Path? sekil;
 
             if (_secili != null && _gorseller.TryGetValue(_secili, out sekil))
                 return sekil;
@@ -752,7 +755,7 @@ namespace Macria
         {
             Point mm = e.GetPosition(ic);
 
-            YerlesimParca vurulan = Bul(mm);
+            YerlesimParca? vurulan = Bul(mm);
 
             if (vurulan != null)
             {
@@ -769,7 +772,7 @@ namespace Macria
                 _eskiY = vurulan.Y;
 
                 // Tasinan parca payiyla birlikte ustte gorunsun
-                System.Windows.Shapes.Rectangle halka;
+                System.Windows.Shapes.Rectangle? halka;
 
                 if (_halkalar.TryGetValue(vurulan, out halka))
                 {
@@ -951,7 +954,7 @@ namespace Macria
         }
 
         // Ustteki parca once bulunsun diye liste tersten taranir
-        private YerlesimParca Bul(Point mm)
+        private YerlesimParca? Bul(Point mm)
         {
             for (int i = _model.Parcalar.Count - 1; i >= 0; i--)
             {
@@ -968,9 +971,9 @@ namespace Macria
 
         // ================= SECIM VE ISLEMLER =================
 
-        private void Sec(YerlesimParca p)
+        private void Sec(YerlesimParca? p)
         {
-            YerlesimParca eski = _secili;
+            YerlesimParca? eski = _secili;
             _secili = p;
 
             if (eski != null) KonumUygula(eski);
@@ -1170,7 +1173,7 @@ namespace Macria
             }
         }
 
-        private void DurumYaz(string mesaj)
+        private void DurumYaz(string? mesaj)
         {
             if (mesaj != null)
             {

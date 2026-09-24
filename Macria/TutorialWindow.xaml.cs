@@ -17,9 +17,9 @@ namespace Macria
 
         private class Adim
         {
-            public string Baslik;
-            public string Aciklama;
-            public string Gorsel;
+            public required string Baslik;
+            public required string Aciklama;
+            public required string Gorsel;
         }
 
         private static readonly Adim[] Adimlar =

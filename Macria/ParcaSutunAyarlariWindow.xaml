@@ -1,0 +1,119 @@
+<Window x:Class="Macria.ParcaSutunAyarlariWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Parça Tablosu Sütunları"
+        Icon="Assets/macria-logo.png"
+        Width="560" Height="590"
+        WindowStyle="None" ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BgBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}"
+        FontFamily="{StaticResource AppFont}"
+        UseLayoutRounding="True">
+
+    <Window.Resources>
+        <DataTemplate x:Key="ParcaSutunSatiriSablonu">
+            <Border Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="4"
+                    Padding="12,9" Margin="0,0,0,7">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <CheckBox Grid.Column="0" IsChecked="{Binding Gorunur}"
+                              VerticalAlignment="Center" Margin="0,0,12,0"
+                              ToolTip="Sütunu göster veya gizle"/>
+
+                    <TextBlock Grid.Column="1" Text="{Binding Baslik}"
+                               FontSize="13" FontWeight="SemiBold"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource TextPrimaryBrush}"/>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <Button Style="{StaticResource SecondaryButton}"
+                                Content="&#xE74A;" FontFamily="Segoe MDL2 Assets"
+                                FontSize="11" Width="30" Height="28" Padding="0"
+                                ToolTip="Sütunu sola taşı"
+                                Click="btnYukari_Click"/>
+                        <Button Style="{StaticResource SecondaryButton}"
+                                Content="&#xE74B;" FontFamily="Segoe MDL2 Assets"
+                                FontSize="11" Width="30" Height="28" Padding="0"
+                                Margin="6,0,0,0" ToolTip="Sütunu sağa taşı"
+                                Click="btnAsagi_Click"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+            CornerRadius="4">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="38"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Background="Transparent"
+                  MouseLeftButtonDown="Baslik_MouseLeftButtonDown">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
+                            Margin="16,0,0,0">
+                    <Image Source="Assets/macria-logo.png" Width="16" Height="16"
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <TextBlock Text="Parça Tablosu Sütunları"
+                               FontSize="12" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               VerticalAlignment="Center" Margin="8,0,0,0"/>
+                </StackPanel>
+                <Button Style="{StaticResource WindowCloseButton}"
+                        Content="&#xE8BB;" HorizontalAlignment="Right"
+                        VerticalAlignment="Top" Click="btnVazgec_Click"/>
+            </Grid>
+
+            <StackPanel Grid.Row="1" Margin="24,14,24,12">
+                <TextBlock Text="Görünür sütunları ve soldan sağa sıralarını belirleyin."
+                           FontSize="14" FontWeight="SemiBold"/>
+                <TextBlock Text="Aynı düzen Sac Lazer Parça ve Ürün Ağacı — Eşsiz Parçalar sekmelerine uygulanır."
+                           FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="0,5,0,0"/>
+            </StackPanel>
+
+            <ScrollViewer Grid.Row="2" Margin="24,0,24,0"
+                          VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="listeSutunlar"
+                              ItemTemplate="{StaticResource ParcaSutunSatiriSablonu}"/>
+            </ScrollViewer>
+
+            <Border Grid.Row="3" Margin="0,14,0,0" Padding="24,13"
+                    Background="{StaticResource CardBrush}"
+                    CornerRadius="0,0,3,3">
+                <Grid>
+                    <TextBlock x:Name="txtDurum" Foreground="{StaticResource LogErrorBrush}"
+                               FontSize="11.5" VerticalAlignment="Center"
+                               TextWrapping="Wrap" MaxWidth="210"
+                               HorizontalAlignment="Left"/>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Style="{StaticResource SecondaryButton}"
+                                Content="Varsayılan" Height="32" Padding="14,0"
+                                Click="btnVarsayilan_Click"/>
+                        <Button Style="{StaticResource SecondaryButton}"
+                                Content="Vazgeç" Height="32" Padding="14,0"
+                                Margin="8,0,0,0" Click="btnVazgec_Click"/>
+                        <Button Style="{StaticResource PrimaryButton}"
+                                Content="Uygula" Height="32" Padding="16,0"
+                                Margin="8,0,0,0" IsDefault="True"
+                                Click="btnKaydet_Click"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

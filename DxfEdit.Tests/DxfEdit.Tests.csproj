@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseAppHost>false</UseAppHost>
+    <PlatformTarget>x64</PlatformTarget>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Macria/DxfOkuyucu.cs" Link="Macria/DxfOkuyucu.cs" />
+    <Compile Include="../Macria/DxfEditOturumu.cs" Link="Macria/DxfEditOturumu.cs" />
+    <Compile Include="../Macria/DxfKoseGeometrisi.cs" Link="Macria/DxfKoseGeometrisi.cs" />
+    <Compile Include="../Macria/AkilliRenklendirme.cs" Link="Macria/AkilliRenklendirme.cs" />
+    <Compile Include="../Macria/Renklendirme2Paleti.cs" Link="Macria/Renklendirme2Paleti.cs" />
+    <Compile Include="../Macria/Renklendirme2UiModel.cs" Link="Macria/Renklendirme2UiModel.cs" />
+  </ItemGroup>
+</Project>

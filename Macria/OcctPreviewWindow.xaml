@@ -1,0 +1,115 @@
+<Window x:Class="Macria.OcctPreviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Macria"
+        Title="Macria — STEP 3B Önizleme"
+        Icon="Assets/macria-logo.png"
+        Height="720" Width="1040"
+        MinHeight="420" MinWidth="620"
+        Background="{StaticResource BgBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}"
+        FontFamily="{StaticResource AppFont}"
+        UseLayoutRounding="True"
+        WindowStartupLocation="CenterOwner">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="38"
+                      ResizeBorderThickness="6"
+                      GlassFrameThickness="0"
+                      CornerRadius="0"
+                      UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <Border Background="{StaticResource BgBrush}">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="Margin" Value="0"/>
+                <Setter Property="CornerRadius" Value="4"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}"
+                                 Value="Maximized">
+                        <Setter Property="Margin" Value="7"/>
+                        <Setter Property="CornerRadius" Value="0"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="38"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
+                    <Image Source="Assets/macria-logo.png" Width="18" Height="18"
+                           RenderOptions.BitmapScalingMode="HighQuality"
+                           VerticalAlignment="Center"/>
+                    <TextBlock Text="STEP 3B Önizleme" FontSize="12" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               VerticalAlignment="Center" Margin="9,0,0,0"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                    <Button Style="{StaticResource WindowButton}"
+                            Content="&#xE921;" Click="btnMin_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True"/>
+                    <Button Click="btnMax_Click" WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource WindowButton}">
+                                <Setter Property="Content" Value="&#xE922;"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                 Value="Maximized">
+                                        <Setter Property="Content" Value="&#xE923;"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Style="{StaticResource WindowCloseButton}"
+                            Content="&#xE8BB;" Click="btnClose_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True"/>
+                </StackPanel>
+            </Grid>
+
+            <Grid Grid.Row="1" Margin="16,4,16,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center" Margin="0,0,14,0">
+                    <TextBlock x:Name="txtStepName" Text="Listeden Bir STEP Seçin"
+                               FontSize="15" FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="txtStepPath" Margin="0,3,0,0"
+                               FontSize="11.5" Foreground="{StaticResource TextDisabledBrush}"
+                               TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+                <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button x:Name="btnIsometric" Style="{StaticResource SecondaryButton}" Content="İzometrik" Height="30" Padding="10,0" Margin="0,0,5,5" IsEnabled="False" Click="btnIsometric_Click"/>
+                    <Button x:Name="btnFront" Style="{StaticResource SecondaryButton}" Content="Ön" Height="30" Padding="10,0" Margin="0,0,5,5" IsEnabled="False" Click="btnFront_Click"/>
+                    <Button x:Name="btnBack" Style="{StaticResource SecondaryButton}" Content="Arka" Height="30" Padding="10,0" Margin="0,0,5,5" IsEnabled="False" Click="btnBack_Click"/>
+                    <Button x:Name="btnLeft" Style="{StaticResource SecondaryButton}" Content="Sol" Height="30" Padding="10,0" Margin="0,0,5,5" IsEnabled="False" Click="btnLeft_Click"/>
+                    <Button x:Name="btnRight" Style="{StaticResource SecondaryButton}" Content="Sağ" Height="30" Padding="10,0" Margin="0,0,5,5" IsEnabled="False" Click="btnRight_Click"/>
+                    <Button x:Name="btnTop" Style="{StaticResource SecondaryButton}" Content="Üst" Height="30" Padding="10,0" Margin="0,0,5,5" IsEnabled="False" Click="btnTop_Click"/>
+                    <Button x:Name="btnBottom" Style="{StaticResource SecondaryButton}" Content="Alt" Height="30" Padding="10,0" Margin="0,0,5,5" IsEnabled="False" Click="btnBottom_Click"/>
+                    <Button x:Name="btnFitAll" Style="{StaticResource SecondaryButton}" Content="Sığdır" Height="30" Padding="10,0" Margin="0,0,0,5" IsEnabled="False" Click="btnFitAll_Click"/>
+                </WrapPanel>
+            </Grid>
+
+            <Border Grid.Row="2" Margin="16,0" BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1" Background="#1B2028">
+                <local:OcctViewportHost x:Name="viewport" DiagnosticName="Büyük 3B"/>
+            </Border>
+
+            <TextBlock Grid.Row="3" x:Name="txtStatus" Margin="16,8,16,12"
+                       TextWrapping="Wrap" FontSize="11"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       Text="3B önizleme hazırlanıyor..."/>
+        </Grid>
+    </Border>
+</Window>

@@ -92,7 +92,7 @@ namespace Macria
             return firca;
         }
 
-        internal static double? Deger(object ham)
+        internal static double? Deger(object? ham)
         {
             if (ham == null) return null;
 
@@ -112,7 +112,7 @@ namespace Macria
         public object Convert(object value, Type targetType, object parameter,
                               CultureInfo culture)
         {
-            string anahtar = parameter as string;
+            string? anahtar = parameter as string;
             if (string.IsNullOrEmpty(anahtar)) return Brushes.Transparent;
 
             return IsiHaritasi.Firca(anahtar, IsiHaritasi.Deger(value));

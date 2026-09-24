@@ -22,7 +22,7 @@ namespace Macria
                         IntPtr pDispParams, IntPtr pVarResult, IntPtr pExcepInfo, IntPtr puArgErr);
         }
 
-        private static ITypeInfo TipBilgisi(object nesne)
+        private static ITypeInfo? TipBilgisi(object? nesne)
         {
             var disp = nesne as IDispatch;
             if (disp == null) return null;
@@ -43,7 +43,7 @@ namespace Macria
 
             try
             {
-                ITypeInfo ti = TipBilgisi(nesne);
+                ITypeInfo? ti = TipBilgisi(nesne);
                 if (ti == null) return "(tip bilgisi yok)";
 
                 string ad, dok, yardim;
@@ -60,7 +60,7 @@ namespace Macria
             var adlar = new List<string>();
             if (nesne == null) return adlar;
 
-            ITypeInfo ti = null;
+            ITypeInfo? ti = null;
             try { ti = TipBilgisi(nesne); }
             catch { }
             if (ti == null) return adlar;

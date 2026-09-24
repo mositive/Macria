@@ -139,8 +139,8 @@ namespace Macria
             {
                 if ((sirali[i].ToplamMaliyet ?? 0) <= 0) break;
 
-                string ad = sirali[i].PartName;
-                if (string.IsNullOrWhiteSpace(ad)) ad = sirali[i].ProductName;
+                string ad = sirali[i].ProductName;
+                if (string.IsNullOrWhiteSpace(ad)) ad = "(Title girilmemiş)";
 
                 if (sirali[i].Quantity > 1) ad += "  ×" + sirali[i].Quantity;
 

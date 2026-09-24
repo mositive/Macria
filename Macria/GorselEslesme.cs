@@ -30,7 +30,7 @@ namespace Macria
             public int Yuk;
             public double Skor;
 
-            public byte[] AlanBgra;     // taranan alanin pikselleri
+            public byte[]? AlanBgra;     // taranan alanin pikselleri
             public int AlanSol;
             public int AlanUst;
             public int AlanGen;
@@ -77,7 +77,7 @@ namespace Macria
         // ================= ARAMA =================
 
         // Ornegi pencerenin icinde arar; bulamazsa null doner
-        public static Eslesme Bul(byte[] ornekBgra, int og, int oy,
+        public static Eslesme? Bul(byte[]? ornekBgra, int og, int oy,
                                   IntPtr pencere, double esik)
         {
             if (ornekBgra == null || og < 4 || oy < 4) return null;
@@ -86,7 +86,7 @@ namespace Macria
             if (!AramaAlani(pencere, out sol, out ust, out gen, out yuk)) return null;
             if (gen < og || yuk < oy) return null;
 
-            byte[] alanBgra = EkranAl(sol, ust, gen, yuk);
+            byte[]? alanBgra = EkranAl(sol, ust, gen, yuk);
             if (alanBgra == null) return null;
 
             Gri alan = Griye(alanBgra, gen, yuk);
@@ -174,7 +174,7 @@ namespace Macria
         {
             public int G;
             public int Y;
-            public byte[] P;
+            public required byte[] P;
         }
 
         private static Gri Griye(byte[] bgra, int g, int y)
@@ -323,7 +323,7 @@ namespace Macria
 
         public static void PngYaz(byte[] bgra, int g, int y, string yol)
         {
-            string klasor = Path.GetDirectoryName(yol);
+            string? klasor = Path.GetDirectoryName(yol);
             if (!string.IsNullOrEmpty(klasor)) Directory.CreateDirectory(klasor);
 
             BitmapSource kaynak = BitmapSource.Create(
@@ -335,7 +335,7 @@ namespace Macria
             using (FileStream akis = File.Create(yol)) kodlayici.Save(akis);
         }
 
-        public static bool PngOku(string yol, out byte[] bgra, out int g, out int y)
+        public static bool PngOku(string yol, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out byte[]? bgra, out int g, out int y)
         {
             bgra = null; g = 0; y = 0;
 
@@ -376,7 +376,7 @@ namespace Macria
         // ================= EKRAN =================
 
         // Ekranin verilen dikdortgenini 32 bit BGRA olarak alir
-        public static byte[] EkranAl(int x, int y, int g, int yuk)
+        public static byte[]? EkranAl(int x, int y, int g, int yuk)
         {
             if (g <= 0 || yuk <= 0) return null;
 
@@ -475,8 +475,8 @@ namespace Macria
         }
 
         [DllImport("gdi32.dll", CharSet = CharSet.Ansi)]
-        private static extern IntPtr CreateDC(string surucu, string aygit,
-                                              string baglanti, IntPtr veri);
+        private static extern IntPtr CreateDC(string surucu, string? aygit,
+                                              string? baglanti, IntPtr veri);
 
         [DllImport("gdi32.dll")]
         private static extern bool DeleteDC(IntPtr hdc);

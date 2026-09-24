@@ -74,7 +74,7 @@ namespace Macria
         // CATIA/3DEXPERIENCE surecine ait mi?
         private static bool CatiaSureci(uint pid, Dictionary<uint, string> onbellek)
         {
-            string ad;
+            string? ad;
             if (!onbellek.TryGetValue(pid, out ad))
             {
                 ad = "";

@@ -23,9 +23,17 @@ namespace Macria
 
     internal class Rapor
     {
+        public string SayfaAdi = "Rapor";
         public string Baslik = "";
         public string AltBaslik = "";
         public DateTime Tarih = DateTime.Now;
+
+        // Varsayılan rapor düzeni başlık ve tarih bilgisiyle başlar. Salt tablo
+        // aktarımları Excel'de doğrudan ilk satırdan başlayabilir; bu seçenekler
+        // mevcut raporların düzenini değiştirmez.
+        public bool TabloIlkSatirdanBaslar;
+        public bool IlkSatiriDondur;
+        public bool OtomatikFiltre;
 
         // Basligin altindaki parametre satirlari (malzeme, fiyatlar, kur...)
         public List<string> Bilgiler = new List<string>();
@@ -35,9 +43,9 @@ namespace Macria
         public List<RaporSutun> Sutunlar = new List<RaporSutun>();
 
         // Hucreler: string, double, null. null bos hucre demek.
-        public List<object[]> Satirlar = new List<object[]>();
+        public List<object?[]> Satirlar = new List<object?[]>();
 
         // Kalin yazilan toplam satiri; yoksa null
-        public object[] Toplam;
+        public object?[]? Toplam;
     }
 }

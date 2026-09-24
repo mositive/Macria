@@ -33,7 +33,7 @@ namespace Macria
             {
                 DosyaEkle(zip, "[Content_Types].xml", IcerikTurleri());
                 DosyaEkle(zip, "_rels/.rels", KokIliskiler());
-                DosyaEkle(zip, "xl/workbook.xml", CalismaKitabi());
+                DosyaEkle(zip, "xl/workbook.xml", CalismaKitabi(rapor.SayfaAdi));
                 DosyaEkle(zip, "xl/_rels/workbook.xml.rels", KitapIliskileri());
                 DosyaEkle(zip, "xl/styles.xml", Stiller());
                 DosyaEkle(zip, "xl/worksheets/sheet1.xml", Sayfa(rapor));
@@ -57,6 +57,9 @@ namespace Macria
             sb.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
             sb.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">");
 
+            if (rapor.IlkSatiriDondur)
+                sb.Append("<sheetViews><sheetView workbookViewId=\"0\"><pane ySplit=\"1\" topLeftCell=\"A2\" activePane=\"bottomLeft\" state=\"frozen\"/></sheetView></sheetViews>");
+
             // Sutun genislikleri
             sb.Append("<cols>");
             for (int i = 0; i < rapor.Sutunlar.Count; i++)
@@ -71,26 +74,29 @@ namespace Macria
             sb.Append("<sheetData>");
 
             int satir = 1;
+            if (!rapor.TabloIlkSatirdanBaslar)
+            {
+                // Baslik blogu
+                MetinSatiri(sb, satir++, rapor.Baslik, StilBaslik);
 
-            // Baslik blogu
-            MetinSatiri(sb, satir++, rapor.Baslik, StilBaslik);
+                if (rapor.AltBaslik.Length > 0)
+                    MetinSatiri(sb, satir++, rapor.AltBaslik, StilNormal);
 
-            if (rapor.AltBaslik.Length > 0)
-                MetinSatiri(sb, satir++, rapor.AltBaslik, StilNormal);
+                MetinSatiri(sb, satir++,
+                    "Rapor Tarihi: " + rapor.Tarih.ToString("dd.MM.yyyy HH:mm",
+                        CultureInfo.CurrentCulture), StilNormal);
 
-            MetinSatiri(sb, satir++,
-                "Rapor Tarihi: " + rapor.Tarih.ToString("dd.MM.yyyy HH:mm",
-                    CultureInfo.CurrentCulture), StilNormal);
+                foreach (string bilgi in rapor.Bilgiler)
+                    MetinSatiri(sb, satir++, bilgi, StilNormal);
 
-            foreach (string bilgi in rapor.Bilgiler)
-                MetinSatiri(sb, satir++, bilgi, StilNormal);
+                foreach (RaporOzet ozet in rapor.Ozetler)
+                    MetinSatiri(sb, satir++, ozet.Baslik + ": " + ozet.Deger, StilKalin);
 
-            foreach (RaporOzet ozet in rapor.Ozetler)
-                MetinSatiri(sb, satir++, ozet.Baslik + ": " + ozet.Deger, StilKalin);
-
-            satir++;   // bos satir
+                satir++;   // bos satir
+            }
 
             // Tablo basligi
+            int tabloBaslikSatiri = satir;
             sb.Append("<row r=\"").Append(satir).Append("\">");
             for (int i = 0; i < rapor.Sutunlar.Count; i++)
                 Metin(sb, i, satir, rapor.Sutunlar[i].Ad, StilSutun);
@@ -98,7 +104,7 @@ namespace Macria
             satir++;
 
             // Veri satirlari
-            foreach (object[] veri in rapor.Satirlar)
+            foreach (object?[] veri in rapor.Satirlar)
             {
                 sb.Append("<row r=\"").Append(satir).Append("\">");
 
@@ -120,7 +126,12 @@ namespace Macria
                 sb.Append("</row>");
             }
 
-            sb.Append("</sheetData></worksheet>");
+            sb.Append("</sheetData>");
+            if (rapor.OtomatikFiltre && rapor.Sutunlar.Count > 0)
+                sb.Append("<autoFilter ref=\"A").Append(tabloBaslikSatiri).Append(":")
+                  .Append(Ad(rapor.Sutunlar.Count - 1, Math.Max(tabloBaslikSatiri, satir - 1)))
+                  .Append("\"/>");
+            sb.Append("</worksheet>");
             return sb.ToString();
         }
 
@@ -132,7 +143,7 @@ namespace Macria
         }
 
         private static void Hucre(StringBuilder sb, int sutun, int satir,
-                                  object deger, RaporSutun tanim, bool toplam)
+                                  object? deger, RaporSutun tanim, bool toplam)
         {
             if (deger == null) return;
 
@@ -153,7 +164,7 @@ namespace Macria
                   toplam ? StilToplamMetin : StilNormal);
         }
 
-        private static void Metin(StringBuilder sb, int sutun, int satir, string metin, int stil)
+        private static void Metin(StringBuilder sb, int sutun, int satir, string? metin, int stil)
         {
             sb.Append("<c r=\"").Append(Ad(sutun, satir)).Append("\" s=\"").Append(stil)
               .Append("\" t=\"inlineStr\"><is><t xml:space=\"preserve\">")
@@ -176,7 +187,7 @@ namespace Macria
             return harf + satir;
         }
 
-        private static string Kacir(string s)
+        private static string Kacir(string? s)
         {
             if (string.IsNullOrEmpty(s)) return "";
 
@@ -216,12 +227,26 @@ namespace Macria
                    "</Relationships>";
         }
 
-        private static string CalismaKitabi()
+        private static string CalismaKitabi(string sayfaAdi)
         {
+            string guvenliSayfaAdi = ExcelSayfaAdi(sayfaAdi);
             return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
                    "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" " +
                    "xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">" +
-                   "<sheets><sheet name=\"Maliyet\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>";
+                   "<sheets><sheet name=\"" + Kacir(guvenliSayfaAdi) +
+                   "\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>";
+        }
+
+        private static string ExcelSayfaAdi(string sayfaAdi)
+        {
+            string ad = string.IsNullOrWhiteSpace(sayfaAdi) ? "Rapor" : sayfaAdi.Trim();
+            foreach (char gecersiz in new[] { '[', ']', ':', '*', '?', '/', '\\' })
+                ad = ad.Replace(gecersiz, ' ');
+
+            ad = ad.Trim().Trim('\'');
+            if (ad.Length == 0) ad = "Rapor";
+            if (ad.Length > 31) ad = ad.Substring(0, 31);
+            return ad;
         }
 
         private static string KitapIliskileri()

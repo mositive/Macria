@@ -94,7 +94,7 @@ namespace Macria
                 return false;
             }
 
-            byte[] bgra = GorselEslesme.EkranAl(sol, ust, OrnekGen, OrnekYuk);
+            byte[]? bgra = GorselEslesme.EkranAl(sol, ust, OrnekGen, OrnekYuk);
 
             if (bgra == null)
             {
@@ -152,13 +152,13 @@ namespace Macria
         {
             var d = new Durum();
 
-            byte[] ornek;
+            byte[]? ornek;
             int og, oy;
 
             if (!GorselEslesme.PngOku(DosyaYolu(), out ornek, out og, out oy))
                 return d;
 
-            GorselEslesme.Eslesme e =
+            GorselEslesme.Eslesme? e =
                 GorselEslesme.Bul(ornek, og, oy, pencere, Esik);
 
             if (e == null) return d;
@@ -181,7 +181,7 @@ namespace Macria
 
             int k = KutuYari * 2 + 1;
 
-            byte[] p = GorselEslesme.EkranAl(x - KutuYari, y - KutuYari, k, k);
+            byte[]? p = GorselEslesme.EkranAl(x - KutuYari, y - KutuYari, k, k);
             if (p == null) return false;
 
             int n = k * k;

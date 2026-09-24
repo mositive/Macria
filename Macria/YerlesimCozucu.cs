@@ -39,7 +39,7 @@ namespace Macria
 
             foreach (YerlesimParca p in model.Parcalar)
             {
-                List<YerlesimParca> liste;
+                List<YerlesimParca>? liste;
 
                 if (!gruplar.TryGetValue(p.Kalinlik, out liste))
                 {

@@ -51,7 +51,7 @@ namespace Macria
 
         // Konturu (0,0)-(Genislik,Yukseklik) kutusuna oturtulmus, ekran gibi
         // y asagi bakan hali. Donduruldu ki tum ornekler paylassin.
-        public Geometry Kontur;
+        public required Geometry Kontur;
 
         public int Plaka = -1;     // -1: bekleme alani
         public double X;           // plakanin sol ustune gore, mm
@@ -258,7 +258,7 @@ namespace Macria
             if (satirlar == null) return model;
 
             // Ayni dosya birden cok satirda gecebilir; bir kez okunur
-            var onbellek = new Dictionary<string, DxfCizim>(StringComparer.OrdinalIgnoreCase);
+            var onbellek = new Dictionary<string, DxfCizim?>(StringComparer.OrdinalIgnoreCase);
 
             int cesit = 0;
 
@@ -266,7 +266,7 @@ namespace Macria
             {
                 if (r == null || r.Thickness <= 0 || r.Quantity <= 0) continue;
 
-                string yol = DosyaBul(r, dxfKlasoru);
+                string? yol = DosyaBul(r, dxfKlasoru);
 
                 if (yol == null)
                 {
@@ -275,11 +275,11 @@ namespace Macria
                     continue;
                 }
 
-                DxfCizim cizim;
+                DxfCizim? cizim;
 
                 if (!onbellek.TryGetValue(yol, out cizim))
                 {
-                    string hata;
+                string? hata;
                     cizim = DxfOkuyucu.Oku(yol, out hata);
                     onbellek[yol] = cizim;
                 }
@@ -311,7 +311,7 @@ namespace Macria
 
                     model.Parcalar.Add(new YerlesimParca
                     {
-                        Ad = r.PartName,
+                        Ad = r.ProductName,
                         Kalinlik = Math.Round(r.Thickness, 2),
                         Genislik = cizim.Genislik,
                         Yukseklik = cizim.Yukseklik,
@@ -328,7 +328,7 @@ namespace Macria
             return model;
         }
 
-        private static string DosyaBul(SheetRow r, string klasor)
+        private static string? DosyaBul(SheetRow r, string klasor)
         {
             try
             {

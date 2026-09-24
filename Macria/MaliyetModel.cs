@@ -92,7 +92,9 @@ namespace Macria
             try
             {
                 string yol = DosyaYolu();
-                System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(yol));
+                string? klasor = System.IO.Path.GetDirectoryName(yol);
+                if (klasor == null) return;
+                System.IO.Directory.CreateDirectory(klasor);
 
                 var satirlar = new List<string>();
                 foreach (Malzeme m in ozeller)
@@ -151,6 +153,7 @@ namespace Macria
         public string PartName { get; set; } = "";
         public double Thickness { get; set; }
         public int Quantity { get; set; }
+        public string ReferenceKey { get; set; } = "";
 
         // CATIA'dan okunan ham degerler (SI) — tabloya baglanabilmesi icin ozellik
         public double? HacimM3 { get; set; }
@@ -183,7 +186,7 @@ namespace Macria
 
         // Sutun anahtarina gore hucre degeri: yazi sutunlarinda string,
         // sayi sutunlarinda double? doner.
-        internal object Deger(string anahtar)
+        internal object? Deger(string anahtar)
         {
             switch (anahtar)
             {
@@ -249,7 +252,7 @@ namespace Macria
             {
                 if (s.Tur != SutunTuru.Ozel) continue;
 
-                string hata;
+                string? hata;
                 double? sonuc = Formul.Hesapla(s.Formul, degerler, out hata);
 
                 Ozel[s.Anahtar] = hata == null ? sonuc : null;
@@ -334,6 +337,6 @@ namespace Macria
                 h(this, new PropertyChangedEventArgs(ad));
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
     }
 }

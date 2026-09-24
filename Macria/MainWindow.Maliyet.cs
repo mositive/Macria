@@ -180,8 +180,8 @@ namespace Macria
         // Bu iki pencere de konsol gibi modelsiz acilir: kipli olsalardi simge
         // durumuna kucultuldugunde ana pencere kilitli kalirdi. Ikinci kez
         // acilmazlar, one getirilirler.
-        private GrafikWindow _grafikWindow;
-        private NestingWindow _nestingWindow;
+        private GrafikWindow? _grafikWindow;
+        private NestingWindow? _nestingWindow;
 
         private void btnGrafikler_Click(object sender, RoutedEventArgs e)
         {
@@ -205,7 +205,7 @@ namespace Macria
         }
 
         // Acik pencere varsa simge durumundan cikarip one alir
-        private static bool OneGetir(Window pencere)
+        private static bool OneGetir(Window? pencere)
         {
             if (pencere == null) return false;
 
@@ -449,7 +449,7 @@ namespace Macria
         }
 
         // Herhangi bir parametre degisince tablo aninda yeniden hesaplanir
-        private void ParametreDegisti(object sender, RoutedEventArgs e)
+        private void ParametreDegisti(object? sender, RoutedEventArgs? e)
         {
             if (!IsLoaded) return;
 
@@ -535,6 +535,8 @@ namespace Macria
         {
             if (_maliyetCalisiyor) return;
 
+            var sure = System.Diagnostics.Stopwatch.StartNew();
+
             _maliyetCalisiyor = true;
             _stopRequested = false;
             btnCostScan.IsEnabled = false;
@@ -554,14 +556,15 @@ namespace Macria
 
                 _catia = GetCatia() ?? result.Catia;
 
-                foreach (SheetRow row in result.Rows)
-                    _costRows.Add(new CostRow
-                    {
-                        ProductName = row.ProductName,
-                        PartName = row.PartName,
-                        Thickness = row.Thickness,
-                        Quantity = row.Quantity
-                    });
+foreach (SheetRow row in result.Rows)
+                     _costRows.Add(new CostRow
+                     {
+                         ProductName = row.ProductName,
+                         PartName = row.PartName,
+                         Thickness = row.Thickness,
+                         Quantity = row.Quantity,
+                         ReferenceKey = row.ReferenceKey
+                     });
 
                 foreach (var kv in result.RepRefs) _costRepRefs[kv.Key] = kv.Value;
 
@@ -580,6 +583,7 @@ namespace Macria
                 _maliyetCalisiyor = false;
                 btnCostScan.IsEnabled = true;
                 HidePip();
+                IslemSuresiniYaz("Ağırlık ve Maliyet İşlemi", sure);
             }
         }
 
@@ -602,15 +606,21 @@ namespace Macria
                 }
 
                 sira++;
-                ShowPip(sira + "/" + _costRows.Count + " · " + row.PartName);
+                ShowPip(sira + "/" + _costRows.Count + " · " + row.ProductName);
 
-                object repRef;
-                if (!_costRepRefs.TryGetValue(row.PartName, out repRef) || repRef == null)
-                {
-                    row.OlcumTemizle("Parça Referansı Yok");
-                    LogError("Ölçülemedi (Referans Yok): " + row.PartName);
-                    continue;
-                }
+object? repRef;
+                 if (string.IsNullOrEmpty(row.ReferenceKey))
+                 {
+                     row.OlcumTemizle("Parça Referansı Yok");
+                     LogError($"Ölçülemedi (Referans Yok): {row.ProductName} - ReferenceKey boş");
+                     continue;
+                 }
+                 if (!_costRepRefs.TryGetValue(row.ReferenceKey, out repRef) || repRef == null)
+                 {
+                     row.OlcumTemizle("Parça Referansı Yok");
+                     LogError($"Ölçülemedi (Referans Yok): {row.ProductName} - Aranan ReferenceKey: '{row.ReferenceKey}'");
+                     continue;
+                 }
 
                 bool ok = await ParcayiOlc(repRef, row);
                 if (ok) basarili++;
@@ -652,14 +662,14 @@ namespace Macria
                 if (!okundu)
                 {
                     dynamic svc = catia.ActiveEditor.GetService("PLMOpenService");
-                    object newEd = null;
+                    object? newEd = null;
                     svc.PLMOpenInNewWindow(repRef, ref newEd);
 
                     await Task.Delay(2500);
 
                     // 2) Parca acikken olcum ACIK PARCANIN KENDISINE yapilir;
                     //    rep referansi burada is gormuyor (COM sorgusuyla goruldu)
-                    object acikParca = null;
+                    object? acikParca = null;
                     try { acikParca = catia.ActiveEditor.ActiveObject; } catch { }
 
                     okundu = acikParca != null &&
@@ -668,7 +678,7 @@ namespace Macria
                     // 3) Son care: ana govde
                     if (!okundu && acikParca != null)
                     {
-                        object govde = null;
+                        object? govde = null;
                         try { govde = ((dynamic)acikParca).MainBody; } catch { }
 
                         if (govde != null)
@@ -695,7 +705,7 @@ namespace Macria
                     BirimeCevir(row.Thickness, ref hacim, ref alan, yontem);
                     row.OlcumYaz(hacim, alan);
 
-                    LogInfo("Ölçüldü: " + row.PartName +
+                    LogInfo("Ölçüldü: " + row.ProductName +
                             "  ·  Hacim " + hacim.ToString("G4", CultureInfo.CurrentCulture) +
                             " m³  ·  Alan " + alan.ToString("G4", CultureInfo.CurrentCulture) +
                             " m²  (" + yontem + ")");
@@ -705,7 +715,7 @@ namespace Macria
                     row.OlcumTemizle("Ölçülemedi");
 
                     // Uzun deneme dokumu bir kez yeter; sonrakiler kisa yazilir
-                    LogError("Ölçülemedi: " + row.PartName +
+                    LogError("Ölçülemedi: " + row.ProductName +
                              (_ilkOlcumHatasiYazildi ? "" : " — " + yontem));
 
                     _ilkOlcumHatasiYazildi = true;
@@ -716,7 +726,7 @@ namespace Macria
             catch (Exception ex)
             {
                 row.OlcumTemizle("Hata");
-                LogError("Ölçüm Hatası (" + row.PartName + "): " + ex.Message);
+                LogError("Ölçüm Hatası (" + row.ProductName + "): " + ex.Message);
 
                 try { catia.ActiveWindow.Close(); } catch { }
                 await WaitForAssembly(15000);
@@ -802,7 +812,7 @@ namespace Macria
             // 1) dogrudan donus degeri
             try
             {
-                object r = tip.InvokeMember(metot,
+                object? r = tip.InvokeMember(metot,
                     System.Reflection.BindingFlags.InvokeMethod, null, nesne, null);
 
                 if (r != null)
@@ -854,7 +864,7 @@ namespace Macria
             NesneyiDok(sb, "ActiveDocument", Guvenli(() => catia.ActiveDocument));
             NesneyiDok(sb, "ActiveWindow", Guvenli(() => catia.ActiveWindow));
 
-            object part = Guvenli(() => ((dynamic)repRef).GetItem("Part"));
+            object? part = Guvenli(() => ((dynamic)repRef).GetItem("Part"));
             NesneyiDok(sb, "RepRef.GetItem(Part)", part);
 
             if (part != null)
@@ -878,13 +888,13 @@ namespace Macria
             }
         }
 
-        private static object Guvenli(Func<object> al)
+        private static object? Guvenli(Func<object?> al)
         {
             try { return al(); }
             catch { return null; }
         }
 
-        private void NesneyiDok(StringBuilder sb, string etiket, object nesne)
+        private void NesneyiDok(StringBuilder sb, string etiket, object? nesne)
         {
             if (nesne == null)
             {
@@ -974,7 +984,7 @@ namespace Macria
 
         private void mnuExcelAktar_Click(object sender, RoutedEventArgs e)
         {
-            string yol = DosyaSor("xlsx", "Excel Çalışma Kitabı (*.xlsx)|*.xlsx");
+            string? yol = DosyaSor("xlsx", "Excel Çalışma Kitabı (*.xlsx)|*.xlsx");
             if (yol == null) return;
 
             try
@@ -990,7 +1000,7 @@ namespace Macria
 
         private void mnuPdfAktar_Click(object sender, RoutedEventArgs e)
         {
-            string yol = DosyaSor("pdf", "PDF Belgesi (*.pdf)|*.pdf");
+            string? yol = DosyaSor("pdf", "PDF Belgesi (*.pdf)|*.pdf");
             if (yol == null) return;
 
             try
@@ -1004,7 +1014,7 @@ namespace Macria
             }
         }
 
-        private static string DosyaSor(string uzanti, string filtre)
+        private static string? DosyaSor(string uzanti, string filtre)
         {
             var kutu = new Microsoft.Win32.SaveFileDialog
             {
@@ -1031,6 +1041,7 @@ namespace Macria
 
             var rapor = new Rapor
             {
+                SayfaAdi = "Maliyet",
                 Baslik = "Ağırlık ve Maliyet Raporu",
                 AltBaslik = olculen + " / " + _costRows.Count + " Parça Ölçüldü",
                 Tarih = DateTime.Now
@@ -1074,11 +1085,11 @@ namespace Macria
 
             foreach (CostRow r in _costRows)
             {
-                var satir = new object[gorunur.Count];
+                var satir = new object?[gorunur.Count];
 
                 for (int i = 0; i < gorunur.Count; i++)
                 {
-                    object deger = r.Deger(gorunur[i].Anahtar);
+                    object? deger = r.Deger(gorunur[i].Anahtar);
                     satir[i] = deger;
 
                     if (toplanan[i] && deger is double)
@@ -1092,7 +1103,7 @@ namespace Macria
                 if (r.ToplamMaliyet.HasValue) toplam += r.ToplamMaliyet.Value;
             }
 
-            var toplamSatiri = new object[gorunur.Count];
+            var toplamSatiri = new object?[gorunur.Count];
             for (int i = 0; i < gorunur.Count; i++)
                 toplamSatiri[i] = toplanan[i] ? (object)toplamlar[i] : null;
 

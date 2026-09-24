@@ -133,7 +133,7 @@ namespace Macria
                     continue;
                 }
 
-                PlakaGrubu g;
+                PlakaGrubu? g;
 
                 if (!gruplar.TryGetValue(kalinlik, out g))
                 {

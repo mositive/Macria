@@ -56,7 +56,7 @@ namespace Macria
         private static DiagLine Ok(string t) { return new DiagLine(t, DiagLevel.Success); }
         private static DiagLine Err(string t) { return new DiagLine(t, DiagLevel.Error); }
 
-        private static void Yaz(List<DiagLine> log, DiagLine satir)
+        private static void Yaz(List<DiagLine>? log, DiagLine satir)
         {
             if (log != null) log.Add(satir);
         }
@@ -64,7 +64,7 @@ namespace Macria
         // ================= BAGLANTI =================
 
         // log null olabilir; verilirse her adimda ne oldugu yazilir.
-        public static object Connect(List<DiagLine> log)
+        public static object? Connect(List<DiagLine>? log)
         {
             // 1) Kayitli ProgID uzerinden (normal makinede burasi calisir)
             foreach (string progId in BilinenProgIdler)
@@ -77,14 +77,14 @@ namespace Macria
                     continue;
                 }
 
-                object o = Dene(g, "ProgID " + progId, log);
+                object? o = Dene(g, "ProgID " + progId, log);
                 if (o != null) return o;
             }
 
             // 2) Kayit defteri eksik olsa bile ROT sabit CLSID ile sorgulanabilir
             foreach (Guid g in BilinenClsidler)
             {
-                object o = Dene(g, "Sabit CLSID " + g.ToString("B").ToUpperInvariant(), log);
+                object? o = Dene(g, "Sabit CLSID " + g.ToString("B").ToUpperInvariant(), log);
                 if (o != null) return o;
             }
 
@@ -92,7 +92,7 @@ namespace Macria
             return RotTara(log);
         }
 
-        private static object Dene(Guid clsid, string kaynak, List<DiagLine> log)
+        private static object? Dene(Guid clsid, string kaynak, List<DiagLine>? log)
         {
             object obj;
             int hr = GetActiveObject(ref clsid, IntPtr.Zero, out obj);
@@ -124,7 +124,7 @@ namespace Macria
         // ROT'taki her kaydi tek tek deneyip CATIA uygulama nesnesini bulur.
         // CATIA kendini "!{CLSID}" bicimli bir item moniker ile kaydettigi icin
         // gorunen adda "CATIA" gecmeyebilir; bu yuzden ada gore filtrelenmez.
-        private static object RotTara(List<DiagLine> log)
+        private static object? RotTara(List<DiagLine>? log)
         {
             IRunningObjectTable rot;
             IBindCtx ctx;
@@ -144,7 +144,7 @@ namespace Macria
 
             var monikers = new IMoniker[1];
             var isimler = new List<string>();
-            object bulunan = null;
+            object? bulunan = null;
 
             while (sayac.Next(1, monikers, IntPtr.Zero) == 0)
             {
@@ -161,7 +161,7 @@ namespace Macria
                 catch { continue; }
                 if (o == null) continue;
 
-                object app = UygulamayaCik(o);
+                object? app = UygulamayaCik(o);
                 if (app != null)
                 {
                     bulunan = app;
@@ -190,7 +190,7 @@ namespace Macria
 
         // ROT'tan gelen nesne CATIA uygulamasi mi, yoksa CATIA belgesi mi?
         // Her iki halde de uygulama nesnesini dondurur; alakasiz nesnelerde null.
-        private static object UygulamayaCik(object o)
+        private static object? UygulamayaCik(object o)
         {
             if (CatiaMi(o)) return o;
 
@@ -309,7 +309,12 @@ namespace Macria
 
                 string yol = "";
                 bool erisimYok = false;
-                try { yol = p.MainModule.FileName; }
+                try
+                {
+                    ProcessModule? module = p.MainModule;
+                    if (module == null) erisimYok = true;
+                    else yol = module.FileName;
+                }
                 catch { erisimYok = true; }
 
                 int oturum = -1;
@@ -361,7 +366,7 @@ namespace Macria
                             if (k == null) continue;
 
                             bulundu = true;
-                            string clsid = Convert.ToString(k.GetValue(""));
+                            string? clsid = Convert.ToString(k.GetValue(""));
                             l.Add(Ok("Kayıt Bulundu (" + etiket + "): " + progId + " -> " + clsid));
 
                             using (var s = kok.OpenSubKey(
@@ -392,7 +397,7 @@ namespace Macria
                 {
                     if (k == null) return;
 
-                    string enable = Convert.ToString(k.GetValue("EnableDCOM"));
+                    string? enable = Convert.ToString(k.GetValue("EnableDCOM"));
                     if (!string.IsNullOrEmpty(enable))
                     {
                         if (enable.StartsWith("N", StringComparison.OrdinalIgnoreCase))
@@ -441,7 +446,7 @@ namespace Macria
                     ad = "RPC_E_WRONG_THREAD: Yanlış COM Apartmanından Çağrı Yapıldı.";
                     break;
                 default:
-                    try { ad = Marshal.GetExceptionForHR(hr).Message; }
+                    try { ad = Marshal.GetExceptionForHR(hr)?.Message ?? "Bilinmeyen Hata."; }
                     catch { ad = "Bilinmeyen Hata."; }
                     break;
             }

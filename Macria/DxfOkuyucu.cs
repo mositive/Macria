@@ -8,6 +8,18 @@ using System.Windows.Media;
 
 namespace Macria
 {
+    internal sealed class DxfEntity
+    {
+        public string Tip = "";
+        public Point[] Noktalar = Array.Empty<Point>();
+        public Point Merkez;
+        public double Radius;
+        public double BaslangicAcisi;
+        public double BitisAcisi;
+        // Yalnizca kok ENTITIES kaydi; INSERT'ten acilan blok geometrisi salt okunur.
+        public DxfKaynakKayit? KaynakKayit;
+    }
+
     // Bir DXF dosyasindan onizleme cizimi cikarir.
     //
     // Amac tam bir CAD okuyucusu degil: "acinim dogru mu, bos mu, bekledigim
@@ -17,7 +29,10 @@ namespace Macria
     internal sealed class DxfCizim
     {
         public readonly List<Point[]> Yollar = new List<Point[]>();
+        public readonly List<DxfEntity> Entityler = new List<DxfEntity>();
         public int NesneSayisi;
+        public DxfKaynakBelge? KaynakBelge;
+        public string? DuzenlemeEngeli;
 
         public double MinX = double.MaxValue, MinY = double.MaxValue;
         public double MaxX = double.MinValue, MaxY = double.MinValue;
@@ -28,6 +43,11 @@ namespace Macria
 
         internal void Ekle(List<Point> noktalar)
         {
+            Ekle(noktalar, null);
+        }
+
+        internal void Ekle(List<Point> noktalar, DxfEntity? entity)
+        {
             if (noktalar == null || noktalar.Count < 2) return;
 
             foreach (Point p in noktalar)
@@ -36,7 +56,13 @@ namespace Macria
                 if (double.IsInfinity(p.X) || double.IsInfinity(p.Y)) return;
             }
 
-            Yollar.Add(noktalar.ToArray());
+            Point[] yol = noktalar.ToArray();
+            Yollar.Add(yol);
+            if (entity != null)
+            {
+                entity.Noktalar = yol;
+                Entityler.Add(entity);
+            }
 
             foreach (Point p in noktalar)
             {
@@ -78,11 +104,14 @@ namespace Macria
         {
             public int Kod;
             public string Deger;
+            public int Sira;
         }
 
         private sealed class Varlik
         {
             public string Tip = "";
+            public int KaynakSira;
+            public DxfKaynakKayit? KaynakKayit;
             public readonly List<Ikili> Kodlar = new List<Ikili>();
 
             public double Sayi(int kod, double varsayilan)
@@ -104,7 +133,7 @@ namespace Macria
 
         // ================= GIRIS =================
 
-        public static DxfCizim Oku(string yol, out string hata)
+        public static DxfCizim? Oku(string yol, out string? hata)
         {
             hata = null;
 
@@ -114,7 +143,17 @@ namespace Macria
 
                 // Latin1: sayilar zaten ASCII, blok adlari da giris ile tanim
                 // arasinda ayni bayt dizisine cozuldugu icin eslesmeleri bozmaz.
-                string[] satirlar = File.ReadAllLines(yol, Encoding.Latin1);
+                byte[] kaynakBaytlar = File.ReadAllBytes(yol);
+                var kaynakBelge = DxfKaynakBelge.Olustur(kaynakBaytlar, out string? editEngeli);
+                var satirListesi = new List<string>();
+                // Onizleme ve edit kimligi ayni okuma aninin verisini kullanir.
+                using (var okuyucu = new StreamReader(new MemoryStream(kaynakBaytlar),
+                                                      Encoding.Latin1, true))
+                {
+                    string? satir;
+                    while ((satir = okuyucu.ReadLine()) != null) satirListesi.Add(satir);
+                }
+                string[] satirlar = satirListesi.ToArray();
 
                 if (satirlar.Length > 0 &&
                     satirlar[0].StartsWith("AutoCAD Binary", StringComparison.Ordinal))
@@ -128,7 +167,10 @@ namespace Macria
                 var bloklar = new Dictionary<string, List<Varlik>>(StringComparer.OrdinalIgnoreCase);
                 List<Varlik> varliklar = Bolumler(kodlar, bloklar);
 
-                var cizim = new DxfCizim();
+                foreach (Varlik varlik in varliklar)
+                    varlik.KaynakKayit = kaynakBelge?.KayitBul(varlik.KaynakSira);
+                var cizim = new DxfCizim { KaynakBelge = kaynakBelge,
+                                          DuzenlemeEngeli = editEngeli };
                 Isle(varliklar, bloklar, Matrix.Identity, cizim, 0);
 
                 if (cizim.Bos) hata = "Dosyada çizilebilir bir nesne bulunamadı.";
@@ -155,7 +197,7 @@ namespace Macria
                                   CultureInfo.InvariantCulture, out kod))
                     continue;
 
-                liste.Add(new Ikili { Kod = kod, Deger = satirlar[i + 1].Trim() });
+                liste.Add(new Ikili { Kod = kod, Deger = satirlar[i + 1].Trim(), Sira = i / 2 });
             }
 
             return liste;
@@ -236,7 +278,7 @@ namespace Macria
         private static List<Varlik> VarlikOku(List<Ikili> kodlar, ref int i, string bitis)
         {
             var liste = new List<Varlik>();
-            Varlik simdiki = null;
+            Varlik? simdiki = null;
 
             while (i < kodlar.Count)
             {
@@ -246,7 +288,7 @@ namespace Macria
                 {
                     if (k.Deger == bitis || k.Deger == "ENDSEC") { i++; return liste; }
 
-                    simdiki = new Varlik { Tip = k.Deger };
+                    simdiki = new Varlik { Tip = k.Deger, KaynakSira = k.Sira };
                     liste.Add(simdiki);
                     i++;
                     continue;
@@ -313,7 +355,7 @@ namespace Macria
             };
 
             cizim.NesneSayisi++;
-            cizim.Ekle(noktalar);
+            cizim.Ekle(noktalar, new DxfEntity { Tip = "LINE", KaynakKayit = v.KaynakKayit });
         }
 
         private static void Daire(Varlik v, Matrix m, DxfCizim cizim)
@@ -321,8 +363,19 @@ namespace Macria
             double r = v.Sayi(40, 0);
             if (r <= 0) return;
 
+            double cx = v.Sayi(10, 0), cy = v.Sayi(20, 0);
+            List<Point> noktalar = YayNoktalari(m, cx, cy, r, 0, 360);
+            Point merkez = m.Transform(new Point(cx, cy));
+            Point yaricapNoktasi = m.Transform(new Point(cx + r, cy));
+
             cizim.NesneSayisi++;
-            cizim.Ekle(YayNoktalari(m, v.Sayi(10, 0), v.Sayi(20, 0), r, 0, 360));
+            cizim.Ekle(noktalar, new DxfEntity
+            {
+                Tip = "CIRCLE",
+                KaynakKayit = v.KaynakKayit,
+                Merkez = merkez,
+                Radius = Mesafe(merkez, yaricapNoktasi)
+            });
         }
 
         private static void Yay(Varlik v, Matrix m, DxfCizim cizim)
@@ -334,8 +387,30 @@ namespace Macria
             double son = v.Sayi(51, 0);
             while (son <= bas) son += 360;
 
+            double cx = v.Sayi(10, 0), cy = v.Sayi(20, 0);
+            List<Point> noktalar = YayNoktalari(m, cx, cy, r, bas, son);
+            Point merkez = m.Transform(new Point(cx, cy));
+            Point basNoktasi = m.Transform(new Point(
+                cx + r * Math.Cos(bas * Math.PI / 180.0),
+                cy + r * Math.Sin(bas * Math.PI / 180.0)));
+
             cizim.NesneSayisi++;
-            cizim.Ekle(YayNoktalari(m, v.Sayi(10, 0), v.Sayi(20, 0), r, bas, son));
+            cizim.Ekle(noktalar, new DxfEntity
+            {
+                Tip = "ARC",
+                KaynakKayit = v.KaynakKayit,
+                Merkez = merkez,
+                Radius = Mesafe(merkez, basNoktasi),
+                BaslangicAcisi = bas,
+                BitisAcisi = son
+            });
+        }
+
+        private static double Mesafe(Point a, Point b)
+        {
+            double dx = a.X - b.X;
+            double dy = a.Y - b.Y;
+            return Math.Sqrt(dx * dx + dy * dy);
         }
 
         private static List<Point> YayNoktalari(Matrix m, double cx, double cy,
@@ -555,7 +630,7 @@ namespace Macria
         {
             string ad = v.Yazi(2);
 
-            List<Varlik> icerik;
+            List<Varlik>? icerik;
             if (ad.Length == 0 || !bloklar.TryGetValue(ad, out icerik)) return;
 
             double sx = v.Sayi(41, 1), sy = v.Sayi(42, 1);

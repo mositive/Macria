@@ -62,7 +62,7 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Buküm Bilgisi -->
+                <!-- Bukum Bilgisi -->
                 <TextBlock Text="Büküm Bilgisi (Bend Information)" FontSize="12"
                            FontWeight="SemiBold"
                            Foreground="{StaticResource TextSecondaryBrush}"

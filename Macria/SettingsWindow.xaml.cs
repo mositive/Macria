@@ -13,7 +13,7 @@ namespace Macria
     public partial class SettingsWindow : Window
     {
         private const int VK_F8 = 0x77;
-        private CancellationTokenSource _ogretCts;
+        private CancellationTokenSource? _ogretCts;
 
         // ogretmeyeBasla: rehberden gelindiginde F8 dinleyicisi kendiliginden acilir
         public SettingsWindow(bool ogretmeyeBasla = false)
@@ -66,7 +66,7 @@ namespace Macria
 
         // Save As dugmesi ile Bend Information kutusu ayni dongüyle
         // ogretiliyor: kullanici hedefin uzerine gelip F8'e basiyor.
-        private async void btnOgret_Click(object sender, RoutedEventArgs e)
+        private async void btnOgret_Click(object sender, RoutedEventArgs? e)
         {
             await Ogretme(false);
         }

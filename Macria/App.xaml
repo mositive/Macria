@@ -48,6 +48,23 @@
         <SolidColorBrush x:Key="HamSacChangedRowBrush" Color="#244744"/>
         <SolidColorBrush x:Key="HamSacChangedRowHoverBrush" Color="#2B5652"/>
 
+        <!-- Birden fazla katı Body bulunan ve güvenli DXF açılamayan satırlar -->
+        <!-- Coklu Body, genel DXF hatasindan farkli ve dikkat cekici amber renktedir. -->
+        <SolidColorBrush x:Key="MultiBodyRowBrush" Color="#463B22"/>
+        <SolidColorBrush x:Key="MultiBodyRowHoverBrush" Color="#574928"/>
+        <SolidColorBrush x:Key="MultiBodyRowSelectedBrush" Color="#66542E"/>
+        <SolidColorBrush x:Key="MultiBodyNoteBrush" Color="#F2C66D"/>
+        <SolidColorBrush x:Key="MultiBodyAccentBrush" Color="#F2B84B"/>
+
+        <!-- Diger DXF hatalari kirmizi; gizli urunler ise soluk gri-mavi gorunur. -->
+        <SolidColorBrush x:Key="DxfFailedRowBrush" Color="#4A3032"/>
+        <SolidColorBrush x:Key="DxfFailedRowHoverBrush" Color="#5A383B"/>
+        <SolidColorBrush x:Key="DxfFailedRowSelectedBrush" Color="#684044"/>
+        <SolidColorBrush x:Key="HiddenProductRowBrush" Color="#292D31"/>
+        <SolidColorBrush x:Key="HiddenProductRowHoverBrush" Color="#32373C"/>
+        <SolidColorBrush x:Key="HiddenProductRowSelectedBrush" Color="#3A424B"/>
+        <SolidColorBrush x:Key="HiddenProductTextBrush" Color="#8B9298"/>
+
         <!-- Ozet kartlari (Agirlik ve Maliyet) -->
         <SolidColorBrush x:Key="KpiNeutralBgBrush" Color="#2F2F2C"/>
         <SolidColorBrush x:Key="KpiNeutralBorderBrush" Color="#3D3D39"/>

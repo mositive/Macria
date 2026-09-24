@@ -174,7 +174,7 @@ namespace Macria
                     if (p[0] == "S" && p.Length >= 8)
                     {
                         string anahtar = p[1];
-                        SutunTanimi tanim;
+                        SutunTanimi? tanim;
 
                         if (varsayilan.TryGetValue(anahtar, out tanim))
                         {
@@ -231,7 +231,9 @@ namespace Macria
             try
             {
                 string yol = DosyaYolu();
-                Directory.CreateDirectory(Path.GetDirectoryName(yol));
+                string? klasor = Path.GetDirectoryName(yol);
+                if (klasor == null) return;
+                Directory.CreateDirectory(klasor);
 
                 var satirlar = new List<string>();
 

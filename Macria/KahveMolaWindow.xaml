@@ -1,0 +1,195 @@
+<Window x:Class="Macria.KahveMolaWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Macria Çalışıyor"
+        Width="432" Height="226"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Topmost="True" ShowInTaskbar="False" ShowActivated="False"
+        Focusable="False" ResizeMode="NoResize"
+        FontFamily="{StaticResource AppFont}"
+        UseLayoutRounding="True">
+
+    <!-- Tasarım 800 x 418 mantıksal ölçüde korunur; Viewbox v1.9.11'deki
+         480 x 251 pencereyi ve bütün içeriği bir yüzde 10 daha küçültür. -->
+    <Viewbox Stretch="Uniform" StretchDirection="Both">
+        <Border x:Name="kart"
+                Width="800" Height="418"
+                Background="#5C5F5E"
+                BorderBrush="#ADB5B2"
+                BorderThickness="1.5"
+                CornerRadius="12"
+                Padding="20,18,20,16">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Orientation="Horizontal"
+                        HorizontalAlignment="Center">
+                <TextBlock x:Name="txtBaslik"
+                           Text="Panik yok, bilgisayarın ele geçirilmedi!"
+                           FontSize="29" FontWeight="Bold"
+                           MaxWidth="690" TextWrapping="Wrap"
+                           Foreground="#FFFFFF"
+                           TextAlignment="Center"/>
+                <TextBlock x:Name="txtTamamIkonu"
+                           Text="✓" FontSize="29" FontWeight="Bold"
+                           Foreground="#8DDD9E"
+                           VerticalAlignment="Center" Margin="10,-2,0,0"
+                           Visibility="Collapsed"/>
+            </StackPanel>
+
+            <TextBlock x:Name="txtMesajBir" Grid.Row="1"
+                       Text="Macria senin için çalışıyor."
+                       Margin="0,5,0,0" FontSize="22"
+                       MaxWidth="730" TextWrapping="Wrap" LineHeight="25"
+                       Foreground="#F3F4F3"
+                       TextAlignment="Center"/>
+
+            <TextBlock x:Name="txtMesajIki" Grid.Row="2"
+                       Text="Sen kahveni al; işi bitince haber veririz. ☕"
+                       Margin="0,2,0,0" FontSize="20"
+                       MaxWidth="730" TextWrapping="Wrap" LineHeight="23"
+                       Foreground="#E2E5E3"
+                       TextAlignment="Center"/>
+
+            <!-- Açık renkli animasyon sahnesi. Enes başlangıçtaki çalışma
+                 masasından sağda bekleyen arkadaş grubuna ilerler. -->
+            <Border Grid.Row="3" Height="246" Margin="0,16,0,12"
+                    Background="#EEF1F1"
+                    BorderBrush="#CFD5D3"
+                    BorderThickness="1.5" CornerRadius="11"
+                    ClipToBounds="True">
+                <Grid Width="756" Height="244" ClipToBounds="True">
+                    <Canvas x:Name="animasyonSahnesi"
+                            Width="756" Height="244" ClipToBounds="True">
+
+                        <!-- Dört parçalı ilerleme yolu -->
+                        <Border x:Name="bar1" Canvas.Left="22" Canvas.Top="213"
+                                Width="164" Height="13" CornerRadius="6"
+                                Background="#727876" BorderBrush="#555B59"
+                                BorderThickness="1"/>
+                        <Border x:Name="bar2" Canvas.Left="204" Canvas.Top="213"
+                                Width="164" Height="13" CornerRadius="6"
+                                Background="#727876" BorderBrush="#555B59"
+                                BorderThickness="1"/>
+                        <Border x:Name="bar3" Canvas.Left="386" Canvas.Top="213"
+                                Width="164" Height="13" CornerRadius="6"
+                                Background="#727876" BorderBrush="#555B59"
+                                BorderThickness="1"/>
+                        <Border x:Name="bar4" Canvas.Left="568" Canvas.Top="213"
+                                Width="164" Height="13" CornerRadius="6"
+                                Background="#727876" BorderBrush="#555B59"
+                                BorderThickness="1"/>
+
+                        <!-- Başlangıç noktası: gri ayaklı beyaz ofis masası, klavye ve
+                             beyaz ekranda yalnızca TURAN aracı + mavi BMC logolu bilgisayar. -->
+                        <Canvas Canvas.Left="18" Canvas.Top="47"
+                                Width="178" Height="155">
+                            <!-- Masa ayakları -->
+                            <Rectangle Canvas.Left="14" Canvas.Top="101"
+                                       Width="10" Height="52" RadiusX="2" RadiusY="2"
+                                       Fill="#8A9293" Stroke="#646B6C"
+                                       StrokeThickness="1.2"/>
+                            <Rectangle Canvas.Left="151" Canvas.Top="101"
+                                       Width="10" Height="52" RadiusX="2" RadiusY="2"
+                                       Fill="#8A9293" Stroke="#646B6C"
+                                       StrokeThickness="1.2"/>
+
+                            <!-- Masa tablası -->
+                            <Rectangle Canvas.Left="4" Canvas.Top="91"
+                                       Width="168" Height="12" RadiusX="3" RadiusY="3"
+                                       Fill="#FFFFFF" Stroke="#AAB1B2"
+                                       StrokeThickness="1.5"/>
+                            <Rectangle Canvas.Left="10" Canvas.Top="103"
+                                       Width="156" Height="4" Fill="#D8DDDC" Opacity="0.85"/>
+
+                            <!-- Monitör gövdesi -->
+                            <Border Canvas.Left="38" Canvas.Top="2"
+                                    Width="98" Height="66" CornerRadius="5"
+                                    Background="#40494A" BorderBrush="#667173"
+                                    BorderThickness="2">
+                                <Border Margin="5" CornerRadius="2"
+                                        Background="#FFFFFF"
+                                        ClipToBounds="True"
+                                        RenderOptions.BitmapScalingMode="HighQuality">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="15"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- Afiş ve yazıları kullanılmaz; yalnızca araç görünür. -->
+                                        <Image Grid.Row="0"
+                                               Source="Assets/turan-vehicle-white.png"
+                                               Margin="2,1,2,0"
+                                               Stretch="Uniform"
+                                               RenderOptions.BitmapScalingMode="HighQuality"/>
+
+                                        <!-- Metin WPF tarafından çizildiği için küçük ekranda da
+                                             raster logodan daha keskin ve okunaklı kalır. -->
+                                        <TextBlock Grid.Row="1"
+                                                   Text="BMC"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   FontFamily="Segoe UI Black, Arial Black"
+                                                   FontSize="10.5"
+                                                   FontWeight="Black"
+                                                   Foreground="#0057A8"
+                                                   TextOptions.TextFormattingMode="Display"/>
+                                    </Grid>
+                                </Border>
+                            </Border>
+
+                            <!-- Monitör ayağı ve klavye -->
+                            <Rectangle Canvas.Left="81" Canvas.Top="68"
+                                       Width="12" Height="18" Fill="#596365"/>
+                            <Rectangle Canvas.Left="65" Canvas.Top="84"
+                                       Width="44" Height="7" RadiusX="3" RadiusY="3"
+                                       Fill="#596365"/>
+                            <Path Data="M111,82 H156 L166,91 H104 Z"
+                                  Fill="#778183" Stroke="#596365"
+                                  StrokeThickness="1"/>
+                            <Path Data="M116,85 H153 M120,88 H158"
+                                  Stroke="#D3D8D7" StrokeThickness="1"
+                                  StrokeStartLineCap="Round"/>
+                        </Canvas>
+
+                        <!-- Arka planı kaldırılmış arkadaşlar ve korunan mavi varil,
+                             Enes ile aynı görünür boyda aynı zemin çizgisinde bekler. -->
+                        <Image x:Name="arkadaslarGrubu"
+                               Canvas.Left="494" Canvas.Top="12"
+                               Width="258" Height="186"
+                               Source="Assets/coffee-friends-barrel-v2-transparent.png"
+                               Stretch="Uniform"
+                               RenderOptions.BitmapScalingMode="HighQuality"/>
+
+                        <!-- Enes karakteri: sekiz gerçek yürüyüş karesi sırayla gösterilir. -->
+                        <Image x:Name="calisanKare"
+                               Canvas.Left="-32" Canvas.Top="3"
+                               Width="156" Height="208"
+                               Source="Assets/coffee-walk-01.png"
+                               Stretch="Uniform"
+                               RenderOptions.BitmapScalingMode="HighQuality">
+                            <Image.RenderTransform>
+                                <TranslateTransform x:Name="calisanKay"/>
+                            </Image.RenderTransform>
+                        </Image>
+
+                    </Canvas>
+                </Grid>
+            </Border>
+
+            <TextBlock x:Name="txtDurum" Grid.Row="4"
+                       Text="Hazırlanıyor..."
+                       FontFamily="Cascadia Mono, Consolas" FontSize="12.5"
+                       FontWeight="SemiBold" Foreground="#EEF2F0"
+                       TextAlignment="Center" TextTrimming="CharacterEllipsis"/>
+            </Grid>
+        </Border>
+    </Viewbox>
+</Window>

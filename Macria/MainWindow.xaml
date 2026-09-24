@@ -1,7 +1,8 @@
 ﻿<Window x:Class="Macria.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Macria"
+        xmlns:local="clr-namespace:Macria"
+        Title="Macria v1.11.1"
         Icon="Assets/macria-logo.png"
         Height="660" Width="1020"
         MinHeight="500" MinWidth="800"
@@ -176,6 +177,86 @@
                             </Grid>
                         </Button>
 
+                        <!-- Dosya Analiz Merkezi -->
+                        <Button x:Name="tileFileAnalysis" Style="{StaticResource MetroTile}"
+                                Width="310" Height="150"
+                                Background="#385B8C"
+                                ToolTip="Harici üretim dosyalarını GeometryLab ile analiz eder; CATIA bağlantısı gerekmez."
+                                Click="tileFileAnalysis_Click">
+                            <Grid>
+                                <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="34" VerticalAlignment="Top"
+                                           Foreground="{StaticResource TileTextBrush}"/>
+                                <StackPanel VerticalAlignment="Bottom">
+                                    <TextBlock Text="Dosya Analiz Merkezi" FontSize="17"
+                                               FontFamily="{StaticResource AppFontDisplay}"
+                                               Foreground="{StaticResource TileTextBrush}"/>
+                                    <TextBlock Text="Harici üretim dosyalarını analiz edin, sınıflandırın ve raporlayın."
+                                               FontSize="12" TextWrapping="Wrap"
+                                               Foreground="{StaticResource TileSubTextBrush}"
+                                               Margin="0,3,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <!-- Renklendirme 2.0 bagimsiz calisma alani -->
+                        <Button x:Name="tileColoring" Style="{StaticResource MetroTile}"
+                                Width="310" Height="150"
+                                Background="#5E4380"
+                                ToolTip="Eşsiz ve hiyerarşik ürün ağacı görünümlerini ortak Renklendirme 2.0 durumu ile açar."
+                                Click="tileColoring_Click">
+                            <Grid>
+                                <TextBlock Text="&#xE790;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="34" VerticalAlignment="Top"
+                                           Foreground="{StaticResource TileTextBrush}"/>
+                                <StackPanel VerticalAlignment="Bottom">
+                                    <TextBlock Text="Renklendirme" FontSize="17"
+                                               FontFamily="{StaticResource AppFontDisplay}"
+                                               Foreground="{StaticResource TileTextBrush}"/>
+                                    <TextBlock Text="Ürün ağacını referans veya montaj hiyerarşisiyle yönetin."
+                                               FontSize="12" TextWrapping="Wrap"
+                                               Foreground="{StaticResource TileSubTextBrush}"
+                                               Margin="0,3,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <!-- Akilli Renklendirme -->
+                        <Button x:Name="btnAkilliRenklendirme" Style="{StaticResource MetroTile}"
+                                 Width="310" Height="150"
+                                 Background="#7A4BA3"
+                                 ToolTip="Aktif CATIA montajındaki aynı referansa ait parçaları aynı renkle gösterir."
+                                 Click="btnAkilliRenklendirme_Click">
+                            <Button.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Renklendirme 2.0 — Uygula"
+                                              Style="{x:Null}"
+                                              Background="{StaticResource SurfaceBrush}"
+                                              Foreground="{StaticResource TextPrimaryBrush}"
+                                              Click="Renklendirme2Uygula_Click"/>
+                                    <MenuItem Header="Renklendirme 2.0 — Automatic'e Dön"
+                                              Style="{x:Null}"
+                                              Background="{StaticResource SurfaceBrush}"
+                                              Foreground="{StaticResource TextPrimaryBrush}"
+                                              Click="Renklendirme2AutomaticDon_Click"/>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                            <Grid>
+                                <TextBlock Text="&#xE790;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="34" VerticalAlignment="Top"
+                                           Foreground="{StaticResource TileTextBrush}"/>
+                                <StackPanel VerticalAlignment="Bottom">
+                                    <TextBlock Text="Akıllı Renklendirme" FontSize="17"
+                                               FontFamily="{StaticResource AppFontDisplay}"
+                                               Foreground="{StaticResource TileTextBrush}"/>
+                                    <TextBlock Text="Aynı parça, aynı renk."
+                                               FontSize="12" TextWrapping="Wrap"
+                                               Foreground="{StaticResource TileSubTextBrush}"
+                                               Margin="0,3,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
                         <!-- Hakkinda -->
                         <Button x:Name="tileAbout" Style="{StaticResource MetroTile}"
                                 Width="150" Height="150"
@@ -204,6 +285,7 @@
                     <TranslateTransform x:Name="exportKaydir"/>
                 </Grid.RenderTransform>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
@@ -327,28 +409,135 @@
                         </Grid>
                     </Border>
 
-                    <Button Grid.Column="2" x:Name="btnHamSacGuncelle"
-                            Style="{StaticResource SecondaryButton}"
-                            Height="34"
-                            Click="btnHamSacGuncelle_Click"
-                            ToolTip="Ham sac değerlerini kaydet ve mevcut DXF dosya adlarını güncelle">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE895;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="13" VerticalAlignment="Center"
-                                       Margin="0,0,7,0"/>
-                            <TextBlock Text="Güncelle" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <Button x:Name="btnParcaSutunlari"
+                                Style="{StaticResource SecondaryButton}"
+                                Height="34"
+                                Click="btnParcaSutunlari_Click"
+                                ToolTip="Sütunları göster, gizle ve sıralarını değiştir">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE71D;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="13" VerticalAlignment="Center"
+                                           Margin="0,0,7,0"/>
+                                <TextBlock Text="Sütunlar" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="btnHamSacGuncelle"
+                                Style="{StaticResource SecondaryButton}"
+                                Height="34" Margin="8,0,0,0"
+                                Click="btnHamSacGuncelle_Click"
+                                ToolTip="Ham Sac değerini bu tabloya uygula ve mevcut DXF dosya adlarını güncelle">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE895;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="13" VerticalAlignment="Center"
+                                           Margin="0,0,7,0"/>
+                                <TextBlock Text="Güncelle" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="btnParcaTabloTemizle"
+                                Style="{StaticResource SecondaryButton}"
+                                Height="34" Margin="8,0,0,0"
+                                Click="btnParcaTabloTemizle_Click"
+                                ToolTip="Sac Lazer, Ürün Ağacı ve Kutu Profil tablolarını temizle">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="12" VerticalAlignment="Center"
+                                           Margin="0,0,7,0"/>
+                                <TextBlock Text="Tabloyu Temizle" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
                 </Grid>
 
-                <!-- ======== PARCA LISTESI + DXF ONIZLEME ======== -->
-                <Grid Grid.Row="2" Margin="24,0,24,0">
+                <!-- ======== SAC LAZER + URUN AGACI + KUTU PROFIL SEKMELERI ======== -->
+                <TabControl x:Name="parcaSekmeleri" Grid.Row="3" Margin="24,0,24,0"
+                            Background="Transparent" BorderThickness="0" Padding="0"
+                            HorizontalContentAlignment="Stretch"
+                            VerticalContentAlignment="Stretch">
+                    <TabControl.Resources>
+                        <Style TargetType="{x:Type TabItem}">
+                            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+                            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+                            <Setter Property="FontSize" Value="13"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="Padding" Value="16,8"/>
+                            <Setter Property="Margin" Value="0,0,6,0"/>
+                            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="{x:Type TabItem}">
+                                        <Border x:Name="tabBorder"
+                                                Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="5"
+                                                Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter ContentSource="Header"
+                                                              HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="tabBorder" Property="Background"
+                                                        Value="{StaticResource SurfaceHoverBrush}"/>
+                                                <Setter Property="Foreground"
+                                                        Value="{StaticResource TextPrimaryBrush}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="tabBorder" Property="Background"
+                                                        Value="{StaticResource AccentBrush}"/>
+                                                <Setter TargetName="tabBorder" Property="BorderBrush"
+                                                        Value="{StaticResource AccentHoverBrush}"/>
+                                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </TabControl.Resources>
+
+                    <!-- Mevcut sac filtresi, Ham Sac girisi ve DXF islemleri -->
+                    <TabItem Header="Sac Lazer Parça">
+                        <Grid Margin="0,2,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <Border Grid.Column="0"
+                    <StackPanel Grid.Row="0" Grid.ColumnSpan="2"
+                                Orientation="Horizontal" HorizontalAlignment="Right"
+                                Margin="0,0,0,3">
+                        <CheckBox x:Name="chkSacGizliDahil"
+                                  Content="Gizlenmiş Öğeleri Dahil Et"
+                                  IsChecked="True" VerticalAlignment="Center"
+                                  Margin="0,0,16,0"
+                                  ToolTip="Kapatılırsa gizli Physical Product parçaları listeden ve DXF işleminden çıkarılır"
+                                  Click="GizliOgeFiltresi_Click"/>
+                        <CheckBox x:Name="chkSacCokluBodyDahil"
+                                  Content="Çoklu Body Öğelerini Dahil Et"
+                                  IsChecked="True" VerticalAlignment="Center"
+                                  Margin="0,0,16,0"
+                                  ToolTip="Kapatılırsa Çoklu Body parçaları Sac Lazer listesinden çıkarılır. Görünür olsa bile toplu DXF işlemine alınmaz."
+                                  Click="SacCokluBodyFiltresi_Click"/>
+                        <Button x:Name="btnSacExcel"
+                                Style="{StaticResource SecondaryButton}"
+                                Content="Excel'e Aktar" Height="30" Padding="14,0"
+                                ToolTip="Sac Lazer Parça tablosunu Excel'e aktar"
+                                Click="btnSacExcel_Click"/>
+                    </StackPanel>
+
+                    <Border Grid.Row="1" Grid.Column="0"
                             Background="{StaticResource CardBrush}"
                             BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                             CornerRadius="6" ClipToBounds="True">
@@ -357,12 +546,13 @@
                                  salt okunur degil; ama liste CATIA taramasindan
                                  geliyor, elle satir eklenip silinemez -->
                             <DataGrid x:Name="grid"
-                                      AutoGenerateColumns="False"
-                                      IsReadOnly="False"
-                                      CanUserAddRows="False"
-                                      CanUserDeleteRows="False"
-                                      CanUserResizeRows="False"
-                                      GridLinesVisibility="All"
+                                       AutoGenerateColumns="False"
+                                       IsReadOnly="False"
+                                       CanUserAddRows="False"
+                                       CanUserDeleteRows="False"
+                                       CanUserResizeRows="False"
+                                       ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                       GridLinesVisibility="All"
                                       HeadersVisibility="Column"
                                       PreviewMouseRightButtonDown="grid_PreviewMouseRightButtonDown"
                                       SelectionChanged="grid_SelectionChanged">
@@ -373,6 +563,20 @@
                                             <DataTrigger Binding="{Binding HamSacFarkliMi}" Value="True">
                                                 <Setter Property="Background"
                                                         Value="{StaticResource HamSacChangedRowBrush}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding GizliPhysicalProductMu}" Value="True">
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource HiddenProductRowBrush}"/>
+                                                <Setter Property="Foreground"
+                                                        Value="{StaticResource HiddenProductTextBrush}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding DxfBasarisizMi}" Value="True">
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource DxfFailedRowBrush}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding CokluBodyMi}" Value="True">
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource MultiBodyRowBrush}"/>
                                             </DataTrigger>
                                             <Trigger Property="IsMouseOver" Value="True">
                                                 <Setter Property="Background"
@@ -393,6 +597,24 @@
                                             </MultiDataTrigger>
                                             <MultiDataTrigger>
                                                 <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding GizliPhysicalProductMu}" Value="True"/>
+                                                    <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}"
+                                                               Value="True"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource HiddenProductRowHoverBrush}"/>
+                                            </MultiDataTrigger>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding DxfBasarisizMi}" Value="True"/>
+                                                    <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}"
+                                                               Value="True"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource DxfFailedRowHoverBrush}"/>
+                                            </MultiDataTrigger>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
                                                     <Condition Binding="{Binding HamSacFarkliMi}" Value="True"/>
                                                     <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}"
                                                                Value="True"/>
@@ -400,25 +622,160 @@
                                                 <Setter Property="Background"
                                                         Value="{StaticResource TileTealBrush}"/>
                                             </MultiDataTrigger>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding GizliPhysicalProductMu}" Value="True"/>
+                                                    <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}"
+                                                               Value="True"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource HiddenProductRowSelectedBrush}"/>
+                                            </MultiDataTrigger>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding DxfBasarisizMi}" Value="True"/>
+                                                    <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}"
+                                                               Value="True"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource DxfFailedRowSelectedBrush}"/>
+                                            </MultiDataTrigger>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding CokluBodyMi}" Value="True"/>
+                                                    <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}"
+                                                               Value="True"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource MultiBodyRowHoverBrush}"/>
+                                            </MultiDataTrigger>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding CokluBodyMi}" Value="True"/>
+                                                    <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}"
+                                                               Value="True"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource MultiBodyRowSelectedBrush}"/>
+                                            </MultiDataTrigger>
+                                            <DataTrigger Binding="{Binding DxfDurumKodu}" Value="Editlendi">
+                                                <Setter Property="Background" Value="#EDE3F5"/>
+                                                <Setter Property="Foreground" Value="#542477"/>
+                                            </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </DataGrid.RowStyle>
+                                <DataGrid.CellStyle>
+                                    <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding DxfDurumKodu}" Value="Editlendi">
+                                                <Setter Property="Foreground" Value="#542477"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGrid.CellStyle>
                                 <DataGrid.ContextMenu>
                                     <ContextMenu>
                                         <MenuItem Header="DXF Olarak Dışa Aktar" Click="mnuExportDxf_Click"/>
                                     </ContextMenu>
                                 </DataGrid.ContextMenu>
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Ürün Adı"
+                                    <DataGridTemplateColumn x:Name="colSacDxfDurum"
+                                                            Header="Durum" Width="58"
+                                                            IsReadOnly="True"
+                                                            CanUserResize="False"
+                                                            CanUserReorder="False"
+                                                            CanUserSort="False">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Grid Width="30" Height="30"
+                                                      ToolTip="{Binding DxfDurumAciklamasi}"
+                                                      ToolTipService.ShowDuration="60000">
+                                                    <!-- Yuz ifadeleri font glifi degil, renkli uygulama
+                                                         gorselidir. Boylece Windows/WPF surumune gore
+                                                         eski siyah-beyaz gorunume donmez. -->
+                                                    <Image x:Name="imgDxfBasarisiz"
+                                                           Source="Assets/status-sad.png"
+                                                           Width="23" Height="23"
+                                                           Stretch="Uniform"
+                                                           Visibility="Collapsed"
+                                                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                    <Image x:Name="imgCokluBody"
+                                                           Source="Assets/status-thinking.png"
+                                                           Width="23" Height="23"
+                                                           Stretch="Uniform"
+                                                           Visibility="Collapsed"
+                                                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                    <Image x:Name="imgGizli"
+                                                           Source="Assets/status-hidden.png"
+                                                           Width="23" Height="23"
+                                                           Stretch="Uniform"
+                                                           Visibility="Collapsed"
+                                                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                    <TextBlock x:Name="txtDxfBasarili"
+                                                               Text="✓" FontSize="21"
+                                                               FontFamily="Segoe UI Symbol"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{StaticResource LogSuccessBrush}"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"
+                                                               TextAlignment="Center"
+                                                               Visibility="Collapsed"/>
+                                                    <TextBlock x:Name="txtDxfEditlendi" Text="🛠️" FontSize="20"
+                                                               FontFamily="Segoe UI Emoji" Foreground="#542477"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                               Visibility="Collapsed"/>
+                                                </Grid>
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding DxfDurumKodu}" Value="Editlendi">
+                                                        <Setter TargetName="txtDxfEditlendi" Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding DxfDurumKodu}"
+                                                                 Value="Basarili">
+                                                        <Setter TargetName="txtDxfBasarili"
+                                                                Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding DxfDurumKodu}"
+                                                                 Value="Basarisiz">
+                                                        <Setter TargetName="imgDxfBasarisiz"
+                                                                Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding DxfDurumKodu}"
+                                                                 Value="CokluBody">
+                                                        <Setter TargetName="imgCokluBody"
+                                                                Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding DxfDurumKodu}"
+                                                                 Value="Gizli">
+                                                        <Setter TargetName="imgGizli"
+                                                                Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn x:Name="colSacTitle"
+                                                        Header="Parça Kodu (Title)"
                                                         Binding="{Binding ProductName}"
-                                                        IsReadOnly="True" Width="1.4*"/>
-                                    <DataGridTextColumn Header="Parça Adı"
-                                                        Binding="{Binding PartName}"
-                                                        IsReadOnly="True" Width="1.6*"/>
-                                    <DataGridTextColumn Header="Kalınlık (mm)"
+                                                        IsReadOnly="True" Width="170"/>
+                                    <DataGridTextColumn x:Name="colSacName"
+                                                        Header="PLM Kimliği (Name)"
+                                                        Binding="{Binding ReferenceName}"
+                                                        IsReadOnly="True" Width="210"/>
+                                    <DataGridTextColumn x:Name="colSacDescription"
+                                                        Header="Tanım (Description)"
+                                                        Binding="{Binding Description}"
+                                                        IsReadOnly="True" Width="190"/>
+                                    <DataGridTextColumn x:Name="colSacRevision"
+                                                        Header="Revizyon"
+                                                        Binding="{Binding Revision}"
+                                                        IsReadOnly="True" Width="80"/>
+                                    <DataGridTextColumn x:Name="colSacThickness"
+                                                        Header="Kalınlık (mm)"
                                                         Binding="{Binding Thickness}"
                                                         IsReadOnly="True" Width="100"/>
-                                    <DataGridTemplateColumn Width="120" IsReadOnly="False">
+                                    <DataGridTemplateColumn x:Name="colSacRaw"
+                                                            Width="120" IsReadOnly="False">
                                         <DataGridTemplateColumn.Header>
                                             <TextBlock Text="Ham Sac (mm)"
                                                        ToolTip="Lazerden kesilecek ham sac kalınlığı"/>
@@ -448,9 +805,36 @@
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
-                                    <DataGridTextColumn Header="Adet"
+                                    <DataGridTextColumn x:Name="colSacQuantity"
+                                                        Header="Adet"
                                                         Binding="{Binding Quantity}"
                                                         IsReadOnly="True" Width="62"/>
+                                    <DataGridTextColumn x:Name="colSacNot"
+                                                        Header="Not"
+                                                        Binding="{Binding Not}"
+                                                        IsReadOnly="True" Width="180"
+                                                        CanUserReorder="False">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground"
+                                                        Value="{StaticResource HiddenProductTextBrush}"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                                <Setter Property="Padding" Value="8,0"/>
+                                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                                <Setter Property="ToolTip" Value="{Binding DxfDurumAciklamasi}"/>
+                                                <Setter Property="ToolTipService.ShowDuration" Value="60000"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding CokluBodyMi}" Value="True">
+                                                        <Setter Property="Foreground"
+                                                                Value="{StaticResource MultiBodyNoteBrush}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding DxfDurumKodu}" Value="Editlendi">
+                                                        <Setter Property="Foreground" Value="#542477"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
                                 </DataGrid.Columns>
                             </DataGrid>
 
@@ -480,14 +864,24 @@
                         </Grid>
                     </Border>
 
+                    <TextBlock x:Name="txtSacTaramaOzeti"
+                               Grid.Row="2" Grid.Column="0"
+                               Visibility="Collapsed"
+                               Margin="8,5,8,0"
+                               FontSize="11.5"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               TextTrimming="CharacterEllipsis"/>
+
                     <!-- ======== DXF ONIZLEME ======== -->
-                    <Border x:Name="onizlemePanel" Grid.Column="1" Width="330" Margin="12,0,0,0"
+                    <Border x:Name="onizlemePanel" Grid.Row="1" Grid.RowSpan="2"
+                            Grid.Column="1" Width="330" Margin="12,0,0,0"
                             Background="{StaticResource CardBrush}"
                             BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                             CornerRadius="6">
                         <Grid Margin="14,12,14,12">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="210"/>
                                 <RowDefinition Height="*"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
@@ -558,7 +952,1335 @@
                             </Grid>
                         </Grid>
                     </Border>
+                        </Grid>
+                    </TabItem>
+
+                    <!-- Montajdaki Part/CATIAPart iceren tum representation'lar.
+                         Sac olmayanlarda Kalinlik ve Ham Sac cizgiyle gosterilir. -->
+                    <TabItem Header="Ürün Ağacı — Eşsiz Parçalar">
+                        <Grid Margin="0,2,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0"
+                                    Margin="0,0,0,8" Padding="12,10"
+                                    Background="{StaticResource CardBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1" CornerRadius="6">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                        <TextBlock Text="Renklendirme" FontSize="14" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                                        <TextBlock x:Name="txtRenklendirme2Durum"
+                                                   Text="Önce CATIA'yı tarayın" Margin="0,2,0,0"
+                                                   FontSize="11.5" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button x:Name="btnRenklendirme2Renklendir"
+                                                Style="{StaticResource PrimaryButton}"
+                                                Content="Renklendir" Height="30" Padding="14,0"
+                                                Click="Renklendirme2Uygula_Click"/>
+                                        <Button x:Name="btnRenklendirme2Yeniden"
+                                                Style="{StaticResource SecondaryButton}"
+                                                Content="Yeniden Renklendir" Height="30" Padding="14,0" Margin="8,0,0,0"
+                                                Click="Renklendirme2Uygula_Click"/>
+                                        <Button x:Name="btnRenklendirme2Automatic"
+                                                Style="{StaticResource SecondaryButton}"
+                                                Content="Automatic'e Dön" Height="30" Padding="14,0" Margin="8,0,0,0"
+                                                Click="Renklendirme2AutomaticDon_Click"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+                                        <Button x:Name="btnRenklendirme2TumunuSec"
+                                                Style="{StaticResource SecondaryButton}"
+                                                Content="Tümünü Seç" Height="28" Padding="10,0"
+                                                Click="Renklendirme2TumunuSec_Click"/>
+                                        <Button x:Name="btnRenklendirme2TumunuKaldir"
+                                                Style="{StaticResource SecondaryButton}"
+                                                Content="Tümünü Kaldır" Height="28" Padding="10,0" Margin="6,0,0,0"
+                                                Click="Renklendirme2TumunuKaldir_Click"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <StackPanel Grid.Row="1" Orientation="Horizontal"
+                                        HorizontalAlignment="Right" Margin="0,0,0,3">
+                                <CheckBox x:Name="chkTreeGizliDahil"
+                                          Content="Gizlenmiş Öğeleri Dahil Et"
+                                          IsChecked="True" VerticalAlignment="Center"
+                                          Margin="0,0,16,0"
+                                          ToolTip="Kapatılırsa gizli Physical Product parçaları bu listeden çıkarılır"
+                                          Click="GizliOgeFiltresi_Click"/>
+                                <Button x:Name="btnUrunAgaciExcel"
+                                        Style="{StaticResource SecondaryButton}"
+                                        Content="Excel'e Aktar" Height="30" Padding="14,0"
+                                        ToolTip="Eşsiz parça listesini Excel'e aktar"
+                                        Click="btnUrunAgaciExcel_Click"/>
+                            </StackPanel>
+
+                        <Border Grid.Row="2"
+                                Background="{StaticResource CardBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1" CornerRadius="6"
+                                ClipToBounds="True">
+                            <Grid>
+                                <DataGrid x:Name="gridUrunAgaci"
+                                          AutoGenerateColumns="False"
+                                          IsReadOnly="False"
+                                          CanUserAddRows="False"
+                                          CanUserDeleteRows="False"
+                                          CanUserResizeRows="False"
+                                          GridLinesVisibility="All"
+                                          HeadersVisibility="Column">
+                                    <DataGrid.RowStyle>
+                                        <Style TargetType="DataGridRow"
+                                               BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HamSacFarkliMi}" Value="True">
+                                                    <Setter Property="Background"
+                                                            Value="{StaticResource HamSacChangedRowBrush}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding GizliPhysicalProductMu}" Value="True">
+                                                    <Setter Property="Background"
+                                                            Value="{StaticResource HiddenProductRowBrush}"/>
+                                                    <Setter Property="Foreground"
+                                                            Value="{StaticResource HiddenProductTextBrush}"/>
+                                                </DataTrigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background"
+                                                            Value="{StaticResource SurfaceBrush}"/>
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter Property="Background"
+                                                            Value="{StaticResource RowSelectedBrush}"/>
+                                                </Trigger>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding GizliPhysicalProductMu}" Value="True"/>
+                                                        <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}"
+                                                                   Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Background"
+                                                            Value="{StaticResource HiddenProductRowHoverBrush}"/>
+                                                </MultiDataTrigger>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding GizliPhysicalProductMu}" Value="True"/>
+                                                        <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}"
+                                                                   Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Background"
+                                                            Value="{StaticResource HiddenProductRowSelectedBrush}"/>
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGrid.RowStyle>
+                                    <DataGrid.Columns>
+                                        <DataGridTemplateColumn Header="Dahil" Width="58" CanUserReorder="False" IsReadOnly="False">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox IsChecked="{Binding Renklendirme2.Included, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                              IsEnabled="{Binding Renklendirme2.IsColorable}"
+                                                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                              Click="Renklendirme2Dahil_Click"
+                                                              ToolTip="Bu benzersiz referansı Renklendirme 2.0 işlemine dahil et"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTemplateColumn Header="RENK" Width="100" CanUserReorder="False" IsReadOnly="True">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Grid ToolTip="{Binding Renklendirme2.ColorToolTip}" Margin="6,2">
+                                                        <Border Width="42" Height="20" CornerRadius="5"
+                                                                HorizontalAlignment="Left"
+                                                                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                                                Background="{Binding Renklendirme2.Hex}">
+                                                            <Border.Style>
+                                                                <Style TargetType="Border">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Renklendirme2.IsAssigned}" Value="True">
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Border.Style>
+                                                        </Border>
+                                                        <TextBlock Text="{Binding Renklendirme2.StatusText}"
+                                                                   VerticalAlignment="Center"
+                                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                                   FontSize="11.5">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Renklendirme2.IsAssigned}" Value="True">
+                                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Renklendirme2.IsFailed}" Value="True">
+                                                                            <Setter Property="Foreground" Value="{StaticResource LogErrorBrush}"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn x:Name="colTreeTitle"
+                                                            Header="Parça Kodu (Title)"
+                                                            Binding="{Binding ProductName}"
+                                                            IsReadOnly="True"
+                                                            Width="170"/>
+                                        <DataGridTextColumn x:Name="colTreeName"
+                                                            Header="PLM Kimliği (Name)"
+                                                            Binding="{Binding ReferenceName}"
+                                                            IsReadOnly="True"
+                                                            Width="210"/>
+                                        <DataGridTextColumn x:Name="colTreeDescription"
+                                                            Header="Tanım (Description)"
+                                                            Binding="{Binding Description}"
+                                                            IsReadOnly="True"
+                                                            Width="190"/>
+                                        <DataGridTextColumn x:Name="colTreeRevision"
+                                                            Header="Revizyon"
+                                                            Binding="{Binding Revision}"
+                                                            IsReadOnly="True"
+                                                            Width="80"/>
+                                        <DataGridTextColumn x:Name="colTreeThickness"
+                                                            Header="Kalınlık (mm)"
+                                                            Binding="{Binding ThicknessDisplay}"
+                                                            IsReadOnly="True"
+                                                            Width="120"/>
+                                        <DataGridTextColumn x:Name="colTreeRaw"
+                                                            Header="Ham Sac (mm)"
+                                                            Binding="{Binding HamSacDisplay}"
+                                                            IsReadOnly="True"
+                                                            Width="120"/>
+                                        <DataGridTextColumn x:Name="colTreeQuantity"
+                                                            Header="Adet"
+                                                            Binding="{Binding Quantity}"
+                                                            IsReadOnly="True"
+                                                            Width="72"/>
+                                        <DataGridTextColumn x:Name="colTreeNot"
+                                                            Header="Not"
+                                                            Binding="{Binding UrunAgaciNotu}"
+                                                            Width="170"
+                                                            IsReadOnly="True"
+                                                            CanUserReorder="False">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground"
+                                                            Value="{StaticResource HiddenProductTextBrush}"/>
+                                                    <Setter Property="FontStyle" Value="Italic"/>
+                                                    <Setter Property="Padding" Value="8,0"/>
+                                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <StackPanel HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            IsHitTestVisible="False">
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Items.Count, ElementName=gridUrunAgaci}"
+                                                             Value="0">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
+                                    <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets"
+                                               FontSize="30"
+                                               Foreground="{StaticResource TextDisabledBrush}"
+                                               HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                                    <TextBlock Text="Liste Boş" FontSize="14"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Tüm Parçaları Listelemek İçin CATIA'yı Tara'ya Basın"
+                                               FontSize="13"
+                                               Foreground="{StaticResource TextDisabledBrush}"
+                                               HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                            <TextBlock x:Name="txtUrunAgaciOzeti"
+                                       Grid.Row="3"
+                                       Visibility="Collapsed"
+                                       Margin="8,5,8,0"
+                                       FontSize="11.5"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </Grid>
+                    </TabItem>
+
+                    <!-- CATIA occurrence yapisini koruyan acilir/kapanir gorunum.
+                         Duz liste Title'a gore esizdir; bu sekme ise montajin gercek
+                         urun gruplarini ve parca occurrence'larini gosterir. -->
+                    <TabItem Header="Hiyerarşik Ürün Ağacı">
+                        <Grid Margin="0,2,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Margin="0,0,0,3"
+                                    Padding="10,6" CornerRadius="4"
+                                    Background="#182D3D"
+                                    BorderBrush="#315B78" BorderThickness="1">
+                                <TextBlock FontSize="11.5" TextWrapping="Wrap"
+                                           Foreground="#B9DCF4">
+                                    <Run Text="CATIA montaj yapısı korunur. "/>
+                                    <Run Text="Ürün gruplarının yanındaki + / − işaretleriyle alt seviyeleri açıp kapatabilirsiniz."
+                                         FontWeight="SemiBold"/>
+                                </TextBlock>
+                            </Border>
+
+                            <Border Grid.Row="1"
+                                    Background="{StaticResource CardBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1" CornerRadius="6"
+                                    ClipToBounds="True">
+                                <Grid>
+                                    <TreeView x:Name="treeUrunAgaci"
+                                              Background="Transparent"
+                                              BorderThickness="0"
+                                              Padding="8,6"
+                                              VirtualizingPanel.IsVirtualizing="True"
+                                              VirtualizingPanel.VirtualizationMode="Recycling"
+                                              ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                              ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                        <TreeView.ItemContainerStyle>
+                                            <Style TargetType="TreeViewItem">
+                                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                                                <Setter Property="FontSize" Value="12.5"/>
+                                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="TreeViewItem">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="22"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <Grid.RowDefinitions>
+                                                                    <RowDefinition Height="30"/>
+                                                                    <RowDefinition Height="Auto"/>
+                                                                </Grid.RowDefinitions>
+
+                                                                <ToggleButton x:Name="Expander"
+                                                                              Grid.Row="0" Grid.Column="0"
+                                                                              Width="18" Height="18"
+                                                                              Focusable="False" ClickMode="Press"
+                                                                              IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
+                                                                              Background="Transparent"
+                                                                              BorderBrush="{StaticResource BorderBrush}"
+                                                                              BorderThickness="1"
+                                                                              Foreground="{StaticResource TextPrimaryBrush}">
+                                                                    <TextBlock x:Name="ExpanderGlyph"
+                                                                               Text="+" FontSize="14"
+                                                                               FontWeight="SemiBold"
+                                                                               HorizontalAlignment="Center"
+                                                                               VerticalAlignment="Center"
+                                                                               Margin="0,-2,0,0"/>
+                                                                </ToggleButton>
+
+                                                                <Border x:Name="HeaderBorder"
+                                                                        Grid.Row="0" Grid.Column="1"
+                                                                        Background="Transparent"
+                                                                        CornerRadius="3" Padding="4,0">
+                                                                    <ContentPresenter ContentSource="Header"
+                                                                                      VerticalAlignment="Center"/>
+                                                                </Border>
+
+                                                                <ItemsPresenter x:Name="ItemsHost"
+                                                                                Grid.Row="1" Grid.Column="1"
+                                                                                Margin="13,0,0,0"/>
+                                                            </Grid>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="HasItems" Value="False">
+                                                                    <Setter TargetName="Expander" Property="Visibility" Value="Hidden"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsExpanded" Value="False">
+                                                                    <Setter TargetName="ItemsHost" Property="Visibility" Value="Collapsed"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsExpanded" Value="True">
+                                                                    <Setter TargetName="ExpanderGlyph" Property="Text" Value="−"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="HeaderBorder" Property="Background"
+                                                                            Value="{StaticResource SurfaceHoverBrush}"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsSelected" Value="True">
+                                                                    <Setter TargetName="HeaderBorder" Property="Background"
+                                                                            Value="{StaticResource RowSelectedBrush}"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </TreeView.ItemContainerStyle>
+
+                                        <TreeView.ItemTemplate>
+                                            <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                                <Grid ToolTip="{Binding AciklamaMetni}"
+                                                      ToolTipService.ShowDuration="60000">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="24"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock x:Name="nodeIcon" Grid.Column="0"
+                                                               Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets"
+                                                               FontSize="14" VerticalAlignment="Center"
+                                                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding GosterimAdi}"
+                                                               FontWeight="SemiBold"
+                                                               VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="2"
+                                                               Text="{Binding TurMetni}"
+                                                               Margin="8,0,0,0"
+                                                               Foreground="{StaticResource TextDisabledBrush}"
+                                                               VerticalAlignment="Center"/>
+                                                    <TextBlock x:Name="nodeNote" Grid.Column="3"
+                                                               Text="{Binding NotMetni}"
+                                                               Margin="8,0,0,0"
+                                                               Foreground="{StaticResource HiddenProductTextBrush}"
+                                                               FontStyle="Italic"
+                                                               VerticalAlignment="Center"/>
+                                                </Grid>
+                                                <HierarchicalDataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding UrunGrubuMu}" Value="True">
+                                                        <Setter TargetName="nodeIcon" Property="Text" Value="&#xE8B7;"/>
+                                                        <Setter TargetName="nodeIcon" Property="Foreground"
+                                                                Value="{StaticResource AccentBrush}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding GizliMi}" Value="True">
+                                                        <Setter TargetName="nodeIcon" Property="Opacity" Value="0.55"/>
+                                                    </DataTrigger>
+                                                </HierarchicalDataTemplate.Triggers>
+                                            </HierarchicalDataTemplate>
+                                        </TreeView.ItemTemplate>
+                                    </TreeView>
+
+                                    <StackPanel HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                IsHitTestVisible="False">
+                                        <StackPanel.Style>
+                                            <Style TargetType="StackPanel">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Items.Count, ElementName=treeUrunAgaci}"
+                                                                 Value="0">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </StackPanel.Style>
+                                        <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="30"
+                                                   Foreground="{StaticResource TextDisabledBrush}"
+                                                   HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                                        <TextBlock Text="Ürün Ağacı Boş" FontSize="14"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Hiyerarşiyi oluşturmak için CATIA'yı Tara'ya basın"
+                                                   FontSize="13"
+                                                   Foreground="{StaticResource TextDisabledBrush}"
+                                                   HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <TextBlock x:Name="txtHiyerarsiOzeti"
+                                       Grid.Row="2"
+                                       Visibility="Collapsed"
+                                       Margin="8,5,8,0"
+                                       FontSize="11.5"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </Grid>
+                    </TabItem>
+
+                    <!-- Sac olmayan katilarin deneysel kutu profil teshisi.
+                         Gecmissiz As Result parcalari kacirmamak icin ilk tarama
+                         genis tutulur; kesin karar secili satirda yapilir. -->
+                    <TabItem Header="Kutu Profil (Deneysel)">
+                        <Grid Margin="0,2,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" Margin="0,0,0,3">
+                                <StackPanel Orientation="Horizontal"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Center">
+                                    <Button Style="{StaticResource SecondaryButton}"
+                                            Content="ⓘ" Width="28" Height="28" Padding="0"
+                                            FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0"
+                                            AutomationProperties.Name="Kutu profil aday listesi hakkında bilgi"
+                                            AutomationProperties.HelpText="Sac olmayan katılar aday listesine alınır. Satırı seçip Profil Teşhisi yapın; STEP mevcut geometriden kaydedilir, yay profil bu sürümde düzleştirilmez."
+                                            ToolTipService.ShowDuration="60000"
+                                            ToolTipService.Placement="Bottom">
+                                        <Button.ToolTip>
+                                            <ToolTip MaxWidth="420"
+                                                     Background="{StaticResource SurfaceBrush}"
+                                                     BorderBrush="{StaticResource BorderBrush}"
+                                                     BorderThickness="1"
+                                                     Foreground="{StaticResource TextPrimaryBrush}"
+                                                     Padding="12">
+                                                <TextBlock FontSize="12.5" LineHeight="19" TextWrapping="Wrap">
+                                                    <Run Text="Sac olmayan katılar aday listesine alınır. "/>
+                                                    <Run Text="Satırı seçip Profil Teşhisi yapın; STEP mevcut geometriden kaydedilir, yay profil bu sürümde düzleştirilmez."
+                                                         FontWeight="SemiBold"/>
+                                                </TextBlock>
+                                            </ToolTip>
+                                        </Button.ToolTip>
+                                    </Button>
+                                    <CheckBox x:Name="chkProfilGizliDahil"
+                                              Content="Gizlenmiş Öğeleri Dahil Et"
+                                              IsChecked="True" VerticalAlignment="Center"
+                                              Margin="0,0,14,0"
+                                              ToolTip="Kapatılırsa gizli Physical Product profil adayları listeden çıkarılır"
+                                              Click="ProfilGizliOgeFiltresi_Click"/>
+                                    <Button x:Name="btnProfilTeshis"
+                                            Style="{StaticResource SecondaryButton}"
+                                            Content="Profil Teşhisi" Height="30"
+                                            Padding="14,0" Margin="0,0,8,0"
+                                            ToolTip="Seçili parçayı açıp geometri kanıtlarını ayrıntılı incele"
+                                            Click="btnProfilTeshis_Click"/>
+                                    <Button x:Name="btnProfilRaporAc"
+                                            Style="{StaticResource SecondaryButton}"
+                                            Content="Raporu Aç" Height="30"
+                                            Padding="14,0" Margin="0,0,8,0"
+                                            ToolTip="Son ayrıntılı profil teşhis raporunu aç"
+                                            Click="btnProfilRaporAc_Click"/>
+                                    <Button x:Name="btnProfilStep"
+                                            Style="{StaticResource SuccessButton}"
+                                            Content="Seçiliyi STEP Kaydet" Height="30"
+                                            Padding="14,0" Margin="0,0,8,0"
+                                            ToolTip="Seçili parçanın CATIA'daki mevcut geometrisini STEP olarak kaydet"
+                                            Click="btnProfilStep_Click"/>
+                                    <Button x:Name="btnGeometryLabTest"
+                                            Style="{StaticResource SecondaryButton}"
+                                            Content="GeometryLab ile Test Et" Height="30"
+                                            Padding="14,0"
+                                            ToolTip="Seçili profil için geçici STEP üretip GeometryLab sonucunu yalnızca gösterir"
+                                            Click="btnGeometryLabTest_Click"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Border Grid.Row="1"
+                                    Background="{StaticResource CardBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1" CornerRadius="6"
+                                    ClipToBounds="True">
+                                <Grid>
+                                    <DataGrid x:Name="gridProfil"
+                                               AutoGenerateColumns="False"
+                                               IsReadOnly="True"
+                                               CanUserAddRows="False"
+                                               CanUserDeleteRows="False"
+                                               CanUserResizeRows="False"
+                                               ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                               ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                               GridLinesVisibility="All"
+                                              HeadersVisibility="Column"
+                                              SelectionChanged="gridProfil_SelectionChanged">
+                                        <DataGrid.RowStyle>
+                                            <Style TargetType="DataGridRow"
+                                                   BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DurumKodu}" Value="Aday">
+                                                        <Setter Property="Background"
+                                                                Value="{StaticResource MultiBodyRowBrush}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding KuvvetliAdayMi}" Value="True">
+                                                        <Setter Property="Background"
+                                                                Value="{StaticResource HamSacChangedRowBrush}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding GizliPhysicalProductMu}" Value="True">
+                                                        <Setter Property="Background"
+                                                                Value="{StaticResource HiddenProductRowBrush}"/>
+                                                        <Setter Property="Foreground"
+                                                                Value="{StaticResource HiddenProductTextBrush}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding CokluBodyMi}" Value="True">
+                                                        <Setter Property="Background"
+                                                                Value="{StaticResource MultiBodyRowBrush}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding HataMi}" Value="True">
+                                                        <Setter Property="Background"
+                                                                Value="{StaticResource DxfFailedRowBrush}"/>
+                                                    </DataTrigger>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background"
+                                                                Value="{StaticResource SurfaceBrush}"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsSelected" Value="True">
+                                                        <Setter Property="Background"
+                                                                Value="{StaticResource RowSelectedBrush}"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </DataGrid.RowStyle>
+
+                                        <DataGrid.Columns>
+                                            <DataGridTemplateColumn Header="Durum" Width="180"
+                                                                    CanUserReorder="False">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <Border Padding="8,3" Background="Transparent"
+                                                                ToolTip="{Binding DurumAciklamasi}"
+                                                                ToolTipService.ShowDuration="60000">
+                                                            <TextBlock Text="{Binding Durum}"
+                                                                       FontWeight="SemiBold"
+                                                                       TextTrimming="CharacterEllipsis"/>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTextColumn Header="Parça Kodu (Title)"
+                                                                Binding="{Binding ProductName}"
+                                                                Width="160"/>
+                                            <DataGridTextColumn Header="PLM Kimliği (Name)"
+                                                                Binding="{Binding ReferenceName}"
+                                                                Width="205"/>
+                                            <DataGridTextColumn Header="Tanım (Description)"
+                                                                Binding="{Binding Description}"
+                                                                Width="190"/>
+                                            <DataGridTextColumn Header="Revizyon"
+                                                                Binding="{Binding Revision}"
+                                                                Width="75"/>
+                                            <DataGridTextColumn Header="3D Shape"
+                                                                Binding="{Binding PartName}"
+                                                                Width="170"/>
+                                            <DataGridTextColumn Header="Body"
+                                                                Binding="{Binding BodyCount}"
+                                                                Width="62"/>
+                                            <DataGridTextColumn Header="Sınır Ölçüleri"
+                                                                Binding="{Binding SinirOlculeri}"
+                                                                Width="170"/>
+                                            <DataGridTextColumn Header="Tahmini Et"
+                                                                Binding="{Binding TahminiEt}"
+                                                                Width="105"/>
+                                            <DataGridTextColumn Header="Atalet Oranı"
+                                                                Binding="{Binding AtaletOrani}"
+                                                                Width="105"/>
+                                            <DataGridTextColumn Header="Yüz"
+                                                                Binding="{Binding YuzSayisi}"
+                                                                Width="60"/>
+                                            <DataGridTextColumn Header="Güven"
+                                                                Binding="{Binding GuvenDisplay}"
+                                                                Width="70"/>
+                                            <DataGridTextColumn Header="Adet"
+                                                                Binding="{Binding Quantity}"
+                                                                Width="60"/>
+                                            <DataGridTemplateColumn Header="STEP" Width="120"
+                                                                    CanUserReorder="False">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding StepDurumu}"
+                                                                   ToolTip="{Binding StepAciklamasi}"
+                                                                   ToolTipService.ShowDuration="60000"
+                                                                   Padding="8,0"
+                                                                   VerticalAlignment="Center"
+                                                                   FontWeight="SemiBold"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTextColumn Header="Not"
+                                                                Binding="{Binding Not}"
+                                                                Width="280"
+                                                                CanUserReorder="False"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+
+                                    <StackPanel HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                IsHitTestVisible="False">
+                                        <StackPanel.Style>
+                                            <Style TargetType="StackPanel">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Items.Count, ElementName=gridProfil}"
+                                                                 Value="0">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </StackPanel.Style>
+                                        <TextBlock Text="&#xE9F9;" FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="30"
+                                                   Foreground="{StaticResource TextDisabledBrush}"
+                                                   HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                                        <TextBlock Text="Profil Adayı Yok" FontSize="14"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Sac olmayan katıları listelemek için CATIA'yı tarayın"
+                                                   FontSize="13"
+                                                   Foreground="{StaticResource TextDisabledBrush}"
+                                                   HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <TextBlock x:Name="txtProfilOzeti" Grid.Row="2"
+                                       Visibility="Collapsed" FontSize="11.5"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Margin="8,5,8,0"/>
+                        </Grid>
+                    </TabItem>
+                </TabControl>
+            </Grid>
+
+            <!-- ================================================================ -->
+            <!-- RENKLENDIRME 2.0 CALISMA ALANI                                   -->
+            <!-- ================================================================ -->
+            <Grid x:Name="coloringView" Grid.Row="1" Visibility="Collapsed">
+                <Grid.RenderTransform>
+                    <TranslateTransform x:Name="coloringKaydir"/>
+                </Grid.RenderTransform>
+                <Grid.Resources>
+                    <Style x:Key="RenklendirmeGorunumKarti"
+                           TargetType="Button"
+                           BasedOn="{StaticResource MetroTile}">
+                        <Setter Property="Height" Value="76"/>
+                        <Setter Property="Background" Value="{StaticResource TileNeutralBrush}"/>
+                        <Setter Property="Margin" Value="0"/>
+                        <Style.Triggers>
+                            <Trigger Property="Tag" Value="Active">
+                                <Setter Property="Background" Value="#7A4BA3"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Resources>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Margin="24,10,24,0">
+                    <TextBlock Text="RENKLENDİRME" FontSize="20" FontWeight="SemiBold"
+                               FontFamily="{StaticResource AppFontDisplay}"/>
+                    <TextBlock Text="Aynı PLM referanslarını ortak renk durumuyla yönetin; montajı tekil veya hiyerarşik görünümde inceleyin."
+                               FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+
+                <Grid Grid.Row="1" Margin="24,12,24,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Button x:Name="btnRenklendirmeEsizGorunum"
+                            Grid.Column="0" Tag="Active"
+                            Style="{StaticResource RenklendirmeGorunumKarti}"
+                            Click="RenklendirmeEsizGorunum_Click">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="42"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="&#xE8FD;"
+                                       FontFamily="Segoe MDL2 Assets" FontSize="25"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource TileTextBrush}"/>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Eşsiz Ürün Ağacı" FontSize="16" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TileTextBrush}"/>
+                                <TextBlock Text="Her PLM Reference için tek satır ve toplam adet"
+                                           FontSize="11.5" Margin="0,3,0,0"
+                                           Foreground="{StaticResource TileSubTextBrush}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Button>
+                    <Button x:Name="btnRenklendirmeHiyerarsikGorunum"
+                            Grid.Column="2" Tag="Inactive"
+                            Style="{StaticResource RenklendirmeGorunumKarti}"
+                            Click="RenklendirmeHiyerarsikGorunum_Click">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="42"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="&#xE8B7;"
+                                       FontFamily="Segoe MDL2 Assets" FontSize="25"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource TileTextBrush}"/>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Hiyerarşik Ürün Ağacı" FontSize="16" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TileTextBrush}"/>
+                                <TextBlock Text="Ana montaj, alt montaj ve occurrence yapısı"
+                                           FontSize="11.5" Margin="0,3,0,0"
+                                           Foreground="{StaticResource TileSubTextBrush}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Button>
                 </Grid>
+
+                <Border Grid.Row="2" Margin="24,8,24,8" Padding="10,8"
+                        Background="{StaticResource CardBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="6">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="220"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Row="0" Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="Renklendirme 2.0" FontSize="13.5" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding Text, ElementName=txtRenklendirme2Durum}"
+                                       FontSize="11.5" Margin="0,2,0,0"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal"
+                                    HorizontalAlignment="Right">
+                            <Button Style="{StaticResource PrimaryButton}"
+                                    Content="Renklendir" Height="30" Padding="14,0"
+                                    IsEnabled="{Binding IsEnabled, ElementName=btnRenklendirme2Renklendir}"
+                                    Click="Renklendirme2Uygula_Click"/>
+                            <Button Style="{StaticResource SecondaryButton}"
+                                    Content="Yeniden Renklendir" Height="30" Padding="14,0" Margin="7,0,0,0"
+                                    IsEnabled="{Binding IsEnabled, ElementName=btnRenklendirme2Yeniden}"
+                                    Click="Renklendirme2Uygula_Click"/>
+                            <Button Style="{StaticResource SecondaryButton}"
+                                    Content="Automatic'e Dön" Height="30" Padding="14,0" Margin="7,0,0,0"
+                                    IsEnabled="{Binding IsEnabled, ElementName=btnRenklendirme2Automatic}"
+                                    Click="Renklendirme2AutomaticDon_Click"/>
+                        </StackPanel>
+                        <TextBox Grid.Row="1" Grid.Column="0" Margin="0,7,12,0"
+                                 Style="{StaticResource SearchBox}" Height="28"
+                                 IsEnabled="False"
+                                 ToolTip="Arama ve filtre bu çalışma alanının sonraki UI adımında etkinleştirilecek."/>
+                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal"
+                                    HorizontalAlignment="Right" Margin="0,7,0,0">
+                            <Button Style="{StaticResource SecondaryButton}"
+                                    Content="Tümünü Seç" Height="28" Padding="11,0"
+                                    IsEnabled="{Binding IsEnabled, ElementName=btnRenklendirme2TumunuSec}"
+                                    Click="Renklendirme2TumunuSec_Click"/>
+                            <Button Style="{StaticResource SecondaryButton}"
+                                    Content="Tümünü Kaldır" Height="28" Padding="11,0" Margin="6,0,0,0"
+                                    IsEnabled="{Binding IsEnabled, ElementName=btnRenklendirme2TumunuKaldir}"
+                                    Click="Renklendirme2TumunuKaldir_Click"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="3" Margin="24,0,24,20"
+                        Background="{StaticResource CardBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="6" ClipToBounds="True">
+                    <Grid>
+                        <Grid x:Name="renklendirmeEsizPanel">
+                            <DataGrid x:Name="gridRenklendirmeEsiz"
+                                      AutoGenerateColumns="False" IsReadOnly="False"
+                                      CanUserAddRows="False" CanUserDeleteRows="False"
+                                      CanUserResizeRows="False" GridLinesVisibility="All"
+                                      HeadersVisibility="Column"
+                                      IsEnabled="{Binding IsEnabled, ElementName=gridUrunAgaci}">
+                                <DataGrid.RowStyle>
+                                    <Style TargetType="DataGridRow"
+                                           BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding GizliPhysicalProductMu}" Value="True">
+                                                <Setter Property="Background" Value="{StaticResource HiddenProductRowBrush}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource HiddenProductTextBrush}"/>
+                                            </DataTrigger>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="{StaticResource SurfaceHoverBrush}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Background" Value="{StaticResource RowSelectedBrush}"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGrid.RowStyle>
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Header="Dahil" Width="58" IsReadOnly="False">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding Renklendirme2.Included, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                          IsEnabled="{Binding Renklendirme2.IsColorable}"
+                                                          HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                          Click="Renklendirme2Dahil_Click"
+                                                          ToolTip="Bu benzersiz referansı Renklendirme 2.0 işlemine dahil et"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Header="RENK" Width="100" IsReadOnly="True">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Grid ToolTip="{Binding Renklendirme2.ColorToolTip}" Margin="6,2">
+                                                    <Border Width="42" Height="20" CornerRadius="5"
+                                                            HorizontalAlignment="Left"
+                                                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                                            Background="{Binding Renklendirme2.Hex}">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Renklendirme2.IsAssigned}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Renklendirme2.StatusText}"
+                                                               VerticalAlignment="Center" FontSize="11.5"
+                                                               Foreground="{StaticResource TextSecondaryBrush}">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Renklendirme2.IsAssigned}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Renklendirme2.IsFailed}" Value="True">
+                                                                        <Setter Property="Foreground" Value="{StaticResource LogErrorBrush}"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="Parça Kodu (Title)" Binding="{Binding ProductName}"
+                                                        IsReadOnly="True" Width="1.4*"/>
+                                    <DataGridTextColumn Header="PLM Kimliği (Name)" Binding="{Binding ReferenceName}"
+                                                        IsReadOnly="True" Width="1.3*"/>
+                                    <DataGridTextColumn Header="Tanım" Binding="{Binding Description}"
+                                                        IsReadOnly="True" Width="1.2*"/>
+                                    <DataGridTextColumn Header="Revizyon" Binding="{Binding Revision}"
+                                                        IsReadOnly="True" Width="80"/>
+                                    <DataGridTextColumn Header="Adet" Binding="{Binding Quantity}"
+                                                        IsReadOnly="True" Width="64"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                                        IsHitTestVisible="False">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Items.Count, ElementName=gridRenklendirmeEsiz}" Value="0">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                                <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets" FontSize="30"
+                                           Foreground="{StaticResource TextDisabledBrush}"
+                                           HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                                <TextBlock Text="Eşsiz Ürün Ağacı Boş" FontSize="14"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="Veriyi oluşturmak için Toplu DXF Export ekranından CATIA'yı tarayın."
+                                           FontSize="12" Margin="0,5,0,0"
+                                           Foreground="{StaticResource TextDisabledBrush}"
+                                           HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid x:Name="renklendirmeHiyerarsikPanel" Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Border Grid.Row="0" Margin="8" Padding="10,6" CornerRadius="4"
+                                    Background="#182D3D" BorderBrush="#315B78" BorderThickness="1">
+                                <TextBlock FontSize="11.5" TextWrapping="Wrap" Foreground="#B9DCF4"
+                                           Text="CATIA montaj yapısı korunur. Bu ilk iskelette hiyerarşi mevcut occurrence modeliyle salt görünüm olarak sunulur; renk/reference durumu Eşsiz görünümdeki ortak Renklendirme 2.0 state'inden gelir."/>
+                            </Border>
+                            <TreeView x:Name="treeRenklendirmeHiyerarsik" Grid.Row="1"
+                                      Background="Transparent" BorderThickness="0" Padding="8,2"
+                                      VirtualizingPanel.IsVirtualizing="True"
+                                      VirtualizingPanel.VirtualizationMode="Recycling"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                      ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                      IsEnabled="{Binding IsEnabled, ElementName=treeUrunAgaci}">
+                                <TreeView.ItemContainerStyle>
+                                    <Style TargetType="TreeViewItem">
+                                        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                                        <Setter Property="FontSize" Value="12.5"/>
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="TreeViewItem">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="22"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="30"/>
+                                                            <RowDefinition Height="Auto"/>
+                                                        </Grid.RowDefinitions>
+                                                        <ToggleButton x:Name="Expander" Grid.Row="0" Grid.Column="0"
+                                                                      Width="18" Height="18" Focusable="False"
+                                                                      IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
+                                                                      Background="Transparent"
+                                                                      BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                                                      Foreground="{StaticResource TextPrimaryBrush}">
+                                                            <TextBlock x:Name="ExpanderGlyph" Text="+" FontSize="14"
+                                                                       FontWeight="SemiBold" Margin="0,-2,0,0"/>
+                                                        </ToggleButton>
+                                                        <Border x:Name="HeaderBorder" Grid.Row="0" Grid.Column="1"
+                                                                Background="Transparent" CornerRadius="3" Padding="4,0">
+                                                            <ContentPresenter ContentSource="Header" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <ItemsPresenter x:Name="ItemsHost" Grid.Row="1" Grid.Column="1"
+                                                                        Margin="13,0,0,0"/>
+                                                    </Grid>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="HasItems" Value="False">
+                                                            <Setter TargetName="Expander" Property="Visibility" Value="Hidden"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsExpanded" Value="False">
+                                                            <Setter TargetName="ItemsHost" Property="Visibility" Value="Collapsed"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsExpanded" Value="True">
+                                                            <Setter TargetName="ExpanderGlyph" Property="Text" Value="−"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="HeaderBorder" Property="Background" Value="{StaticResource SurfaceHoverBrush}"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsSelected" Value="True">
+                                                            <Setter TargetName="HeaderBorder" Property="Background" Value="{StaticResource RowSelectedBrush}"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </TreeView.ItemContainerStyle>
+                                <TreeView.ItemTemplate>
+                                    <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                        <Grid ToolTip="{Binding AciklamaMetni}" ToolTipService.ShowDuration="60000">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="24"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock x:Name="nodeIcon" Grid.Column="0" Text="&#xE7C3;"
+                                                       FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding GosterimAdi}"
+                                                       FontWeight="SemiBold"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding TurMetni}" Margin="8,0,0,0"
+                                                       Foreground="{StaticResource TextDisabledBrush}"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding NotMetni}" Margin="8,0,0,0"
+                                                       Foreground="{StaticResource HiddenProductTextBrush}"
+                                                       FontStyle="Italic"/>
+                                        </Grid>
+                                        <HierarchicalDataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding UrunGrubuMu}" Value="True">
+                                                <Setter TargetName="nodeIcon" Property="Text" Value="&#xE8B7;"/>
+                                                <Setter TargetName="nodeIcon" Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding GizliMi}" Value="True">
+                                                <Setter TargetName="nodeIcon" Property="Opacity" Value="0.55"/>
+                                            </DataTrigger>
+                                        </HierarchicalDataTemplate.Triggers>
+                                    </HierarchicalDataTemplate>
+                                </TreeView.ItemTemplate>
+                            </TreeView>
+                            <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                        IsHitTestVisible="False">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Items.Count, ElementName=treeRenklendirmeHiyerarsik}" Value="0">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                                <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets" FontSize="30"
+                                           Foreground="{StaticResource TextDisabledBrush}"
+                                           HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                                <TextBlock Text="Hiyerarşik Ürün Ağacı Boş" FontSize="14"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="Veriyi oluşturmak için Toplu DXF Export ekranından CATIA'yı tarayın."
+                                           FontSize="12" Margin="0,5,0,0"
+                                           Foreground="{StaticResource TextDisabledBrush}"
+                                           HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- ================================================================ -->
+            <!-- DOSYA ANALIZ MERKEZI                                              -->
+            <!-- ================================================================ -->
+            <Grid x:Name="fileAnalysisView" Grid.Row="1" Visibility="Collapsed">
+                <Grid.RenderTransform>
+                    <TranslateTransform x:Name="fileAnalysisKaydir"/>
+                </Grid.RenderTransform>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Margin="24,10,24,0">
+                    <TextBlock Text="Dosya Analiz Merkezi" FontSize="20" FontWeight="SemiBold"
+                               FontFamily="{StaticResource AppFontDisplay}"/>
+                    <TextBlock Text="STEP/STP ve DXF/DWG dosyalarını analiz edin, CATIA tarama verileriyle karşılaştırın."
+                               FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0"/>
+                </StackPanel>
+
+                <ScrollViewer x:Name="fileAnalysisMenu" Grid.Row="1" Grid.RowSpan="2" Margin="24,16,24,20"
+                              HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <WrapPanel HorizontalAlignment="Center" VerticalAlignment="Top">
+                    <Button Style="{StaticResource MetroTile}" Width="360" Height="175" MaxWidth="380" MaxHeight="190"
+                            Margin="8" Background="#385B8C" Click="btnFileAnalysisStep_Click">
+                        <StackPanel>
+                            <TextBlock Text="STEP / STP Profil Analizi" FontSize="18" FontWeight="SemiBold"/>
+                            <TextBlock Text="STEP ve STP dosyalarını GeometryLab ile analiz edin; profil, kesit, boy ve kesim sonuçlarını listeleyin."
+                                       Margin="0,8,0,0" TextWrapping="Wrap" FontSize="13"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource MetroTile}" Width="360" Height="175" MaxWidth="380" MaxHeight="190"
+                            Margin="8" Background="#426B58" Click="btnFileAnalysisDxfDwg_Click">
+                        <StackPanel>
+                            <TextBlock Text="DXF / DWG Dosya Tarama" FontSize="18" FontWeight="SemiBold"/>
+                            <TextBlock Text="DXF ve DWG dosyalarını salt-okunur envanter olarak tarayın ve aktif 3B tarama verileriyle karşılaştırın."
+                                       Margin="0,8,0,0" TextWrapping="Wrap" FontSize="13"/>
+                        </StackPanel>
+                    </Button>
+                    </WrapPanel>
+                </ScrollViewer>
+
+                <Border x:Name="fileAnalysisStepWorkspace" Grid.Row="1" Visibility="Collapsed" Margin="24,16,24,10" Padding="12,10" CornerRadius="6"
+                        Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="← Dosya Analiz Merkezi" Click="btnFileAnalysisHome_Click" Margin="0,0,14,0"/>
+                        <TextBlock Text="STEP / STP Analizi" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                        <Button x:Name="btnExternalStepProfilAnaliz" Style="{StaticResource PrimaryButton}"
+                                Content="STEP / STP Dosyalarını Seç ve Analiz Et" Height="30" Padding="14,0"
+                                ToolTip="CATIA bağlantısı gerektirmez; seçilen STEP dosyalarını yalnız GeometryLab ile analiz eder"
+                                Click="btnExternalStepProfilAnaliz_Click"/>
+                    </StackPanel>
+                </Border>
+
+                <Border x:Name="fileAnalysisDxfDwgWorkspace" Grid.Row="1" Grid.RowSpan="2" Visibility="Collapsed" Margin="24,16,24,20" Padding="12,10" CornerRadius="6" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                    <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <WrapPanel Grid.Row="0">
+                        <Button Style="{StaticResource SecondaryButton}" Content="← Dosya Analiz Merkezi" Click="btnFileAnalysisHome_Click" Margin="0,0,10,6"/>
+                        <TextBlock Text="DXF / DWG Dosya Tarama" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                        <Button Style="{StaticResource PrimaryButton}" Content="Klasör Seç ve Tara" Click="btnDxfDwgTara_Click" Margin="0,0,10,6"/>
+                        <CheckBox x:Name="chkDxfDwgAltKlasor" Content="Alt klasörleri tara" Margin="10,0"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Aktif 3B Tarama Verileriyle Karşılaştır" Click="btnDxfDwgKarsilastir_Click" Margin="10,0,10,6"/>
+                        <Button x:Name="btnDxfDwgAc" Style="{StaticResource SecondaryButton}" Content="Dosyayı Aç" Click="btnDxfDwgAc_Click" Margin="0,0,10,6" IsEnabled="False"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Excel'e Aktar" Click="btnDxfDwgExcel_Click" Margin="0,0,10,6"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Üretim Paketi Hazırla" Click="btnDxfDwgUretimPaketi_Click" Margin="0,0,10,6"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Listeyi Temizle" Click="btnDxfDwgTemizle_Click" Margin="0,0,10,6"/>
+                    </WrapPanel>
+                    <WrapPanel Grid.Row="1" Margin="0,4,0,6">
+                        <Button x:Name="btnDxfDwgTum" Style="{StaticResource SecondaryButton}" Content="Tümünü Gizle" Click="btnDxfDwgTum_Click" Margin="0,0,10,4"/>
+                        <CheckBox x:Name="chkDxfMatched" Content="Eşleşenler" IsChecked="True" Margin="0,0,10,4" Click="chkDxfDwgFilter_Click"/>
+                        <CheckBox x:Name="chkDxfUnmatched" Content="Eşleşmeyenler" IsChecked="True" Margin="0,0,10,4" Click="chkDxfDwgFilter_Click"/>
+                        <CheckBox x:Name="chkDxfAmbiguous" Content="Belirsizler" IsChecked="True" Margin="0,0,10,4" Click="chkDxfDwgFilter_Click"/>
+                        <CheckBox x:Name="chkDxfProblem" Content="Hatalı / Yinelenen" IsChecked="True" Margin="0,0,10,4" Click="chkDxfDwgFilter_Click"/>
+                    </WrapPanel>
+                    <Grid Grid.Row="3">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="330" MinWidth="300" MaxWidth="360"/></Grid.ColumnDefinitions>
+                    <DataGrid x:Name="gridDxfDwgFiles" Grid.Column="0" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Extended" SelectionChanged="gridDxfDwgFiles_SelectionChanged">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Durum" Binding="{Binding StatusDisplay}" Width="110"/>
+                            <DataGridTextColumn Header="Dosya Adı" Binding="{Binding FileName}" Width="180"/>
+                            <DataGridTextColumn Header="Tür" Binding="{Binding FileType}" Width="55"/>
+                            <DataGridTextColumn Header="CATIA Adedi" Binding="{Binding CatiaQuantity}" Width="85"/>
+                            <DataGridTextColumn Header="Eşleşme" Binding="{Binding StatusDisplay}" Width="120"/>
+                            <DataGridTextColumn Header="Açıklama" Binding="{Binding Explanation}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="{StaticResource BorderBrush}"/>
+                    <Border Grid.Column="2" Margin="8,0,0,0" Padding="12" CornerRadius="4" Background="{StaticResource BgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                            <TextBlock Text="Dosya Önizleme" FontWeight="SemiBold"/>
+                            <Border Grid.Row="1" Margin="0,10,0,10" Padding="10" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4">
+                                <Grid>
+                                    <Path x:Name="dxfDwgOnizlemeCizim" Stretch="Uniform" Stroke="{StaticResource TextPrimaryBrush}" StrokeThickness="1" StrokeLineJoin="Round" Visibility="Collapsed"/>
+                                    <TextBlock x:Name="txtDxfDwgOnizlemeMesaj" Text="Önizlemek için listeden bir DXF seçin." TextWrapping="Wrap" TextAlignment="Center" Foreground="{StaticResource TextDisabledBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+                            <StackPanel Grid.Row="2"><TextBlock x:Name="txtDxfDwgOnizlemeDosya" FontSize="11" TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextDisabledBrush}"/><TextBlock x:Name="txtDxfDwgOnizlemeOlcu" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,3,0,0"/></StackPanel>
+                        </Grid>
+                    </Border>
+                    </Grid>
+                    </Grid>
+                </Border>
+
+                <Border x:Name="fileAnalysisStepResults" Grid.Row="2" Visibility="Collapsed" Margin="24,0,24,20" Background="{StaticResource CardBrush}"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" ClipToBounds="True">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                        <DockPanel Grid.Row="0" Margin="8,5,8,4">
+                            <WrapPanel DockPanel.Dock="Right">
+                                <Button x:Name="btnExternalStepExcelAktar" Style="{StaticResource SecondaryButton}"
+                                        Content="Excel'e Aktar" Height="28" Padding="10,0" Margin="0,0,10,0"
+                                        ToolTip="Yalnız görünür STEP analiz sonuçlarını Excel'e aktar"
+                                        Click="btnExternalStepExcelAktar_Click"/>
+                                <Button Style="{StaticResource SecondaryButton}"
+                                        Content="Üretim Paketi Hazırla" Height="28" Padding="10,0" Margin="0,0,10,0"
+                                        Click="btnExternalStepUretimPaketi_Click"/>
+                                <Button x:Name="btnExternalStepCatiaKarsilastir" Style="{StaticResource SecondaryButton}"
+                                        Content="Aktif 3B Tarama Verileriyle Karşılaştır" Height="28" Padding="10,0" Margin="0,0,10,0"
+                                        Click="btnExternalStepCatiaKarsilastir_Click"/>
+                                <Button x:Name="btnExternalStepDosyayiAc" Style="{StaticResource SecondaryButton}"
+                                        Content="Dosyayı Aç" Height="28" Padding="10,0" Margin="0,0,10,0"
+                                        ToolTip="Tek seçili STEP dosyasını Windows varsayılan uygulamasıyla açar"
+                                        Click="btnExternalStepDosyayiAc_Click"/>
+                                <Button x:Name="btnExternalStepKesin" Style="{StaticResource SecondaryButton}"
+                                        Content="Kesin Profile Aktar" Height="28" Padding="10,0" Margin="0,0,6,0"
+                                        Click="btnExternalStepKesin_Click"/>
+                                <Button x:Name="btnExternalStepIncele" Style="{StaticResource SecondaryButton}"
+                                        Content="İncelemeye Al" Height="28" Padding="10,0" Margin="0,0,6,0"
+                                        Click="btnExternalStepIncele_Click"/>
+                                <Button x:Name="btnExternalStepListeDisi" Style="{StaticResource SecondaryButton}"
+                                        Content="Liste Dışına Çıkar" Height="28" Padding="10,0" Margin="0,0,6,0"
+                                        Click="btnExternalStepListeDisi_Click"/>
+                                <Button x:Name="btnExternalStepOtomatik" Style="{StaticResource SecondaryButton}"
+                                        Content="Otomatik Karara Dön" Height="28" Padding="10,0" Margin="0,0,10,0"
+                                        Click="btnExternalStepOtomatik_Click"/>
+                            </WrapPanel>
+                            <TextBlock Text="Analiz Sonuçları" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <WrapPanel Grid.Row="1" Margin="8,0,8,6">
+                            <Button x:Name="btnExternalStepTumFiltreler" Style="{StaticResource SecondaryButton}"
+                                    Content="Tümünü Göster" Height="28" Padding="10,0" Margin="0,0,10,0"
+                                    ToolTip="STEP analiz sonuç gruplarını topluca gösterir veya gizler"
+                                    Click="btnExternalStepTumFiltreler_Click"/>
+                            <CheckBox x:Name="chkExternalStepDefinite" Content="Kesin profiller (0)" IsChecked="True" Margin="0,0,10,0" Click="chkExternalStepFilter_Click"/>
+                            <CheckBox x:Name="chkExternalStepReview" Content="İnceleme gerekli (0)" Margin="0,0,10,0" Click="chkExternalStepFilter_Click"/>
+                            <CheckBox x:Name="chkExternalStepExcluded" Content="Liste dışı (0)" Margin="0,0,10,0" Click="chkExternalStepFilter_Click"/>
+                            <CheckBox x:Name="chkExternalStepUnclassified" Content="Tanımsız (0)" Click="chkExternalStepFilter_Click"/>
+                        </WrapPanel>
+                        <Grid Grid.Row="2" Margin="8,0,8,8">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="330" MinWidth="300" MaxWidth="360"/></Grid.ColumnDefinitions>
+                        <DataGrid Grid.Column="0" x:Name="gridExternalStepProfil" AutoGenerateColumns="False" IsReadOnly="True"
+                                  CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False"
+                                  SelectionMode="Extended" SelectionChanged="gridExternalStepProfil_SelectionChanged"
+                                  GridLinesVisibility="All" HeadersVisibility="Column"
+                                  FontSize="13" RowHeight="40"
+                                  ToolTip="Haricî STEP sonuçları yalnız bu uygulama oturumunda tutulur.">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Durum" Binding="{Binding EffectiveStatusDisplay}" Width="140">
+                                    <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="ToolTip" Value="{Binding DecisionToolTip}"/></Style></DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="STEP Dosyası" Binding="{Binding SourceFileName}" Width="210"/>
+                                <DataGridTextColumn Header="Parça Türü" Binding="{Binding EffectiveProfileTypeDisplay}" Width="160"/>
+                                <DataGridTextColumn Header="Kesit" Binding="{Binding SectionDisplay}" Width="155"/>
+                                <DataGridTextColumn Header="Boy" Binding="{Binding LengthDisplay}" Width="115"/>
+                                <DataGridTextColumn Header="CATIA Adedi" Binding="{Binding CatiaQuantityDisplay}" Width="85"/>
+                                <DataGridTextColumn Header="Eşleşme" Binding="{Binding CatiaMatchDisplay}" Width="130"/>
+                                <DataGridTextColumn Header="Topoloji Bilgisi" Binding="{Binding TopologyDisplay}" Width="245"/>
+                                <DataGridTextColumn Header="Açılı Kesim" Binding="{Binding CutDisplay}" Width="125"/>
+                                <DataGridTextColumn Header="İşlem Durumu" Binding="{Binding OperationDisplay}" Width="125">
+                                    <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="ToolTip" Value="{Binding OperationToolTip}"/><Setter Property="TextTrimming" Value="CharacterEllipsis"/></Style></DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTemplateColumn Header="Açıklama" Width="*">
+                                    <DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding ExplanationDisplay}" ToolTip="{Binding SourceStepPath}" TextTrimming="CharacterEllipsis"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="{StaticResource BorderBrush}"/>
+                        <Border Grid.Column="2" Margin="8,0,0,0" Padding="12" CornerRadius="4" Background="{StaticResource BgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="230"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0">
+                                    <TextBlock Text="3B Önizleme" FontWeight="SemiBold" FontSize="14"/>
+                                    <WrapPanel Margin="0,7,0,7">
+                                        <Button x:Name="btnExternalStepBuyukAc" Style="{StaticResource SecondaryButton}" Content="Büyük Aç" Padding="9,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepBuyukAc_Click"/>
+                                        <Button x:Name="btnExternalStepIsometric" Style="{StaticResource SecondaryButton}" Content="İzometrik" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepIsometric_Click"/>
+                                        <Button x:Name="btnExternalStepFront" Style="{StaticResource SecondaryButton}" Content="Ön" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepFront_Click"/>
+                                        <Button x:Name="btnExternalStepBack" Style="{StaticResource SecondaryButton}" Content="Arka" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepBack_Click"/>
+                                        <Button x:Name="btnExternalStepLeft" Style="{StaticResource SecondaryButton}" Content="Sol" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepLeft_Click"/>
+                                        <Button x:Name="btnExternalStepRight" Style="{StaticResource SecondaryButton}" Content="Sağ" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepRight_Click"/>
+                                        <Button x:Name="btnExternalStepTop" Style="{StaticResource SecondaryButton}" Content="Üst" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepTop_Click"/>
+                                        <Button x:Name="btnExternalStepBottom" Style="{StaticResource SecondaryButton}" Content="Alt" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepBottom_Click"/>
+                                        <Button x:Name="btnExternalStepFitAll" Style="{StaticResource SecondaryButton}" Content="Sığdır" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepFitAll_Click"/>
+                                    </WrapPanel>
+                                </StackPanel>
+                                <Border Grid.Row="1" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Background="#1B2028">
+                                    <local:OcctViewportHost x:Name="externalStepViewport" DiagnosticName="Gömülü 3B"/>
+                                </Border>
+                                <TextBlock Grid.Row="2" x:Name="txtExternalStepViewportStatus" Margin="0,7,0,9" TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Text="3B önizleme hazırlanıyor..."/>
+                                <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+                                    <StackPanel>
+                                        <TextBlock Text="Seçili Parça" FontWeight="SemiBold" FontSize="14"/>
+                                        <TextBlock x:Name="txtExternalStepDetailMessage" Margin="0,12,0,0" TextWrapping="Wrap" Foreground="{StaticResource TextDisabledBrush}" Text="Ayrıntıları görmek için listeden bir STEP seçin."/>
+                                        <StackPanel x:Name="pnlExternalStepDetail" Visibility="Collapsed" Margin="0,10,0,0">
+                                            <TextBlock x:Name="txtExternalStepDetailFile" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                            <TextBlock x:Name="txtExternalStepDetailStatus" Margin="0,10,0,0" ToolTip="{Binding Text, ElementName=txtExternalStepDetailStatus}"/>
+                                            <TextBlock x:Name="txtExternalStepDetailType" Margin="0,5,0,0"/>
+                                            <TextBlock x:Name="txtExternalStepDetailSection" Margin="0,5,0,0"/>
+                                            <TextBlock x:Name="txtExternalStepDetailLength" Margin="0,5,0,0"/>
+                                            <TextBlock x:Name="txtExternalStepDetailTopology" Margin="0,5,0,0" TextWrapping="Wrap"/>
+                                            <TextBlock x:Name="txtExternalStepDetailCut" Margin="0,5,0,0"/>
+                                            <TextBlock x:Name="txtExternalStepDetailOperation" Margin="0,5,0,0" TextWrapping="Wrap"/>
+                                            <TextBlock x:Name="txtExternalStepDetailCatia" Margin="0,5,0,0"/>
+                                            <TextBlock x:Name="txtExternalStepDetailMatch" Margin="0,5,0,0"/>
+                                            <TextBlock x:Name="txtExternalStepDetailExplanation" Margin="0,5,0,0" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+                        </Grid>
+                    </Grid>
+                </Border>
             </Grid>
 
             <!-- ================================================================ -->
@@ -1039,9 +2761,13 @@
                                        VerticalAlignment="Center"/>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
                                         VerticalAlignment="Center">
+                                <Button x:Name="btnCopyLog" Style="{StaticResource ConsoleToolButton}"
+                                        Width="88" FontFamily="{StaticResource AppFont}" FontSize="11"
+                                        Content="Logu Kopyala" ToolTip="Tüm konsol kaydını panoya kopyala"
+                                        Click="btnCopyLog_Click"/>
                                 <Button x:Name="btnPopOutLog" Style="{StaticResource ConsoleToolButton}"
                                         Content="&#xE8A7;" ToolTip="Ayrı Pencerede Aç"
-                                        Click="btnPopOutLog_Click"/>
+                                        Margin="2,0,0,0" Click="btnPopOutLog_Click"/>
                                 <Button x:Name="btnClearLog" Style="{StaticResource ConsoleToolButton}"
                                         Content="&#xE74D;" ToolTip="Konsolu Temizle"
                                         Margin="2,0,0,0" Click="btnClearLog_Click"/>
@@ -1049,18 +2775,18 @@
                         </Grid>
                     </Border>
 
-                    <ScrollViewer Grid.Row="1" x:Name="logScroll" VerticalScrollBarVisibility="Auto"
-                                  HorizontalScrollBarVisibility="Disabled" Padding="10,6">
-                        <ItemsControl x:Name="logList">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Text}" Foreground="{Binding Color}"
-                                               FontFamily="Cascadia Mono, Consolas" FontSize="12"
-                                               TextWrapping="Wrap" Margin="0,1"/>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
+                    <RichTextBox Grid.Row="1" x:Name="logText" Padding="10,6"
+                                 Background="Transparent" BorderThickness="0"
+                                 IsReadOnly="True" IsReadOnlyCaretVisible="False"
+                                 VerticalScrollBarVisibility="Auto"
+                                 HorizontalScrollBarVisibility="Disabled">
+                        <RichTextBox.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Seçileni Kopyala" Click="btnCopySelectedLog_Click"/>
+                                <MenuItem Header="Tümünü Kopyala" Click="btnCopyLog_Click"/>
+                            </ContextMenu>
+                        </RichTextBox.ContextMenu>
+                    </RichTextBox>
                 </Grid>
             </Border>
 

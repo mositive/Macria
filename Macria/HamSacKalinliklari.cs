@@ -30,6 +30,22 @@ namespace Macria
                    (partName ?? "").Trim();
         }
 
+        // v1.9.1 ve sonrasinda Ham Sac degeri tarama oturumuna ozeldir.
+        // Onceki surumlerin biraktigi dosya da silinir; yeni degerler diske
+        // yazilmaz ve bir sonraki CATIA taramasina tasinmaz.
+        public static void KaliciKaydiSil()
+        {
+            Degerler.Clear();
+            _yuklendi = true;
+
+            try
+            {
+                string path = DosyaYolu();
+                if (File.Exists(path)) File.Delete(path);
+            }
+            catch { }
+        }
+
         public static double Getir(
             string productName, string partName, double varsayilan)
         {
@@ -69,7 +85,7 @@ namespace Macria
             try
             {
                 string path = DosyaYolu();
-                string folder = Path.GetDirectoryName(path);
+                string? folder = Path.GetDirectoryName(path);
                 if (!string.IsNullOrEmpty(folder)) Directory.CreateDirectory(folder);
 
                 var keys = new List<string>(Degerler.Keys);

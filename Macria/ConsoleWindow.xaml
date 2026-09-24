@@ -52,6 +52,10 @@
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                    <Button x:Name="btnCopy" Style="{StaticResource WindowButton}"
+                            Content="&#xE8C8;" FontSize="13" ToolTip="Logu Kopyala"
+                            Click="btnCopy_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True"/>
                     <Button x:Name="btnClear" Style="{StaticResource WindowButton}"
                             Content="&#xE74D;" FontSize="13" ToolTip="Konsolu Temizle"
                             Click="btnClear_Click"
@@ -85,35 +89,24 @@
                     BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                     CornerRadius="4" ClipToBounds="True">
                 <Grid>
-                    <ScrollViewer x:Name="logScroll" VerticalScrollBarVisibility="Auto"
-                                  HorizontalScrollBarVisibility="Disabled" Padding="12,8">
-                        <ItemsControl x:Name="logList">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Text}" Foreground="{Binding Color}"
-                                               FontFamily="Cascadia Mono, Consolas" FontSize="12.5"
-                                               TextWrapping="Wrap" Margin="0,1"/>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
+                    <RichTextBox x:Name="logText" Padding="12,8"
+                                 Background="Transparent" BorderThickness="0"
+                                 IsReadOnly="True" IsReadOnlyCaretVisible="False"
+                                 VerticalScrollBarVisibility="Auto"
+                                 HorizontalScrollBarVisibility="Disabled">
+                        <RichTextBox.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Seçileni Kopyala" Click="btnCopySelected_Click"/>
+                                <MenuItem Header="Tümünü Kopyala" Click="btnCopy_Click"/>
+                            </ContextMenu>
+                        </RichTextBox.ContextMenu>
+                    </RichTextBox>
 
                     <!-- Bos durum -->
-                    <TextBlock Text="Konsol Boş" FontSize="13"
+                    <TextBlock x:Name="txtLogEmpty" Text="Konsol Boş" FontSize="13"
                                Foreground="{StaticResource TextDisabledBrush}"
                                HorizontalAlignment="Center" VerticalAlignment="Center"
-                               IsHitTestVisible="False">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Items.Count, ElementName=logList}" Value="0">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
+                               IsHitTestVisible="False"/>
                 </Grid>
             </Border>
         </Grid>

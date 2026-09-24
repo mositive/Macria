@@ -73,7 +73,7 @@ namespace Macria
         public static void Yaz(Rapor rapor, string yol)
         {
             // Toplam satiri son satir olarak eklenir, vurgulu cizilir
-            var satirlar = new List<object[]>(rapor.Satirlar);
+            var satirlar = new List<object?[]>(rapor.Satirlar);
             int toplamIndeks = -1;
 
             if (rapor.Toplam != null)
@@ -130,7 +130,7 @@ namespace Macria
             return sayfalar;
         }
 
-        private static double Olc(FrameworkElement e, double genislik)
+        private static double Olc(FrameworkElement? e, double genislik)
         {
             if (e == null) return 0;
 
@@ -140,7 +140,7 @@ namespace Macria
 
         // ================= SAYFA =================
 
-        private static FrameworkElement SayfaCiz(Rapor rapor, List<object[]> satirlar,
+        private static FrameworkElement SayfaCiz(Rapor rapor, List<object?[]> satirlar,
                                                  int toplamIndeksi, bool ilkSayfa,
                                                  int sayfaNo, int sayfaSayisi)
         {
@@ -169,7 +169,7 @@ namespace Macria
             Grid.SetRow(govde, 1);
             kok.Children.Add(govde);
 
-            FrameworkElement ust = UstBlok(rapor, ilkSayfa);
+            FrameworkElement? ust = UstBlok(rapor, ilkSayfa);
             if (ust != null)
             {
                 Grid.SetRow(ust, 0);
@@ -308,7 +308,7 @@ namespace Macria
         }
 
         // Ozet kutulari + parametre etiketleri (yalnizca ilk sayfada)
-        private static FrameworkElement UstBlok(Rapor rapor, bool ilkSayfa)
+        private static FrameworkElement? UstBlok(Rapor rapor, bool ilkSayfa)
         {
             if (!ilkSayfa) return null;
 
@@ -420,7 +420,7 @@ namespace Macria
 
         // ================= TABLO =================
 
-        private static FrameworkElement Tablo(Rapor rapor, List<object[]> satirlar,
+        private static FrameworkElement Tablo(Rapor rapor, List<object?[]> satirlar,
                                               int toplamIndeksi)
         {
             var tablo = new Grid();
@@ -467,7 +467,7 @@ namespace Macria
 
             for (int r = 0; r < satirlar.Count; r++)
             {
-                object[] veri = satirlar[r];
+                object?[] veri = satirlar[r];
                 bool toplam = r == toplamIndeksi;
 
                 var zemin = new Border
@@ -527,7 +527,7 @@ namespace Macria
             return Metin;
         }
 
-        private static string HucreMetni(object deger, RaporSutun sutun)
+        private static string HucreMetni(object? deger, RaporSutun sutun)
         {
             if (deger == null) return "";
 
