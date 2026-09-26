@@ -50,4 +50,8 @@
 		<Resource Include="Assets\turan-vehicle-white.png" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <PackageReference Include="WPF-UI" Version="4.3.0" />
+	</ItemGroup>
+
 </Project>

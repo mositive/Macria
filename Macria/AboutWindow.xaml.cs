@@ -2,17 +2,24 @@ using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows;
-using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace Macria
 {
     // Uygulama kimligi, gelistiriciler ve calisma ortami bilgisini gosteren pencere.
-    public partial class AboutWindow : Window
+    // WPF UI (FluentWindow) yalnizca bu pencerede kullanilir; sozlukleri XAML'da pencere kaynaklarinda.
+    // Mica kullanilmaz: sozlukler pencereye ozel oldugundan Mica sistemin acik temasini izliyor ve
+    // WindowBackgroundManager.UpdateBackground (WPF-UI 4.3.0) koyu modu uygulamiyordu. Zemin BgBrush.
+    public partial class AboutWindow : Wpf.Ui.Controls.FluentWindow
     {
+        private const string KopyalaMetni = "Bilgileri kopyala";
+
+        private readonly DispatcherTimer _kopyalandiZamanlayici =
+            new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+
         public AboutWindow()
         {
             InitializeComponent();
-            WindowEffects.RoundCorners(this);
 
             txtVersion.Text = "Sürüm " + SurumMetni();
             txtRuntime.Text = RuntimeInformation.FrameworkDescription;
@@ -22,6 +29,13 @@ namespace Macria
                 : RuntimeInformation.ProcessArchitecture.ToString();
 
             txtCopyright.Text = TelifMetni();
+
+            _kopyalandiZamanlayici.Tick += (s, e) =>
+            {
+                _kopyalandiZamanlayici.Stop();
+                btnKopyala.Content = KopyalaMetni;
+            };
+            Closed += (s, e) => _kopyalandiZamanlayici.Stop();
         }
 
         // csproj'daki Version degeri; yoksa assembly surumune duser
@@ -56,9 +70,30 @@ namespace Macria
             return "© " + DateTime.Now.Year + " Emre Koçak, Enes Yeşilöz";
         }
 
-        private void Baslik_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        // Destek talebine yapistirilacak surum ve ortam ozeti
+        private string BilgiMetni()
         {
-            if (e.ButtonState == MouseButtonState.Pressed) DragMove();
+            return "Macria " + SurumMetni() + Environment.NewLine +
+                   "Çalışma Zamanı: " + txtRuntime.Text + Environment.NewLine +
+                   "İşletim Sistemi: " + txtOs.Text + Environment.NewLine +
+                   "Mimari: " + txtArch.Text;
+        }
+
+        private void btnKopyala_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Clipboard.SetText(BilgiMetni());
+                btnKopyala.Content = "Kopyalandı";
+            }
+            catch (COMException)
+            {
+                // Pano baska bir surec tarafindan kilitli olabilir
+                btnKopyala.Content = "Kopyalanamadı";
+            }
+
+            _kopyalandiZamanlayici.Stop();
+            _kopyalandiZamanlayici.Start();
         }
 
         private void btnClose_Click(object sender, RoutedEventArgs e)
