@@ -20,7 +20,7 @@ internal sealed record DxfPreviewReadResult(PreviewResult Preview, PreviewConten
 /// Read-only DXF 2D preview adapter over DxfOkuyucu. PreviewCoordinator resolves the request and the
 /// extension; this adapter evaluates the content. It never writes the source and never grants or denies
 /// edit: a structurally valid DXF without entities stays editable through DxfEditOturumu.
-/// No UI call site uses it yet.
+/// Used by the Dosya Analiz Merkezi DXF/DWG preview panel (MainWindow.DxfDwgFiles).
 /// </summary>
 internal sealed class DxfPreviewAdapter
 {

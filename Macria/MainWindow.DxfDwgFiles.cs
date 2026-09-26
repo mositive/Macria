@@ -13,6 +13,7 @@ namespace Macria;
 public partial class MainWindow
 {
     private readonly ObservableCollection<DxfDwgFileItem> _dxfDwgRows = new();
+    private readonly DxfPreviewAdapter _dxfDwgPreviewAdapter = new();
     private ICollectionView? _dxfDwgView;
     private bool _dxfMatched = DxfDwgFileInventory.DefaultFilterVisible(DxfDwgMatchState.Matched);
     private bool _dxfUnmatched = DxfDwgFileInventory.DefaultFilterVisible(DxfDwgMatchState.Unmatched);
@@ -188,36 +189,42 @@ public partial class MainWindow
 
     private void DxfDwgOnizlemeyiYukle(DxfDwgFileItem item)
     {
-        if (item.FileType.Equals("DWG", StringComparison.OrdinalIgnoreCase))
+        DxfPreviewReadResult result = _dxfDwgPreviewAdapter.Read(new PreviewRequest
         {
-            DxfDwgOnizlemeBosalt("DWG önizleme henüz desteklenmiyor. Dosyayı Aç komutunu kullanabilirsiniz.", item.FileName);
+            SourcePath = item.FullPath,
+            Capability = PreviewCapability.Preview2D,
+            Presentation = PreviewPresentation.Embedded,
+            SourceContext = "Dosya Analiz Merkezi"
+        });
+
+        string? message = DxfDwgPreviewMessages.For(result);
+        if (message != null || result.Model is not DxfCizim drawing)
+        {
+            // Only real read errors reach the console; the technical text never goes into the panel.
+            if (result.Content.Status == PreviewContentCheckStatus.Failed)
+                LogError("DXF \u00d6nizleme Okunamad\u0131 \u2014 " + item.FileName + ": " + DxfDwgPreviewMessages.Diagnostic(result));
+            DxfDwgOnizlemeBosalt(message ?? DxfDwgPreviewMessages.NothingDrawable, item.FileName);
             return;
         }
 
-        if (!item.FileType.Equals("DXF", StringComparison.OrdinalIgnoreCase) || !System.IO.File.Exists(item.FullPath))
+        try
         {
-            DxfDwgOnizlemeBosalt("Seçili DXF dosyası bulunamadı.", item.FileName);
-            return;
+            if (dxfDwgOnizlemeCizim != null)
+            {
+                dxfDwgOnizlemeCizim.Data = drawing.Geometri();
+                dxfDwgOnizlemeCizim.Visibility = Visibility.Visible;
+            }
+            if (txtDxfDwgOnizlemeMesaj != null)
+                txtDxfDwgOnizlemeMesaj.Visibility = Visibility.Collapsed;
+            if (txtDxfDwgOnizlemeDosya != null)
+                txtDxfDwgOnizlemeDosya.Text = item.FileName;
+            if (txtDxfDwgOnizlemeOlcu != null)
+                txtDxfDwgOnizlemeOlcu.Text = $"{drawing.Genislik:N1} \u00d7 {drawing.Yukseklik:N1} mm \u00b7 {drawing.NesneSayisi} nesne";
         }
-
-        DxfCizim? drawing = DxfOkuyucu.Oku(item.FullPath, out string? error);
-        if (drawing == null || drawing.Bos)
+        catch (Exception exception)
         {
-            DxfDwgOnizlemeBosalt(error ?? "DXF önizleme için okunamadı.", item.FileName);
-            return;
+            DxfDwgOnizlemeBosalt(DxfDwgPreviewMessages.RenderFailed + "\n" + exception.Message, item.FileName);
         }
-
-        if (dxfDwgOnizlemeCizim != null)
-        {
-            dxfDwgOnizlemeCizim.Data = drawing.Geometri();
-            dxfDwgOnizlemeCizim.Visibility = Visibility.Visible;
-        }
-        if (txtDxfDwgOnizlemeMesaj != null)
-            txtDxfDwgOnizlemeMesaj.Visibility = Visibility.Collapsed;
-        if (txtDxfDwgOnizlemeDosya != null)
-            txtDxfDwgOnizlemeDosya.Text = item.FileName;
-        if (txtDxfDwgOnizlemeOlcu != null)
-            txtDxfDwgOnizlemeOlcu.Text = $"{drawing.Genislik:N1} × {drawing.Yukseklik:N1} mm · {drawing.NesneSayisi} nesne";
     }
 
     private void DxfDwgOnizlemeBosalt(string message, string fileName = "")

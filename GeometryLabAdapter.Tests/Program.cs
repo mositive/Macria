@@ -42,6 +42,10 @@ internal static class Program
             CatiaLightInventorySyntheticTests();
             DxfDwgInventoryTests();
             ProductionPackageTests();
+            PreviewCoreTests();
+            PreviewInventoryTests();
+            PreviewContentCheckTests();
+            OcctStepPreviewAdapterTests();
             ExternalStepExcelWriter();
             await TemporaryStepWorkspaceAsync();
             await TemporaryStepFailureAndCancellationAsync();
@@ -634,6 +638,444 @@ internal static class Program
             Check(File.Exists(Path.Combine(folder, file.TargetFileName)) && before == Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(source))), "6C-10 copy preserves source hash");
         }
         finally { Directory.Delete(root, true); }
+    }
+
+    private static void PreviewCoreTests()
+    {
+        Check(PreviewContentTypeResolver.Resolve("file.dxf") == PreviewContentType.Dxf, "preview resolves .dxf");
+        Check(PreviewContentTypeResolver.Resolve("FILE.DXF") == PreviewContentType.Dxf, "preview resolves uppercase .DXF");
+        Check(PreviewContentTypeResolver.Resolve("file.dwg") == PreviewContentType.Dwg, "preview resolves .dwg");
+        Check(PreviewContentTypeResolver.Resolve("file.step") == PreviewContentType.Step, "preview resolves .step");
+        Check(PreviewContentTypeResolver.Resolve("file.stp") == PreviewContentType.Step, "preview resolves .stp");
+        Check(PreviewContentTypeResolver.Resolve("FILE.STEP") == PreviewContentType.Step, "preview resolves uppercase .STEP");
+        Check(PreviewContentTypeResolver.Resolve("file.txt") == PreviewContentType.Unknown, "preview rejects unsupported extension");
+        Check(PreviewContentTypeResolver.Resolve("extensionless") == PreviewContentType.Unknown, "preview rejects extensionless path");
+
+        Check(PreviewCapabilityResolver.Resolve(PreviewContentType.Dxf, PreviewCapability.Preview2D) == PreviewSupportLevel.Supported,
+            "DXF supports 2D preview");
+        Check(PreviewCapabilityResolver.Resolve(PreviewContentType.Dxf, PreviewCapability.Preview3D) == PreviewSupportLevel.Unsupported,
+            "DXF does not support 3D preview");
+        Check(PreviewCapabilityResolver.Resolve(PreviewContentType.Dxf, PreviewCapability.Edit) == PreviewSupportLevel.RequiresContentValidation,
+            "DXF edit requires content validation");
+        Check(PreviewCapabilityResolver.Resolve(PreviewContentType.Step, PreviewCapability.Preview3D) == PreviewSupportLevel.Supported,
+            "STEP supports 3D preview");
+        Check(PreviewCapabilityResolver.Resolve(PreviewContentType.Step, PreviewCapability.Preview2D) == PreviewSupportLevel.Unsupported,
+            "STEP does not support 2D preview");
+        Check(PreviewCapabilityResolver.Resolve(PreviewContentType.Step, PreviewCapability.Edit) == PreviewSupportLevel.Unsupported,
+            "STEP does not support edit");
+        Check(PreviewCapabilityResolver.Resolve(PreviewContentType.Dwg, PreviewCapability.Preview2D) == PreviewSupportLevel.Unsupported,
+            "DWG has no current 2D preview provider");
+        Check(PreviewCapabilityResolver.Resolve(PreviewContentType.Unknown, PreviewCapability.Preview3D) == PreviewSupportLevel.Unsupported,
+            "unknown content has no preview capability");
+
+        string dxf = Path.Combine(_root, "preview.dxf");
+        string step = Path.Combine(_root, "preview.STP");
+        string text = Path.Combine(_root, "preview.txt");
+        File.WriteAllText(dxf, "test dxf placeholder");
+        File.WriteAllText(step, "test step placeholder");
+        File.WriteAllText(text, "unsupported");
+        var coordinator = new PreviewCoordinator();
+        PreviewResult Resolve(string path, PreviewCapability capability, PreviewPresentation? presentation) =>
+            coordinator.Resolve(new PreviewRequest { SourcePath = path, Capability = capability, Presentation = presentation });
+
+        Check(coordinator.Resolve(null).Status == PreviewResultStatus.InvalidRequest, "null preview request is invalid");
+        Check(Resolve("", PreviewCapability.Preview2D, PreviewPresentation.Embedded).Status == PreviewResultStatus.InvalidRequest,
+            "empty preview path is invalid");
+        Check(Resolve(Path.Combine(_root, "missing.dxf"), PreviewCapability.Preview2D, PreviewPresentation.Embedded).Status == PreviewResultStatus.MissingFile,
+            "missing known-content file is reported");
+        Check(Resolve(text, PreviewCapability.Preview2D, PreviewPresentation.Embedded).Status == PreviewResultStatus.UnsupportedContent,
+            "unsupported extension returns controlled result");
+        Check(Resolve(step, PreviewCapability.Preview3D, PreviewPresentation.Embedded).IsReady,
+            "STEP 3D embedded request is ready");
+        Check(Resolve(step, PreviewCapability.Preview3D, PreviewPresentation.Large).IsReady,
+            "STEP 3D large request is ready");
+        Check(Resolve(dxf, PreviewCapability.Preview2D, PreviewPresentation.Embedded).IsReady,
+            "DXF 2D embedded request is ready");
+        Check(Resolve(dxf, PreviewCapability.Preview2D, PreviewPresentation.Large).IsReady,
+            "DXF 2D large request is ready");
+        Check(Resolve(step, PreviewCapability.Preview2D, PreviewPresentation.Embedded).Status == PreviewResultStatus.UnsupportedCapability,
+            "STEP 2D request is controlled unsupported capability");
+        Check(Resolve(dxf, PreviewCapability.Edit, null).Status == PreviewResultStatus.RequiresContentValidation,
+            "DXF edit remains separate and conditional");
+        Check(Resolve(dxf, PreviewCapability.Edit, PreviewPresentation.Large).Status == PreviewResultStatus.InvalidRequest,
+            "edit cannot be conflated with preview presentation");
+    }
+
+    // Pins the current preview inventory: ASCII DXF has 2D preview (embedded panel and the
+    // large OnizlemeWindow) and content-validated edit, STEP/STP has 3D preview (embedded
+    // viewport and the large OcctPreviewWindow), DWG and unknown extensions have nothing.
+    // Content-level DXF outcomes (binary, invalid, empty) are pinned in DxfEdit.Tests.
+    private static void PreviewInventoryTests()
+    {
+        var inventory = new (PreviewContentType Content, PreviewCapability Capability, PreviewSupportLevel Support)[]
+        {
+            (PreviewContentType.Dxf, PreviewCapability.Preview2D, PreviewSupportLevel.Supported),
+            (PreviewContentType.Dxf, PreviewCapability.Preview3D, PreviewSupportLevel.Unsupported),
+            (PreviewContentType.Dxf, PreviewCapability.Edit, PreviewSupportLevel.RequiresContentValidation),
+            (PreviewContentType.Step, PreviewCapability.Preview2D, PreviewSupportLevel.Unsupported),
+            (PreviewContentType.Step, PreviewCapability.Preview3D, PreviewSupportLevel.Supported),
+            (PreviewContentType.Step, PreviewCapability.Edit, PreviewSupportLevel.Unsupported),
+            (PreviewContentType.Dwg, PreviewCapability.Preview2D, PreviewSupportLevel.Unsupported),
+            (PreviewContentType.Dwg, PreviewCapability.Preview3D, PreviewSupportLevel.Unsupported),
+            (PreviewContentType.Dwg, PreviewCapability.Edit, PreviewSupportLevel.Unsupported),
+            (PreviewContentType.Unknown, PreviewCapability.Preview2D, PreviewSupportLevel.Unsupported),
+            (PreviewContentType.Unknown, PreviewCapability.Preview3D, PreviewSupportLevel.Unsupported),
+            (PreviewContentType.Unknown, PreviewCapability.Edit, PreviewSupportLevel.Unsupported),
+        };
+
+        // A new content type or capability must be added here explicitly; it cannot
+        // silently inherit a capability.
+        int pairs = Enum.GetValues<PreviewContentType>().Length * Enum.GetValues<PreviewCapability>().Length;
+        Check(inventory.Length == pairs && inventory.Select(row => (row.Content, row.Capability)).Distinct().Count() == pairs,
+            "preview inventory lists every content/capability pair exactly once");
+
+        foreach (var row in inventory)
+        {
+            Check(PreviewCapabilityResolver.Resolve(row.Content, row.Capability) == row.Support,
+                $"inventory: {row.Content} {row.Capability} is {row.Support}");
+            bool presentable = row.Capability != PreviewCapability.Edit && row.Support == PreviewSupportLevel.Supported;
+            foreach (PreviewPresentation presentation in Enum.GetValues<PreviewPresentation>())
+                Check(PreviewCapabilityResolver.SupportsPresentation(row.Content, row.Capability, presentation) == presentable,
+                    $"inventory: {row.Content} {row.Capability} {presentation} presentation is {(presentable ? "open" : "closed")}");
+        }
+        Check(!PreviewCapabilityResolver.SupportsPresentation(PreviewContentType.Dxf, PreviewCapability.Preview2D, (PreviewPresentation)42),
+            "undefined presentation is never supported");
+
+        string dir = Path.Combine(_root, "preview-inventory");
+        Directory.CreateDirectory(dir);
+        string Write(string name)
+        {
+            string path = Path.Combine(dir, name);
+            File.WriteAllText(path, "placeholder");
+            return path;
+        }
+        string dxf = Write("part.dxf"), dxfUpper = Write("PART2.DXF");
+        string stp = Write("model.stp"), step = Write("model.step");
+        string dwg = Write("drawing.dwg"), dwgUpper = Write("DRAWING2.DWG");
+        string text = Write("notes.txt"), noExtension = Write("noextension");
+        string folderNamedDxf = Path.Combine(dir, "folder.dxf");
+        Directory.CreateDirectory(folderNamedDxf);
+
+        var coordinator = new PreviewCoordinator();
+        PreviewResult Resolve(string? path, PreviewCapability capability, PreviewPresentation? presentation) =>
+            coordinator.Resolve(new PreviewRequest
+            {
+                SourcePath = path,
+                Capability = capability,
+                Presentation = presentation,
+                SourceContext = "preview inventory test"
+            });
+
+        foreach (string path in new[] { dxf, dxfUpper })
+        {
+            foreach (PreviewPresentation presentation in Enum.GetValues<PreviewPresentation>())
+            {
+                PreviewResult ready = Resolve(path, PreviewCapability.Preview2D, presentation);
+                Check(ready.IsReady && ready.ContentType == PreviewContentType.Dxf &&
+                      ready.SupportLevel == PreviewSupportLevel.Supported && ready.Presentation == presentation &&
+                      ready.NormalizedPath == Path.GetFullPath(path) && ready.DiagnosticDetail == null,
+                    $"DXF 2D {presentation} preview is ready: {Path.GetFileName(path)}");
+                Check(Resolve(path, PreviewCapability.Preview3D, presentation).Status == PreviewResultStatus.UnsupportedCapability,
+                    $"DXF has no 3D {presentation} preview: {Path.GetFileName(path)}");
+            }
+            PreviewResult edit = Resolve(path, PreviewCapability.Edit, null);
+            Check(edit.Status == PreviewResultStatus.RequiresContentValidation && !edit.IsReady &&
+                  edit.SupportLevel == PreviewSupportLevel.RequiresContentValidation,
+                $"DXF edit is never granted from the extension alone: {Path.GetFileName(path)}");
+        }
+
+        foreach (string path in new[] { stp, step })
+        {
+            foreach (PreviewPresentation presentation in Enum.GetValues<PreviewPresentation>())
+            {
+                PreviewResult ready = Resolve(path, PreviewCapability.Preview3D, presentation);
+                Check(ready.IsReady && ready.ContentType == PreviewContentType.Step &&
+                      ready.SupportLevel == PreviewSupportLevel.Supported && ready.Presentation == presentation &&
+                      ready.NormalizedPath == Path.GetFullPath(path) && ready.DiagnosticDetail == null,
+                    $"STEP 3D {presentation} preview is ready: {Path.GetFileName(path)}");
+            }
+            Check(Resolve(path, PreviewCapability.Edit, null).Status == PreviewResultStatus.UnsupportedCapability,
+                $"STEP has no edit capability: {Path.GetFileName(path)}");
+        }
+
+        foreach (string path in new[] { dwg, dwgUpper })
+        {
+            foreach (PreviewCapability capability in new[] { PreviewCapability.Preview2D, PreviewCapability.Preview3D })
+                foreach (PreviewPresentation presentation in Enum.GetValues<PreviewPresentation>())
+                {
+                    PreviewResult result = Resolve(path, capability, presentation);
+                    Check(result.Status == PreviewResultStatus.UnsupportedCapability && !result.IsReady &&
+                          result.ContentType == PreviewContentType.Dwg && result.SupportLevel == PreviewSupportLevel.Unsupported,
+                        $"DWG {capability} {presentation} stays closed: {Path.GetFileName(path)}");
+                }
+            Check(Resolve(path, PreviewCapability.Edit, null).Status == PreviewResultStatus.UnsupportedCapability,
+                $"DWG edit stays closed: {Path.GetFileName(path)}");
+        }
+
+        foreach (string path in new[] { text, noExtension })
+            foreach (PreviewCapability capability in Enum.GetValues<PreviewCapability>())
+            {
+                PreviewResult result = Resolve(path, capability,
+                    capability == PreviewCapability.Edit ? null : PreviewPresentation.Embedded);
+                Check(result.Status == PreviewResultStatus.UnsupportedContent && result.ContentType == PreviewContentType.Unknown,
+                    $"unknown content {Path.GetFileName(path)} {capability} is a controlled unsupported result");
+            }
+
+        // Missing files keep their content type, so callers can still show the DWG message.
+        PreviewResult missingDwg = Resolve(Path.Combine(dir, "missing.dwg"), PreviewCapability.Preview2D, PreviewPresentation.Embedded);
+        Check(missingDwg.Status == PreviewResultStatus.MissingFile && missingDwg.ContentType == PreviewContentType.Dwg,
+            "missing DWG is reported as missing with DWG content type");
+        PreviewResult missingStep = Resolve(Path.Combine(dir, "missing.step"), PreviewCapability.Preview3D, PreviewPresentation.Large);
+        Check(missingStep.Status == PreviewResultStatus.MissingFile && missingStep.ContentType == PreviewContentType.Step &&
+              !missingStep.IsReady, "missing STEP large preview is a controlled result");
+        Check(Resolve(Path.Combine(dir, "missing.dxf"), PreviewCapability.Edit, null).Status == PreviewResultStatus.MissingFile,
+            "missing DXF edit is a controlled result");
+        Check(Resolve(Path.Combine(dir, "missing.txt"), PreviewCapability.Preview2D, PreviewPresentation.Embedded).Status ==
+              PreviewResultStatus.UnsupportedContent, "unknown extension is reported before file existence");
+        Check(Resolve(folderNamedDxf, PreviewCapability.Preview2D, PreviewPresentation.Embedded).Status == PreviewResultStatus.MissingFile,
+            "a directory with a DXF extension is not a previewable file");
+
+        Check(Resolve("   ", PreviewCapability.Preview2D, PreviewPresentation.Embedded).Status == PreviewResultStatus.InvalidRequest,
+            "whitespace path is an invalid request");
+        Check(Resolve(dxf, PreviewCapability.Preview2D, null).Status == PreviewResultStatus.InvalidRequest,
+            "preview without presentation is an invalid request");
+        Check(Resolve(stp, PreviewCapability.Preview3D, null).Status == PreviewResultStatus.InvalidRequest,
+            "3D preview without presentation is an invalid request");
+        Check(Resolve(dxf, (PreviewCapability)42, PreviewPresentation.Embedded).Status == PreviewResultStatus.InvalidRequest,
+            "undefined capability is an invalid request");
+        Check(Resolve(dxf, PreviewCapability.Preview2D, (PreviewPresentation)42).Status == PreviewResultStatus.InvalidRequest,
+            "undefined presentation is an invalid request");
+        Check(Resolve("bad\0name.dxf", PreviewCapability.Preview2D, PreviewPresentation.Embedded).Status == PreviewResultStatus.InvalidRequest,
+            "path with an invalid character is an invalid request");
+        Check(Resolve(Path.GetRelativePath(Environment.CurrentDirectory, dxf), PreviewCapability.Preview2D,
+                  PreviewPresentation.Embedded).NormalizedPath == Path.GetFullPath(dxf),
+            "relative path is normalized to a full path");
+
+        // No request shape may throw. Ready is only ever returned for DXF 2D or STEP 3D
+        // with a presentation, never for edit.
+        string?[] paths = { null, "", "   ", dxf, stp, step, dwg, text, noExtension,
+            Path.Combine(dir, "missing.dxf"), folderNamedDxf, "bad\0name.dxf" };
+        PreviewCapability[] capabilities = Enum.GetValues<PreviewCapability>().Append((PreviewCapability)42).ToArray();
+        PreviewPresentation?[] presentations = { null, PreviewPresentation.Embedded, PreviewPresentation.Large, (PreviewPresentation)42 };
+        foreach (string? path in paths)
+            foreach (PreviewCapability capability in capabilities)
+                foreach (PreviewPresentation? presentation in presentations)
+                {
+                    PreviewResult result = Resolve(path, capability, presentation);
+                    bool readyShape = !result.IsReady ||
+                        (result.NormalizedPath != null && presentation != null && capability != PreviewCapability.Edit &&
+                         (result.ContentType, capability) is (PreviewContentType.Dxf, PreviewCapability.Preview2D)
+                             or (PreviewContentType.Step, PreviewCapability.Preview3D));
+                    Check(!string.IsNullOrWhiteSpace(result.Message) &&
+                          result.IsReady == (result.Status == PreviewResultStatus.Ready) &&
+                          result.Capability == capability && result.Presentation == presentation && readyShape,
+                        $"controlled preview result for path='{path?.Replace("\0", "\\0")}' capability={capability} presentation={presentation}");
+                }
+    }
+
+    // Stage 2 contract: content evaluation is a separate result next to PreviewResultStatus.
+    private static void PreviewContentCheckTests()
+    {
+        // The request-level status set stays as it is; content outcomes do not become new main statuses.
+        string[] requestStatuses = { "Ready", "RequiresContentValidation", "UnsupportedCapability", "UnsupportedContent",
+            "MissingFile", "InvalidRequest", "Failed" };
+        Check(Enum.GetNames<PreviewResultStatus>().SequenceEqual(requestStatuses),
+            "PreviewResultStatus has no content-check status");
+        Check(Enum.GetValues<PreviewContentCheckStatus>().Length == 4 && Enum.GetValues<PreviewContentCheckReason>().Length == 5,
+            "content check status/reason sets are pinned");
+
+        PreviewContentCheckResult notChecked = PreviewContentCheckResult.NotChecked;
+        Check(notChecked.Status == PreviewContentCheckStatus.NotChecked && notChecked.Reason == PreviewContentCheckReason.None &&
+              notChecked.DiagnosticMessage == null && !notChecked.IsAccepted, "NotChecked has no reason and is not accepted");
+        Check(ReferenceEquals(notChecked, PreviewContentCheckResult.NotChecked), "NotChecked is a single shared instance");
+
+        PreviewContentCheckResult accepted = PreviewContentCheckResult.Accepted("12 entities");
+        Check(accepted.Status == PreviewContentCheckStatus.Accepted && accepted.Reason == PreviewContentCheckReason.None &&
+              accepted.IsAccepted && accepted.DiagnosticMessage == "12 entities", "Accepted keeps its diagnostic and has no reason");
+        Check(PreviewContentCheckResult.Accepted().DiagnosticMessage == null, "Accepted diagnostic is optional");
+
+        foreach (PreviewContentCheckReason reason in new[] { PreviewContentCheckReason.BinaryDxf,
+                     PreviewContentCheckReason.NoDrawableEntities, PreviewContentCheckReason.InvalidContent })
+        {
+            PreviewContentCheckResult rejected = PreviewContentCheckResult.Rejected(reason, "detail " + reason);
+            Check(rejected.Status == PreviewContentCheckStatus.Rejected && rejected.Reason == reason && !rejected.IsAccepted &&
+                  rejected.DiagnosticMessage == "detail " + reason, $"Rejected carries {reason}");
+        }
+
+        foreach (PreviewContentCheckReason reason in new[] { PreviewContentCheckReason.None,
+                     PreviewContentCheckReason.ReadError, (PreviewContentCheckReason)42 })
+        {
+            bool thrown = false;
+            try { PreviewContentCheckResult.Rejected(reason); }
+            catch (ArgumentOutOfRangeException) { thrown = true; }
+            Check(thrown, $"Rejected refuses non-rejection reason {reason}");
+        }
+
+        PreviewContentCheckResult failed = PreviewContentCheckResult.Failed("IOException: locked");
+        Check(failed.Status == PreviewContentCheckStatus.Failed && failed.Reason == PreviewContentCheckReason.ReadError &&
+              !failed.IsAccepted && failed.DiagnosticMessage == "IOException: locked", "Failed is always a read error");
+
+        // Every reason has exactly the statuses the factories allow.
+        var allowed = new Dictionary<PreviewContentCheckReason, PreviewContentCheckStatus[]>
+        {
+            [PreviewContentCheckReason.None] = new[] { PreviewContentCheckStatus.NotChecked, PreviewContentCheckStatus.Accepted },
+            [PreviewContentCheckReason.BinaryDxf] = new[] { PreviewContentCheckStatus.Rejected },
+            [PreviewContentCheckReason.NoDrawableEntities] = new[] { PreviewContentCheckStatus.Rejected },
+            [PreviewContentCheckReason.InvalidContent] = new[] { PreviewContentCheckStatus.Rejected },
+            [PreviewContentCheckReason.ReadError] = new[] { PreviewContentCheckStatus.Failed },
+        };
+        Check(allowed.Count == Enum.GetValues<PreviewContentCheckReason>().Length, "status/reason table covers every reason");
+        var produced = new[] { notChecked, accepted, failed }
+            .Concat(new[] { PreviewContentCheckReason.BinaryDxf, PreviewContentCheckReason.NoDrawableEntities,
+                PreviewContentCheckReason.InvalidContent }.Select(reason => PreviewContentCheckResult.Rejected(reason)));
+        foreach (PreviewContentCheckResult result in produced)
+            Check(allowed[result.Reason].Contains(result.Status), $"{result.Status}/{result.Reason} is an allowed pair");
+
+        Check(PreviewContentCheckResult.Rejected(PreviewContentCheckReason.BinaryDxf, "x") ==
+              PreviewContentCheckResult.Rejected(PreviewContentCheckReason.BinaryDxf, "x"), "content check results compare by value");
+        Check(PreviewContentCheckResult.Rejected(PreviewContentCheckReason.BinaryDxf) !=
+              PreviewContentCheckResult.Rejected(PreviewContentCheckReason.InvalidContent), "different reasons are different results");
+    }
+
+    // Stage 3: STEP 3D adapter over a fake viewport port; no HwndHost, native DLL or OCCT session.
+    private static void OcctStepPreviewAdapterTests()
+    {
+        string dir = Path.Combine(_root, "occt-adapter");
+        Directory.CreateDirectory(dir);
+        string Write(string name)
+        {
+            string path = Path.Combine(dir, name);
+            File.WriteAllText(path, "placeholder");
+            return path;
+        }
+        string stp = Write("model.stp"), step = Write("MODEL2.STEP"), dxf = Write("part.dxf"), dwg = Write("drawing.dwg"),
+            text = Write("notes.txt");
+        PreviewRequest Request(string? path, PreviewCapability capability, PreviewPresentation? presentation) =>
+            new() { SourcePath = path, Capability = capability, Presentation = presentation };
+
+        Check(Throws<ArgumentNullException>(() => new OcctStepPreviewAdapter(null!)), "adapter requires a viewport port");
+
+        // Ready: STEP/STP 3D embedded and large forward one load with the normalized path.
+        foreach (string path in new[] { stp, step })
+            foreach (PreviewPresentation presentation in Enum.GetValues<PreviewPresentation>())
+            {
+                var port = new FakeStepViewportPort { StateAfterLoad = StepViewportLoadState.Loaded };
+                PreviewRequest request = Request(path, PreviewCapability.Preview3D, presentation);
+                PreviewResult result = new OcctStepPreviewAdapter(port).Load(request);
+                Check(result.IsReady && result == new PreviewCoordinator().Resolve(request) &&
+                      port.Calls.SequenceEqual(new[] { "Load:" + Path.GetFullPath(path) }),
+                    $"STEP 3D {presentation} forwards exactly one load: {Path.GetFileName(path)}");
+            }
+
+        // Pending: the native viewer window does not exist yet; the host keeps the path and loads it later.
+        var pending = new FakeStepViewportPort { StateAfterLoad = StepViewportLoadState.Pending };
+        Check(new OcctStepPreviewAdapter(pending).Load(Request(stp, PreviewCapability.Preview3D, PreviewPresentation.Embedded)).IsReady &&
+              pending.Calls.Count == 1, "pending viewport accepts the load");
+
+        // Load failure reported by the viewport state.
+        var failing = new FakeStepViewportPort
+        {
+            StateAfterLoad = StepViewportLoadState.Failed,
+            MessageAfterLoad = "STEP önizleme yüklenemedi: native error"
+        };
+        PreviewResult failed = new OcctStepPreviewAdapter(failing).Load(Request(stp, PreviewCapability.Preview3D, PreviewPresentation.Large));
+        Check(failed.Status == PreviewResultStatus.Failed && failed.Message == "STEP önizleme yüklenemedi: native error" &&
+              failed.DiagnosticDetail == failing.MessageAfterLoad && failed.ContentType == PreviewContentType.Step &&
+              failed.NormalizedPath == Path.GetFullPath(stp) && failing.Calls.Count == 1,
+            "viewport load failure is a controlled Failed result with the host message");
+        var silentFailure = new FakeStepViewportPort { StateAfterLoad = StepViewportLoadState.Failed, MessageAfterLoad = "" };
+        Check(new OcctStepPreviewAdapter(silentFailure).Load(Request(stp, PreviewCapability.Preview3D, PreviewPresentation.Embedded))
+              .Message == "STEP önizleme yüklenemedi.", "failure without host message gets a fallback message");
+
+        // A throwing port is contained.
+        var throwing = new FakeStepViewportPort { ThrowOn = "Load" };
+        PreviewResult thrown = new OcctStepPreviewAdapter(throwing).Load(Request(stp, PreviewCapability.Preview3D, PreviewPresentation.Embedded));
+        Check(thrown.Status == PreviewResultStatus.Failed && thrown.Message == "STEP önizleme yüklenemedi." &&
+              thrown.DiagnosticDetail!.Contains("fake Load failure", StringComparison.Ordinal),
+            "port exception becomes a controlled Failed result");
+
+        // Nothing reaches the viewport for requests the coordinator or adapter refuses.
+        var refused = new (string Name, PreviewRequest? Request, PreviewResultStatus Expected)[]
+        {
+            ("null request", null, PreviewResultStatus.InvalidRequest),
+            ("empty path", Request("", PreviewCapability.Preview3D, PreviewPresentation.Embedded), PreviewResultStatus.InvalidRequest),
+            ("no presentation", Request(stp, PreviewCapability.Preview3D, null), PreviewResultStatus.InvalidRequest),
+            ("undefined presentation", Request(stp, PreviewCapability.Preview3D, (PreviewPresentation)42), PreviewResultStatus.InvalidRequest),
+            ("missing STEP", Request(Path.Combine(dir, "missing.stp"), PreviewCapability.Preview3D, PreviewPresentation.Large),
+                PreviewResultStatus.MissingFile),
+            ("unknown extension", Request(text, PreviewCapability.Preview3D, PreviewPresentation.Embedded), PreviewResultStatus.UnsupportedContent),
+            ("STEP 2D", Request(stp, PreviewCapability.Preview2D, PreviewPresentation.Embedded), PreviewResultStatus.UnsupportedCapability),
+            ("STEP edit", Request(stp, PreviewCapability.Edit, null), PreviewResultStatus.UnsupportedCapability),
+            ("DXF 2D", Request(dxf, PreviewCapability.Preview2D, PreviewPresentation.Embedded), PreviewResultStatus.UnsupportedCapability),
+            ("DXF 3D", Request(dxf, PreviewCapability.Preview3D, PreviewPresentation.Large), PreviewResultStatus.UnsupportedCapability),
+            ("DXF edit", Request(dxf, PreviewCapability.Edit, null), PreviewResultStatus.UnsupportedCapability),
+            ("DWG 3D", Request(dwg, PreviewCapability.Preview3D, PreviewPresentation.Embedded), PreviewResultStatus.UnsupportedCapability),
+        };
+        foreach (var (name, request, expected) in refused)
+        {
+            var port = new FakeStepViewportPort();
+            PreviewResult result = new OcctStepPreviewAdapter(port).Load(request);
+            Check(result.Status == expected && !result.IsReady && !string.IsNullOrWhiteSpace(result.Message) && port.Calls.Count == 0,
+                $"{name} is {expected} and never reaches the viewport");
+        }
+        PreviewResult dxfRefusal = new OcctStepPreviewAdapter(new FakeStepViewportPort())
+            .Load(Request(dxf, PreviewCapability.Preview2D, PreviewPresentation.Embedded));
+        Check(dxfRefusal.SupportLevel == PreviewSupportLevel.Unsupported && dxfRefusal.ContentType == PreviewContentType.Dxf,
+            "coordinator-ready DXF 2D is refused by the STEP adapter as unsupported");
+
+        // Commands forward one-to-one.
+        var commands = new FakeStepViewportPort { State = StepViewportLoadState.Loaded };
+        var adapter = new OcctStepPreviewAdapter(commands);
+        Check(adapter.FitAll() && adapter.Clear(), "FitAll and Clear succeed on a healthy viewport");
+        foreach (OcctStandardView view in Enum.GetValues<OcctStandardView>())
+            Check(adapter.SetView(view), $"SetView {view} succeeds");
+        string[] expectedCalls = new[] { "FitAll", "Clear" }
+            .Concat(Enum.GetValues<OcctStandardView>().Select(view => "SetView:" + view)).ToArray();
+        Check(commands.Calls.SequenceEqual(expectedCalls), "commands reach the viewport in order, exactly once each");
+        Check(!adapter.SetView((OcctStandardView)42) && commands.Calls.Count == expectedCalls.Length,
+            "undefined view is refused without reaching the viewport");
+
+        var unavailable = new FakeStepViewportPort { State = StepViewportLoadState.Failed };
+        var unavailableAdapter = new OcctStepPreviewAdapter(unavailable);
+        Check(!unavailableAdapter.FitAll() && !unavailableAdapter.SetView(OcctStandardView.Top) && unavailable.Calls.Count == 2,
+            "commands on a failed viewport are forwarded but reported as unsuccessful");
+        var throwingCommands = new OcctStepPreviewAdapter(new FakeStepViewportPort { ThrowOn = "FitAll" });
+        Check(!throwingCommands.FitAll(), "throwing command is contained");
+    }
+
+    private static bool Throws<TException>(Action action) where TException : Exception
+    {
+        try { action(); }
+        catch (TException) { return true; }
+        return false;
+    }
+
+    private sealed class FakeStepViewportPort : IStepViewportPort
+    {
+        public List<string> Calls { get; } = new();
+        public StepViewportLoadState State { get; set; } = StepViewportLoadState.Empty;
+        public StepViewportLoadState? StateAfterLoad { get; init; }
+        public string MessageAfterLoad { get; init; } = "";
+        public string? ThrowOn { get; init; }
+        public StepViewportLoadState LoadState => State;
+        public string StatusMessage { get; private set; } = "";
+
+        public void LoadStep(string path)
+        {
+            Record("Load", "Load:" + path);
+            if (StateAfterLoad is StepViewportLoadState state) State = state;
+            StatusMessage = MessageAfterLoad;
+        }
+
+        public void ClearModel() => Record("Clear", "Clear");
+        public void FitAll() => Record("FitAll", "FitAll");
+        public void SetView(OcctStandardView view) => Record("SetView", "SetView:" + view);
+
+        private void Record(string operation, string call)
+        {
+            Calls.Add(call);
+            if (ThrowOn == operation) throw new InvalidOperationException("fake " + operation + " failure");
+        }
     }
 
     private static void ExternalStepExcelWriter()

@@ -15,6 +15,10 @@
     <Compile Include="../Macria/CatiaLightInventory.cs" Link="Macria/CatiaLightInventory.cs" />
     <Compile Include="../Macria/DxfDwgFileInventory.cs" Link="Macria/DxfDwgFileInventory.cs" />
     <Compile Include="../Macria/ProductionPackage.cs" Link="Macria/ProductionPackage.cs" />
+    <Compile Include="../Macria/PreviewCore.cs" Link="Macria/PreviewCore.cs" />
+    <Compile Include="../Macria/OcctStepPreviewAdapter.cs" Link="Macria/OcctStepPreviewAdapter.cs" />
+    <!-- Only for the OcctStandardView enum; the native viewer class is never instantiated in tests. -->
+    <Compile Include="../Macria/OcctViewerNative.cs" Link="Macria/OcctViewerNative.cs" />
     <Compile Include="../Macria/GeometryLabTemporaryStepExporter.cs" Link="Macria/GeometryLabTemporaryStepExporter.cs" />
     <Compile Include="../Macria/RaporModel.cs" Link="Macria/RaporModel.cs" />
     <Compile Include="../Macria/ExcelYazici.cs" Link="Macria/ExcelYazici.cs" />

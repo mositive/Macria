@@ -37,6 +37,10 @@ internal static class Program
             NewlinePreservation();
             EmptyDrawing();
             InvalidFormats();
+            PreviewContentStage();
+            DxfBinarySignatureTests();
+            DxfPreviewAdapterTests();
+            DxfDwgPreviewMessageTests();
             AtomicSelectionDeletes();
             AnalyticContainment();
             ChamferGeometry();
@@ -547,6 +551,285 @@ internal static class Program
         Check(!string.IsNullOrWhiteSpace(malformedSession.Engel), "malformed edit reason available");
         Check(!malformedSession.Sil(malformedModel.Entityler.First(), out _), "malformed document cannot delete");
         Bytes(File.ReadAllBytes(malformedPath), malformedBytes, "malformed rejection leaves source untouched");
+    }
+
+    // DXF preview is two-stage today, as in the Dosya Analiz Merkezi panel: PreviewCoordinator
+    // decides from the extension, then DxfOkuyucu decides from the content. Neither stage may
+    // throw or write to the source. The messages below are shown to the user as-is.
+    private static void PreviewContentStage()
+    {
+        const string NotFound = "Dosya bulunamadı.";
+        const string Binary = "İkili (binary) DXF önizlenemiyor.";
+        const string NothingDrawable = "Dosyada çizilebilir bir nesne bulunamadı.";
+        var coordinator = new PreviewCoordinator();
+        PreviewResult Resolve(string path, PreviewCapability capability, PreviewPresentation? presentation) =>
+            coordinator.Resolve(new PreviewRequest { SourcePath = path, Capability = capability, Presentation = presentation });
+
+        string Write(string name, byte[] bytes)
+        {
+            string path = Path.Combine(_directory, "preview-stage-" + name + ".dxf");
+            File.WriteAllBytes(path, bytes);
+            return path;
+        }
+
+        // ASCII DXF: preview available, edit opens only after content validation.
+        byte[] asciiBytes = Encoding.Latin1.GetBytes(FixtureText());
+        string ascii = Write("ascii", asciiBytes);
+        foreach (PreviewPresentation presentation in Enum.GetValues<PreviewPresentation>())
+            Check(Resolve(ascii, PreviewCapability.Preview2D, presentation).IsReady, $"ASCII DXF {presentation} preview request is ready");
+        PreviewResult asciiEdit = Resolve(ascii, PreviewCapability.Edit, null);
+        Check(asciiEdit.Status == PreviewResultStatus.RequiresContentValidation, "ASCII DXF edit waits for content validation");
+        DxfCizim? asciiModel = DxfOkuyucu.Oku(Resolve(ascii, PreviewCapability.Preview2D, PreviewPresentation.Embedded).NormalizedPath!,
+            out string? asciiError);
+        Check(asciiModel != null && !asciiModel.Bos && asciiError == null && asciiModel.KaynakBelge != null,
+            "ASCII DXF content produces a preview model with source records");
+        Check(new DxfEditOturumu(asciiModel!, ascii).Engel == null, "valid ASCII DXF passes edit content validation");
+        Bytes(File.ReadAllBytes(ascii), asciiBytes, "ASCII preview does not write the source");
+
+        // Binary DXF: the extension stage cannot tell, the content stage rejects it.
+        byte[] binaryBytes = Encoding.ASCII.GetBytes("AutoCAD Binary DXF\r\n\u001a\0\0\0");
+        string binary = Write("binary", binaryBytes);
+        Check(Resolve(binary, PreviewCapability.Preview2D, PreviewPresentation.Embedded).IsReady,
+            "extension stage does not inspect binary DXF content");
+        DxfCizim? binaryModel = DxfOkuyucu.Oku(binary, out string? binaryError);
+        Check(binaryModel == null && binaryError == Binary, "binary DXF content is a controlled preview error");
+        Bytes(File.ReadAllBytes(binary), binaryBytes, "binary preview does not write the source");
+
+        // Invalid content with a DXF extension: controlled "nothing drawable", edit blocked.
+        var invalid = new (string Name, byte[] Bytes)[]
+        {
+            ("plain-text", Encoding.ASCII.GetBytes("test dxf placeholder")),
+            ("zero-bytes", Array.Empty<byte>()),
+            ("dwg-signature", Encoding.ASCII.GetBytes("AC1032\0\0\0\0\0\u0001\u0002\u0003binary")),
+        };
+        foreach (var (name, bytes) in invalid)
+        {
+            string path = Write(name, bytes);
+            Check(Resolve(path, PreviewCapability.Preview2D, PreviewPresentation.Embedded).IsReady,
+                $"extension stage accepts {name} as DXF");
+            DxfCizim? model = DxfOkuyucu.Oku(path, out string? error);
+            Check(model != null && model.Bos && error == NothingDrawable, $"{name} content is a controlled empty preview");
+            Check(!string.IsNullOrWhiteSpace(new DxfEditOturumu(model!, path).Engel), $"{name} content blocks edit with a reason");
+            Bytes(File.ReadAllBytes(path), bytes, $"{name} preview does not write the source");
+        }
+
+        // Valid structure without drawable entities: empty preview with the same message.
+        string noEntities = Write("no-entities", Encoding.Latin1.GetBytes(
+            Pair(0, "SECTION") + Pair(2, "ENTITIES") + Pair(0, "ENDSEC") + Pair(0, "EOF")));
+        DxfCizim? emptyModel = DxfOkuyucu.Oku(noEntities, out string? emptyError);
+        Check(emptyModel != null && emptyModel.Bos && emptyError == NothingDrawable, "DXF without entities is a controlled empty preview");
+        // User decision: an empty preview is not an edit ban. Binary, malformed and missing files stay closed
+        // (binary/missing have no model above; malformed is pinned in InvalidFormats).
+        Check(emptyModel!.KaynakBelge != null && new DxfEditOturumu(emptyModel, noEntities).Engel == null,
+            "structurally valid DXF without entities stays editable");
+
+        // Missing file: the extension stage stops first; the reader alone is also controlled.
+        string missing = Path.Combine(_directory, "preview-stage-missing.dxf");
+        PreviewResult missingResult = Resolve(missing, PreviewCapability.Preview2D, PreviewPresentation.Embedded);
+        Check(missingResult.Status == PreviewResultStatus.MissingFile && missingResult.ContentType == PreviewContentType.Dxf,
+            "missing DXF stops at the extension stage");
+        Check(DxfOkuyucu.Oku(missing, out string? missingError) == null && missingError == NotFound,
+            "reader reports a missing DXF without throwing");
+        Check(!File.Exists(missing), "preview never creates a missing source");
+    }
+
+    private static void DxfBinarySignatureTests()
+    {
+        byte[] signature = Encoding.ASCII.GetBytes("AutoCAD Binary DXF\r\n\u001a\0");
+        Check(DxfBinarySignature.Length == 22 && DxfBinarySignature.Bytes.SequenceEqual(signature), "binary DXF signature is the 22-byte sentinel");
+        Check(DxfBinarySignature.Matches(signature), "exact signature matches");
+        Check(DxfBinarySignature.Matches(signature.Concat(new byte[] { 0, 1, 2, 3 }).ToArray()), "signature followed by binary data matches");
+        Check(!DxfBinarySignature.Matches(signature[..21]), "truncated signature does not match");
+        Check(!DxfBinarySignature.Matches(ReadOnlySpan<byte>.Empty), "empty header does not match");
+        Check(!DxfBinarySignature.Matches(Encoding.ASCII.GetBytes("AutoCAD Binary DXF\n\u001a\0")), "LF instead of CRLF does not match");
+        Check(!DxfBinarySignature.Matches(Encoding.ASCII.GetBytes("AutoCAD Binary DXF\r\n")), "text first line alone does not match");
+        Check(!DxfBinarySignature.Matches(Encoding.ASCII.GetBytes("autocad binary dxf\r\n\u001a\0")), "comparison is byte-exact, not case-insensitive");
+        Check(!DxfBinarySignature.Matches(new byte[] { 0xEF, 0xBB, 0xBF }.Concat(signature).ToArray()), "signature must start at byte 0");
+        Check(!DxfBinarySignature.Matches(Encoding.ASCII.GetBytes(Pair(0, "SECTION"))), "ASCII DXF start does not match");
+    }
+
+    // Stage 4: read-only DXF 2D preview adapter. Rejected and failed content never returns a model.
+    private static void DxfPreviewAdapterTests()
+    {
+        var adapter = new DxfPreviewAdapter();
+        PreviewRequest Request(string? path, PreviewCapability capability = PreviewCapability.Preview2D,
+            PreviewPresentation? presentation = PreviewPresentation.Embedded) =>
+            new() { SourcePath = path, Capability = capability, Presentation = presentation };
+        string Write(string name, byte[] bytes)
+        {
+            string path = Path.Combine(_directory, "preview-adapter-" + name);
+            File.WriteAllBytes(path, bytes);
+            return path;
+        }
+        void Invariants(DxfPreviewReadResult result, string name)
+        {
+            Check((result.Model != null) == result.Content.IsAccepted, name + ": model is returned exactly when content is accepted");
+            Check(result.Content.Status == PreviewContentCheckStatus.NotChecked || result.Preview.NormalizedPath != null,
+                name + ": checked content always has a resolved path");
+        }
+
+        // Accepted: drawable ASCII DXF, embedded and large; the tolerant malformed preview stays available.
+        byte[] asciiBytes = Encoding.Latin1.GetBytes(FixtureText());
+        string ascii = Write("ascii.dxf", asciiBytes);
+        foreach (PreviewPresentation presentation in Enum.GetValues<PreviewPresentation>())
+        {
+            DxfPreviewReadResult accepted = adapter.Read(Request(ascii, presentation: presentation));
+            Check(accepted.Preview.IsReady && accepted.Content == PreviewContentCheckResult.Accepted() &&
+                  accepted.Model != null && !accepted.Model.Bos && accepted.Model.KaynakBelge != null,
+                $"drawable ASCII DXF {presentation} is accepted with a model");
+            Invariants(accepted, "ascii " + presentation);
+        }
+        byte[] malformedBytes = Encoding.Latin1.GetBytes(FixtureText().Replace(Pair(999, "PRESERVED_COMMENT"),
+            "bad-code\r\nPRESERVED_COMMENT\r\n", StringComparison.Ordinal));
+        string malformed = Write("malformed.dxf", malformedBytes);
+        DxfPreviewReadResult tolerant = adapter.Read(Request(malformed));
+        Check(tolerant.Content.IsAccepted && tolerant.Model != null && !tolerant.Model.Bos,
+            "tolerant malformed DXF keeps its current preview (edit blocking stays with DxfEditOturumu)");
+
+        // Rejected content: request stays Ready (two stages), content says why, no model.
+        var rejected = new (string Name, byte[] Bytes, PreviewContentCheckReason Reason)[]
+        {
+            ("binary.dxf", Encoding.ASCII.GetBytes("AutoCAD Binary DXF\r\n\u001a\0\0\0\u0001binary"), PreviewContentCheckReason.BinaryDxf),
+            ("no-entities.dxf", Encoding.Latin1.GetBytes(Pair(0, "SECTION") + Pair(2, "ENTITIES") + Pair(0, "ENDSEC") + Pair(0, "EOF")),
+                PreviewContentCheckReason.NoDrawableEntities),
+            ("plain-text.dxf", Encoding.ASCII.GetBytes("test dxf placeholder"), PreviewContentCheckReason.InvalidContent),
+            ("zero-bytes.dxf", Array.Empty<byte>(), PreviewContentCheckReason.InvalidContent),
+            ("dwg-signature.dxf", Encoding.ASCII.GetBytes("AC1032\0\0\0\0\0\u0001\u0002\u0003binary"), PreviewContentCheckReason.InvalidContent),
+            // First text line looks binary but the byte signature is incomplete: no first-line interpretation.
+            ("binary-text-line.dxf", Encoding.ASCII.GetBytes("AutoCAD Binary DXF\r\n0\r\nEOF\r\n"), PreviewContentCheckReason.InvalidContent),
+        };
+        foreach (var (name, bytes, reason) in rejected)
+        {
+            string path = Write(name, bytes);
+            DxfPreviewReadResult result = adapter.Read(Request(path));
+            Check(result.Preview.IsReady && result.Content.Status == PreviewContentCheckStatus.Rejected &&
+                  result.Content.Reason == reason && !string.IsNullOrWhiteSpace(result.Content.DiagnosticMessage) && result.Model == null,
+                $"{name} is Rejected({reason}) without a model");
+            Invariants(result, name);
+            Bytes(File.ReadAllBytes(path), bytes, name + " source bytes are unchanged");
+        }
+        // Rejecting an empty preview does not touch edit: the same file stays editable through DxfEditOturumu.
+        string emptyValid = Path.Combine(_directory, "preview-adapter-no-entities.dxf");
+        DxfCizim? emptyModel = DxfOkuyucu.Oku(emptyValid, out _);
+        Check(emptyModel != null && new DxfEditOturumu(emptyModel, emptyValid).Engel == null,
+            "NoDrawableEntities rejection leaves the file editable");
+
+        // Missing: request-level MissingFile, content not checked.
+        DxfPreviewReadResult missing = adapter.Read(Request(Path.Combine(_directory, "preview-adapter-missing.dxf")));
+        Check(missing.Preview.Status == PreviewResultStatus.MissingFile && missing.Content == PreviewContentCheckResult.NotChecked &&
+              missing.Model == null, "missing DXF is MissingFile / NotChecked");
+
+        // Read error: file held exclusively by another handle.
+        string locked = Write("locked.dxf", asciiBytes);
+        using (new FileStream(locked, FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            DxfPreviewReadResult failed = adapter.Read(Request(locked));
+            Check(failed.Preview.Status == PreviewResultStatus.Failed && failed.Content.Status == PreviewContentCheckStatus.Failed &&
+                  failed.Content.Reason == PreviewContentCheckReason.ReadError && failed.Model == null &&
+                  !string.IsNullOrWhiteSpace(failed.Preview.DiagnosticDetail), "unreadable DXF is Failed / Failed(ReadError)");
+            Invariants(failed, "locked");
+        }
+        Bytes(File.ReadAllBytes(locked), asciiBytes, "locked source bytes are unchanged");
+
+        // Requests that are not DXF 2D preview never reach the content stage.
+        string step = Write("model.stp", Encoding.ASCII.GetBytes("ISO-10303-21;"));
+        string dwg = Write("drawing.dwg", Encoding.ASCII.GetBytes("AC1032"));
+        string text = Write("notes.txt", Encoding.ASCII.GetBytes("text"));
+        var refused = new (string Name, PreviewRequest? Request, PreviewResultStatus Expected)[]
+        {
+            ("null request", null, PreviewResultStatus.InvalidRequest),
+            ("no presentation", Request(ascii, presentation: null), PreviewResultStatus.InvalidRequest),
+            ("DXF 3D", Request(ascii, PreviewCapability.Preview3D), PreviewResultStatus.UnsupportedCapability),
+            ("DXF edit", Request(ascii, PreviewCapability.Edit, null), PreviewResultStatus.UnsupportedCapability),
+            ("STEP 3D", Request(step, PreviewCapability.Preview3D), PreviewResultStatus.UnsupportedCapability),
+            ("DWG 2D", Request(dwg), PreviewResultStatus.UnsupportedCapability),
+            ("unknown extension", Request(text), PreviewResultStatus.UnsupportedContent),
+        };
+        foreach (var (name, request, expected) in refused)
+        {
+            DxfPreviewReadResult result = adapter.Read(request);
+            Check(result.Preview.Status == expected && result.Content == PreviewContentCheckResult.NotChecked && result.Model == null &&
+                  !string.IsNullOrWhiteSpace(result.Preview.Message), $"{name} is {expected} with content NotChecked");
+        }
+        Check(adapter.Read(Request(ascii, PreviewCapability.Edit, null)).Preview.SupportLevel == PreviewSupportLevel.Unsupported,
+            "the preview adapter never answers an edit request");
+
+        Bytes(File.ReadAllBytes(ascii), asciiBytes, "ASCII source bytes are unchanged after all reads");
+        Bytes(File.ReadAllBytes(malformed), malformedBytes, "malformed source bytes are unchanged");
+    }
+
+    // Stage 5: what the Dosya Analiz Merkezi panel shows for each adapter outcome.
+    private static void DxfDwgPreviewMessageTests()
+    {
+        var adapter = new DxfPreviewAdapter();
+        DxfPreviewReadResult Read(string path) => adapter.Read(new PreviewRequest
+        {
+            SourcePath = path,
+            Capability = PreviewCapability.Preview2D,
+            Presentation = PreviewPresentation.Embedded,
+            SourceContext = "Dosya Analiz Merkezi"
+        });
+        string Write(string name, byte[] bytes)
+        {
+            string path = Path.Combine(_directory, "panel-" + name);
+            File.WriteAllBytes(path, bytes);
+            return path;
+        }
+        void Expect(DxfPreviewReadResult result, string? expected, string name)
+        {
+            string? message = DxfDwgPreviewMessages.For(result);
+            string? diagnostic = DxfDwgPreviewMessages.Diagnostic(result);
+            Check(message == expected, $"{name}: panel message is '{expected ?? "<draw model>"}' (got '{message}')");
+            Check(message == null || string.IsNullOrEmpty(diagnostic) || !message.Contains(diagnostic, StringComparison.Ordinal),
+                name + ": technical diagnostic never reaches the panel message");
+        }
+
+        byte[] asciiBytes = Encoding.Latin1.GetBytes(FixtureText());
+        string ascii = Write("ascii.dxf", asciiBytes);
+        DxfPreviewReadResult accepted = Read(ascii);
+        Expect(accepted, null, "valid ASCII DXF");
+        Check(accepted.Model != null && !accepted.Model.Bos, "valid ASCII DXF hands a drawable model to the Path render chain");
+
+        Expect(Read(Write("binary.dxf", Encoding.ASCII.GetBytes("AutoCAD Binary DXF\r\n\u001a\0\0\0"))),
+            "İkili (binary) DXF önizlenemiyor.", "binary DXF");
+        Expect(Read(Write("no-entities.dxf", Encoding.Latin1.GetBytes(
+                Pair(0, "SECTION") + Pair(2, "ENTITIES") + Pair(0, "ENDSEC") + Pair(0, "EOF")))),
+            "Dosyada çizilebilir bir nesne bulunamadı.", "valid DXF without entities");
+        Expect(Read(Write("plain-text.dxf", Encoding.ASCII.GetBytes("test dxf placeholder"))),
+            "Dosyada çizilebilir bir nesne bulunamadı.", "invalid DXF content");
+
+        string locked = Write("locked.dxf", asciiBytes);
+        using (new FileStream(locked, FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            DxfPreviewReadResult failed = Read(locked);
+            Expect(failed, "DXF dosyası okunamadı. Dosyaya erişimi ve dosyanın geçerliliğini kontrol edin.", "unreadable DXF");
+            Check(!string.IsNullOrWhiteSpace(DxfDwgPreviewMessages.Diagnostic(failed)), "unreadable DXF keeps a diagnostic for the log");
+        }
+
+        // Selected file deleted before the panel refreshes.
+        string deleted = Write("deleted.dxf", asciiBytes);
+        File.Delete(deleted);
+        Expect(Read(deleted), "Seçili DXF dosyası bulunamadı.", "deleted DXF");
+        // Same outcome when the file disappears after the coordinator already resolved it.
+        PreviewResult resolvedThenGone = new PreviewCoordinator().Resolve(new PreviewRequest
+        {
+            SourcePath = ascii, Capability = PreviewCapability.Preview2D, Presentation = PreviewPresentation.Embedded
+        }) with { Status = PreviewResultStatus.MissingFile };
+        Expect(new DxfPreviewReadResult(resolvedThenGone, PreviewContentCheckResult.NotChecked, null),
+            "Seçili DXF dosyası bulunamadı.", "DXF deleted during read");
+
+        // DWG keeps the controlled "not supported" message, whether or not the file exists.
+        string dwgMessage = "DWG önizleme henüz desteklenmiyor. Dosyayı Aç komutunu kullanabilirsiniz.";
+        Expect(Read(Write("drawing.dwg", Encoding.ASCII.GetBytes("AC1032"))), dwgMessage, "DWG");
+        Expect(Read(Path.Combine(_directory, "panel-missing.dwg")), dwgMessage, "missing DWG");
+
+        // Other request-level results keep the coordinator message.
+        DxfPreviewReadResult unknown = Read(Write("notes.txt", Encoding.ASCII.GetBytes("text")));
+        Expect(unknown, unknown.Preview.Message, "unknown extension");
+        Check(DxfDwgPreviewMessages.For(new DxfPreviewReadResult(accepted.Preview, PreviewContentCheckResult.Accepted(), null)) ==
+              "Dosyada çizilebilir bir nesne bulunamadı.", "accepted result without a model is never drawn");
+
+        Bytes(File.ReadAllBytes(ascii), asciiBytes, "panel reads never write the source");
     }
 
     private static void AtomicSelectionDeletes()

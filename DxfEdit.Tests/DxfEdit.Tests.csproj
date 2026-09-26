@@ -15,5 +15,8 @@
     <Compile Include="../Macria/AkilliRenklendirme.cs" Link="Macria/AkilliRenklendirme.cs" />
     <Compile Include="../Macria/Renklendirme2Paleti.cs" Link="Macria/Renklendirme2Paleti.cs" />
     <Compile Include="../Macria/Renklendirme2UiModel.cs" Link="Macria/Renklendirme2UiModel.cs" />
+    <Compile Include="../Macria/PreviewCore.cs" Link="Macria/PreviewCore.cs" />
+    <Compile Include="../Macria/DxfPreviewAdapter.cs" Link="Macria/DxfPreviewAdapter.cs" />
+    <Compile Include="../Macria/DxfDwgPreviewMessages.cs" Link="Macria/DxfDwgPreviewMessages.cs" />
   </ItemGroup>
 </Project>
