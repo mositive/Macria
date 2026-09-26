@@ -66,6 +66,10 @@ Aşağıdaki alanlarda ekstra dikkat gösterilir:
 - STEP export
 - `Task.Run`, UI thread ve COM ilişkisi
 
+## Bağımlılıklar
+
+- WPF-UI sürümü AboutWindow'un iç kaynak anahtarlarına bağlı; güncellemeden önce AboutWindow'u görsel olarak test et.
+
 ## DXF Edit Modu
 
 - Önizleme, ölçüm ve analiz özellikleri DXF dosyasına yazamaz.
