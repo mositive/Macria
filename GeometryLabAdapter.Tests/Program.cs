@@ -219,7 +219,7 @@ internal static class Program
 
     private static async Task TimeoutAsync()
     {
-        GeometryLabProcessAdapterResult result = await Adapter(CreateEngine("timeout", "timeout /t 5 /nobreak >nul\r\nexit /b 0"),
+        GeometryLabProcessAdapterResult result = await Adapter(CreateEngine("timeout", SlowEngineScript()),
             TimeSpan.FromMilliseconds(100)).AnalyzeAsync(_step);
         Check(result.Status == GeometryLabProcessAdapterStatus.TimedOut, "timeout kills only the child engine process");
         Check(result.TemporaryDirectoryCleaned, "timeout temporary directory is cleaned");
@@ -256,7 +256,7 @@ internal static class Program
     private static async Task CancellationAsync()
     {
         using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
-        GeometryLabProcessAdapterResult result = await Adapter(CreateEngine("cancel", "timeout /t 5 /nobreak >nul\r\nexit /b 0"),
+        GeometryLabProcessAdapterResult result = await Adapter(CreateEngine("cancel", SlowEngineScript()),
             TimeSpan.FromSeconds(10)).AnalyzeAsync(_step, cancellation.Token);
         Check(result.Status == GeometryLabProcessAdapterStatus.Cancelled, "caller cancellation returns Cancelled");
         Check(result.TemporaryDirectoryCleaned, "cancelled temporary directory is cleaned");
@@ -1313,6 +1313,9 @@ internal static class Program
         File.WriteAllText(path, "@echo off\r\n" + body + "\r\n", Encoding.ASCII);
         return path;
     }
+
+    // ~5 s wait without reading stdin: "timeout /t" exits at once when input is redirected (CI, agents).
+    private static string SlowEngineScript() => "ping -n 6 127.0.0.1 >nul\r\nexit /b 0";
 
     private static string ValidJsonScript() =>
         "echo {\"schemaVersion\":\"1.0\",\"status\":\"Succeeded\",\"exitCode\":0,\"errors\":[],\"warnings\":[],\"profileRecognitions\":[]}>\"%~4\"\r\nexit /b 0";
