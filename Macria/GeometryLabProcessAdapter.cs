@@ -51,6 +51,19 @@ public sealed class GeometryLabProcessAdapter
 {
     public const string SupportedSchemaVersion = "1.0";
 
+    // 1.1 only adds sheetMetal, sheetMetalAnalyses and holeFeatures; every 1.0 field is unchanged.
+    public static readonly IReadOnlyList<string> SupportedSchemaVersions = new[] { SupportedSchemaVersion, "1.1" };
+
+    public static bool IsSupportedSchemaVersion(string? schemaVersion)
+    {
+        foreach (string supported in SupportedSchemaVersions)
+        {
+            if (string.Equals(schemaVersion, supported, StringComparison.Ordinal))
+                return true;
+        }
+        return false;
+    }
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
@@ -204,7 +217,7 @@ public sealed class GeometryLabProcessAdapter
                 schemaElement.ValueKind != JsonValueKind.String)
                 return Result(GeometryLabProcessAdapterStatus.InvalidJson,
                     "GeometryLab JSON does not contain a string schemaVersion.", stdout, stderr, process.ExitCode);
-            if (!string.Equals(schemaElement.GetString(), SupportedSchemaVersion, StringComparison.Ordinal))
+            if (!IsSupportedSchemaVersion(schemaElement.GetString()))
                 return Result(GeometryLabProcessAdapterStatus.UnsupportedSchema,
                     "GeometryLab JSON schemaVersion is not supported.", stdout, stderr, process.ExitCode);
 

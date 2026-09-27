@@ -182,7 +182,7 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged
         }
 
         GeometryLabAnalysisTransport? analysis = result.Analysis;
-        if (analysis == null || !string.Equals(analysis.SchemaVersion, GeometryLabProcessAdapter.SupportedSchemaVersion, StringComparison.Ordinal))
+        if (analysis == null || !GeometryLabProcessAdapter.IsSupportedSchemaVersion(analysis.SchemaVersion))
         {
             AnalysisStatus = "Analiz başarısız";
             EvidenceStatus = "Şema doğrulanamadı";

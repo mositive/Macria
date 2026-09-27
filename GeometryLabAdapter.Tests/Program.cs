@@ -32,6 +32,7 @@ internal static class Program
             await MissingJsonAsync();
             await InvalidJsonAsync();
             await UnsupportedSchemaAsync();
+            await SheetMetalSchemaAsync();
             await CancellationAsync();
             await MultipleProfilesAsync();
             StepProfileListFormatting();
@@ -253,6 +254,43 @@ internal static class Program
         Check(result.Status == GeometryLabProcessAdapterStatus.UnsupportedSchema, "unsupported schema is rejected");
     }
 
+    private static async Task SheetMetalSchemaAsync()
+    {
+        const string json = "{\"schemaVersion\":\"1.1\",\"status\":\"Succeeded\",\"exitCode\":0,\"errors\":[],\"warnings\":[],\"solids\":[{}],\"profileRecognitions\":[],"
+            + "\"sheetMetal\":{\"solidId\":{\"analysisId\":\"a\",\"localId\":1},\"status\":\"Recognized\",\"rejectionReason\":null,\"thicknessMm\":20,\"closedSection\":false,"
+            + "\"bends\":[{\"localId\":1,\"innerRadiusMm\":4,\"angleDegrees\":90,\"direction\":\"Up\",\"kFactor\":0.150515,\"allowanceMm\":11.0117534}],"
+            + "\"flatPattern\":{\"status\":\"Succeeded\",\"referenceSkin\":\"A\",\"kFactorFormula\":\"catia-log\",\"widthMm\":216.4187,\"heightMm\":460.7976,"
+            + "\"holes\":[{\"holeFeatureId\":{\"analysisId\":\"a\",\"localId\":1},\"diameterMm\":16}],\"bendLines\":[{\"bendId\":1,\"label\":\"UP 90deg  R 4\"}],\"rejectionReason\":null}},"
+            + "\"sheetMetalAnalyses\":[{\"status\":\"Recognized\"}],"
+            + "\"holeFeatures\":[{\"localId\":1,\"solidId\":{\"analysisId\":\"a\",\"localId\":1},\"type\":\"Countersink\",\"status\":\"Recognized\",\"throughDiameterMm\":16,\"headDiameterMm\":40,\"openingSide\":\"A\",\"onBend\":false}]}";
+        GeometryLabProcessAdapterResult result = await Adapter(CreateEngine("schema-1-1", "echo " + json + ">\"%~4\"\r\nexit /b 0")).AnalyzeAsync(_step);
+        Check(result.Status == GeometryLabProcessAdapterStatus.Succeeded && result.Analysis?.SchemaVersion == "1.1",
+            "schema 1.1 JSON is accepted");
+        GeometryLabSheetMetalTransport? sheet = result.Analysis?.SheetMetal;
+        Check(sheet?.Status == "Recognized" && sheet.ThicknessMm == 20 && sheet.SolidId?.LocalId == 1,
+            "sheetMetal status, thickness and local solid ID are read");
+        Check(sheet?.Bends.Count == 1 && sheet.Bends[0].AllowanceMm == 11.0117534 && sheet.Bends[0].Direction == "Up",
+            "bend allowance and direction are read");
+        Check(sheet?.FlatPattern?.Status == "Succeeded" && sheet.FlatPattern.Holes.Count == 1 &&
+              sheet.FlatPattern.Holes[0].DiameterMm == 16 && sheet.FlatPattern.Holes[0].HoleFeatureId?.LocalId == 1 &&
+              sheet.FlatPattern.BendLines[0].Label == "UP 90deg  R 4",
+            "flat pattern holes and bend label are read");
+        Check(result.Analysis?.SheetMetalAnalyses.Count == 1 && result.Analysis.HoleFeatures.Count == 1 &&
+              result.Analysis.HoleFeatures[0].Type == "Countersink" && result.Analysis.HoleFeatures[0].ThroughDiameterMm == 16,
+            "sheetMetalAnalyses and holeFeatures are read");
+
+        GeometryLabProcessAdapterResult future = await Adapter(CreateEngine("schema-1-2",
+            "echo {\"schemaVersion\":\"1.2\",\"status\":\"Succeeded\",\"exitCode\":0,\"errors\":[],\"warnings\":[],\"profileRecognitions\":[]}>\"%~4\"\r\nexit /b 0")).AnalyzeAsync(_step);
+        Check(future.Status == GeometryLabProcessAdapterStatus.UnsupportedSchema, "schema 1.2 is still rejected");
+
+        GeometryLabAnalysisTransport? legacy = JsonSerializer.Deserialize<GeometryLabAnalysisTransport>("{\"schemaVersion\":\"1.0\",\"status\":\"Succeeded\"}");
+        Check(legacy?.SheetMetal is null && legacy.SheetMetalAnalyses.Count == 0 && legacy.HoleFeatures.Count == 0,
+            "schema 1.0 JSON leaves the 1.1 additions empty");
+        Check(GeometryLabProcessAdapter.IsSupportedSchemaVersion("1.0") && GeometryLabProcessAdapter.IsSupportedSchemaVersion("1.1") &&
+              !GeometryLabProcessAdapter.IsSupportedSchemaVersion(null) && !GeometryLabProcessAdapter.IsSupportedSchemaVersion("1.10"),
+            "only the exact supported schema versions are accepted");
+    }
+
     private static async Task CancellationAsync()
     {
         using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
@@ -350,6 +388,15 @@ internal static class Program
         });
         Check(multiple.AnalysisStatus == "Çoklu solid" && multiple.Eligibility == GeometryLabProfileListEligibility.Excluded && multiple.SectionDisplay == "—" && multiple.LengthDisplay == "—",
             "multiple solids never select an arbitrary profile result");
+
+        var schema10 = new GeometryLabStepProfileListItem { SourceStepPath = @"C:\\tests\\schema10.stp" };
+        schema10.Apply(RecognizedResult(new GeometryLabProfileRecognitionTransport { ProfileType = "SquareHollowSection" }));
+        GeometryLabProcessAdapterResult schema11Result = RecognizedResult(new GeometryLabProfileRecognitionTransport { ProfileType = "SquareHollowSection" });
+        var schema11 = new GeometryLabStepProfileListItem { SourceStepPath = @"C:\\tests\\schema11.stp" };
+        schema11.Apply(schema11Result with { Analysis = schema11Result.Analysis! with { SchemaVersion = "1.1" } });
+        Check(schema11.EvidenceStatus != "Şema doğrulanamadı" && schema11.AnalysisStatus == schema10.AnalysisStatus &&
+              schema11.Eligibility == schema10.Eligibility && schema11.SectionDisplay == schema10.SectionDisplay,
+            "a schema 1.1 result is listed exactly like the same schema 1.0 result");
     }
 
     private static GeometryLabProcessAdapterResult RecognizedResult(

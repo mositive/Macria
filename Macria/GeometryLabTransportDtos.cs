@@ -47,6 +47,154 @@ public sealed record GeometryLabAnalysisTransport
     // validated physical profile-axis span. Macria does not recalculate it.
     [JsonPropertyName("profileGeometryAnalysis")]
     public GeometryLabProfileGeometryAnalysisTransport? ProfileGeometryAnalysis { get; init; }
+
+    // Schema 1.1 additions (absent in 1.0 JSON, so they default to null/empty).
+    // Face, edge and solid IDs are analysis-local and only the localId is kept.
+    [JsonPropertyName("sheetMetal")]
+    public GeometryLabSheetMetalTransport? SheetMetal { get; init; }
+
+    [JsonPropertyName("sheetMetalAnalyses")]
+    public IReadOnlyList<GeometryLabSheetMetalTransport> SheetMetalAnalyses { get; init; } =
+        Array.Empty<GeometryLabSheetMetalTransport>();
+
+    [JsonPropertyName("holeFeatures")]
+    public IReadOnlyList<GeometryLabHoleFeatureTransport> HoleFeatures { get; init; } =
+        Array.Empty<GeometryLabHoleFeatureTransport>();
+}
+
+public sealed record GeometryLabLocalIdTransport
+{
+    [JsonPropertyName("localId")]
+    public int LocalId { get; init; }
+}
+
+public sealed record GeometryLabSheetMetalTransport
+{
+    [JsonPropertyName("solidId")]
+    public GeometryLabLocalIdTransport? SolidId { get; init; }
+
+    [JsonPropertyName("status")]
+    public string? Status { get; init; }
+
+    [JsonPropertyName("rejectionReason")]
+    public string? RejectionReason { get; init; }
+
+    [JsonPropertyName("thicknessMm")]
+    public double? ThicknessMm { get; init; }
+
+    [JsonPropertyName("closedSection")]
+    public bool ClosedSection { get; init; }
+
+    [JsonPropertyName("bends")]
+    public IReadOnlyList<GeometryLabSheetBendTransport> Bends { get; init; } =
+        Array.Empty<GeometryLabSheetBendTransport>();
+
+    [JsonPropertyName("flatPattern")]
+    public GeometryLabFlatPatternTransport? FlatPattern { get; init; }
+}
+
+public sealed record GeometryLabSheetBendTransport
+{
+    [JsonPropertyName("localId")]
+    public int LocalId { get; init; }
+
+    [JsonPropertyName("innerRadiusMm")]
+    public double? InnerRadiusMm { get; init; }
+
+    [JsonPropertyName("angleDegrees")]
+    public double? AngleDegrees { get; init; }
+
+    [JsonPropertyName("direction")]
+    public string? Direction { get; init; }
+
+    [JsonPropertyName("kFactor")]
+    public double? KFactor { get; init; }
+
+    [JsonPropertyName("allowanceMm")]
+    public double? AllowanceMm { get; init; }
+}
+
+public sealed record GeometryLabFlatPatternTransport
+{
+    [JsonPropertyName("status")]
+    public string? Status { get; init; }
+
+    [JsonPropertyName("referenceSkin")]
+    public string? ReferenceSkin { get; init; }
+
+    [JsonPropertyName("kFactorFormula")]
+    public string? KFactorFormula { get; init; }
+
+    [JsonPropertyName("widthMm")]
+    public double? WidthMm { get; init; }
+
+    [JsonPropertyName("heightMm")]
+    public double? HeightMm { get; init; }
+
+    [JsonPropertyName("holes")]
+    public IReadOnlyList<GeometryLabFlatHoleTransport> Holes { get; init; } =
+        Array.Empty<GeometryLabFlatHoleTransport>();
+
+    [JsonPropertyName("bendLines")]
+    public IReadOnlyList<GeometryLabFlatBendLineTransport> BendLines { get; init; } =
+        Array.Empty<GeometryLabFlatBendLineTransport>();
+
+    [JsonPropertyName("rejectionReason")]
+    public string? RejectionReason { get; init; }
+}
+
+public sealed record GeometryLabFlatHoleTransport
+{
+    [JsonPropertyName("holeFeatureId")]
+    public GeometryLabLocalIdTransport? HoleFeatureId { get; init; }
+
+    [JsonPropertyName("diameterMm")]
+    public double? DiameterMm { get; init; }
+}
+
+public sealed record GeometryLabFlatBendLineTransport
+{
+    [JsonPropertyName("bendId")]
+    public int BendId { get; init; }
+
+    [JsonPropertyName("label")]
+    public string? Label { get; init; }
+}
+
+public sealed record GeometryLabHoleFeatureTransport
+{
+    [JsonPropertyName("localId")]
+    public int LocalId { get; init; }
+
+    [JsonPropertyName("solidId")]
+    public GeometryLabLocalIdTransport? SolidId { get; init; }
+
+    [JsonPropertyName("type")]
+    public string? Type { get; init; }
+
+    [JsonPropertyName("status")]
+    public string? Status { get; init; }
+
+    [JsonPropertyName("throughDiameterMm")]
+    public double? ThroughDiameterMm { get; init; }
+
+    [JsonPropertyName("headDiameterMm")]
+    public double? HeadDiameterMm { get; init; }
+
+    [JsonPropertyName("headDepthMm")]
+    public double? HeadDepthMm { get; init; }
+
+    [JsonPropertyName("headAngleDegrees")]
+    public double? HeadAngleDegrees { get; init; }
+
+    [JsonPropertyName("openingSide")]
+    public string? OpeningSide { get; init; }
+
+    [JsonPropertyName("onBend")]
+    public bool OnBend { get; init; }
+
+    [JsonPropertyName("reason")]
+    public string? Reason { get; init; }
 }
 
 public sealed record GeometryLabSolidTransport
