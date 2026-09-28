@@ -259,6 +259,10 @@ public sealed record GeometryLabSolidTransport
 
 public sealed record GeometryLabProfileRecognitionTransport
 {
+    // Analysis-local solid this result belongs to; ties it to a part (schema 1.2).
+    [JsonPropertyName("solidId")]
+    public GeometryLabLocalIdTransport? SolidId { get; init; }
+
     [JsonPropertyName("status")]
     public string? Status { get; init; }
 

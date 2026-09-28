@@ -33,4 +33,18 @@ public static class CatiaStepMatcher
 
     public static IReadOnlyList<CatiaScanSnapshotItem> Match(CatiaScanSnapshot snapshot, string stepPath) =>
         snapshot.Items.Where(x => string.Equals(NormalizeFileIdentity(x.ReferenceTitle), NormalizeFileIdentity(stepPath), StringComparison.OrdinalIgnoreCase)).ToArray();
+
+    // A part of an assembly STEP is matched by its STEP product name (the
+    // CATIA title in 3DEXPERIENCE exports), not by a file name.
+    public static IReadOnlyList<CatiaScanSnapshotItem> MatchPartName(CatiaScanSnapshot snapshot, string partName)
+    {
+        static string Normalize(string value)
+        {
+            string name = (value ?? "").Trim();
+            return name.EndsWith("_Rep", StringComparison.OrdinalIgnoreCase) ? name[..^4].Trim() : name;
+        }
+        string wanted = Normalize(partName);
+        return snapshot.Items.Where(x => string.Equals(Normalize(x.ReferenceTitle), wanted, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+    }
 }

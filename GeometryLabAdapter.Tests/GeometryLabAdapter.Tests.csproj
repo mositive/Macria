@@ -12,6 +12,9 @@
     <Compile Include="../Macria/GeometryLabTransportDtos.cs" Link="Macria/GeometryLabTransportDtos.cs" />
     <Compile Include="../Macria/GeometryLabStepProfileListItem.cs" Link="Macria/GeometryLabStepProfileListItem.cs" />
     <Compile Include="../Macria/CatiaScanSnapshot.cs" Link="Macria/CatiaScanSnapshot.cs" />
+    <Compile Include="../Macria/DxfAdi.cs" Link="Macria/DxfAdi.cs" />
+    <Compile Include="../Macria/MontajParcasi.cs" Link="Macria/MontajParcasi.cs" />
+    <Compile Include="../Macria/MotorDxfAktarici.cs" Link="Macria/MotorDxfAktarici.cs" />
     <Compile Include="../Macria/CatiaLightInventory.cs" Link="Macria/CatiaLightInventory.cs" />
     <Compile Include="../Macria/DxfDwgFileInventory.cs" Link="Macria/DxfDwgFileInventory.cs" />
     <Compile Include="../Macria/ProductionPackage.cs" Link="Macria/ProductionPackage.cs" />

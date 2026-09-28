@@ -35,6 +35,8 @@ internal static class Program
             await SheetMetalSchemaAsync();
             await PartsSchemaAsync();
             await RealAssemblyEngineAsync();
+            AssemblyPartRows();
+            MotorDxfExport();
             await CancellationAsync();
             await MultipleProfilesAsync();
             StepProfileListFormatting();
@@ -411,6 +413,175 @@ internal static class Program
             Console.WriteLine("REAL_ASSEMBLY_ENGINE: " + row.Name + " adet=" + part?.Quantity + " sinif=" + part?.Classification +
                 (dxf is null ? "" : " dxf=" + Path.GetFileName(dxf)));
         }
+    }
+
+    private static GeometryLabAnalysisTransport AssemblyAnalysis() => new()
+    {
+        SchemaVersion = "1.2",
+        Status = "Succeeded",
+        Solids = new[] { new GeometryLabSolidTransport(), new GeometryLabSolidTransport(), new GeometryLabSolidTransport(),
+            new GeometryLabSolidTransport(), new GeometryLabSolidTransport() },
+        ProfileRecognitions = new[]
+        {
+            new GeometryLabProfileRecognitionTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 1 }, Status = "Succeeded",
+                SectionRecognitionStatus = "Recognized", ProfileType = "SquareHollowSection" },
+            new GeometryLabProfileRecognitionTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 2 }, ProfileType = "Unknown" }
+        },
+        SheetMetalAnalyses = new[]
+        {
+            new GeometryLabSheetMetalTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 2 }, Status = "Recognized",
+                ThicknessMm = 20, Bends = new[] { new GeometryLabSheetBendTransport(), new GeometryLabSheetBendTransport() } },
+            new GeometryLabSheetMetalTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 3 }, Status = "Recognized",
+                ThicknessMm = 20.5 },
+            new GeometryLabSheetMetalTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 4 }, Status = "Recognized",
+                ThicknessMm = 8 }
+        },
+        HoleFeatures = new[]
+        {
+            new GeometryLabHoleFeatureTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 2 }, Type = "Countersink",
+                ThroughDiameterMm = 10, HeadDiameterMm = 20 },
+            new GeometryLabHoleFeatureTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 2 }, Type = "Countersink",
+                ThroughDiameterMm = 10, HeadDiameterMm = 20 },
+            new GeometryLabHoleFeatureTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 2 }, Type = "Counterbore",
+                ThroughDiameterMm = 5.4, HeadDiameterMm = 9.75 },
+            new GeometryLabHoleFeatureTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 2 }, Type = "Countersink",
+                ThroughDiameterMm = 6.647, HeadDiameterMm = 8.647, ThreadDesignation = "M8x1.25", Warning = "w" },
+            new GeometryLabHoleFeatureTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 3 }, Type = "Through",
+                ThroughDiameterMm = 16, HeadDiameterMm = 16 }
+        },
+        Parts = new[]
+        {
+            Part(1, "Kutu", 3, "Profile", false, "SquareHollowSection", null),
+            Part(2, "Sac A", 2, "Sheet", true, null, "part-2.dxf"),
+            Part(3, "Kalin Sac", 1, "Sheet", true, null, "part-3.dxf"),
+            Part(4, "Cakisma", 1, "ReviewRequired", true, "RectangularHollowSection", "part-4.dxf"),
+            Part(5, "Mil", 1, "Other", false, null, null)
+        }
+    };
+
+    private static GeometryLabPartTransport Part(int id, string name, int quantity, string classification, bool sheet,
+        string? profile, string? dxf) => new()
+    {
+        LocalId = id, Name = name, Quantity = quantity, Classification = classification, SheetCandidate = sheet,
+        ProfileCandidate = profile, DxfFile = dxf, ClassificationReasons = new[] { "gerekçe " + id },
+        SolidIds = new[] { new GeometryLabLocalIdTransport { LocalId = id } }
+    };
+
+    private static void AssemblyPartRows()
+    {
+        GeometryLabAnalysisTransport analysis = AssemblyAnalysis();
+        Check(MontajParcaSatiri.IsAssembly(analysis), "several parts make an assembly");
+        Check(!MontajParcaSatiri.IsAssembly(analysis with { Parts = new[] { analysis.Parts[1] with { Quantity = 1 } } }),
+            "a single part used once is not an assembly");
+        Check(MontajParcaSatiri.IsAssembly(analysis with { Parts = new[] { analysis.Parts[1] } }),
+            "a single part used twice is an assembly");
+
+        MontajParcaSatiri Row(int index, string? dxf = "C:\\x.dxf") =>
+            MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[index], dxf, 20);
+        MontajParcaSatiri sheet = Row(1);
+        Check(sheet.EffectiveCategory == MontajParcaKategorisi.OnayGerekli && sheet.IsInSheetTab &&
+              sheet.StatusDisplay == "Geometrik sac, onay gerekli" && sheet.ExplanationDisplay.Contains("doğrulanmadı"),
+            "engine sheet without CATIA is a geometric sheet awaiting approval");
+        Check(sheet.ThicknessDisplay == "20 mm" && sheet.GroupDisplay == "Lazer" && sheet.BendCountDisplay == "2",
+            "thickness 20 = laser maximum is Lazer; bends counted");
+        Check(sheet.HoleSummary == "2× Ø10 havşa (Ø20), 1× Ø5,4 imbus (Ø9,75), 1× M8x1.25 dişli (DXF'te yok)",
+            "hole summary: countersink, counterbore and tapped hole: " + sheet.HoleSummary);
+        MontajParcaSatiri thick = Row(2);
+        Check(thick.GroupDisplay == "Şalama/Kütük" && thick.HoleSummary == "1× Ø16 düz", "20,5 mm is Şalama/Kütük");
+        thick.SetLaserMaximum(25);
+        Check(thick.GroupDisplay == "Lazer", "the group follows the laser maximum setting");
+
+        sheet.ApplyCatiaComparison(new[] { new CatiaScanSnapshotItem("Sac A", "p", "r", "k", 2, true) });
+        Check(sheet.EffectiveCategory == MontajParcaKategorisi.Sac && sheet.DecisionSource == GeometryLabDecisionSource.ThreeDScan &&
+              sheet.CatiaMatchDisplay == "Eşleşti", "CATIA sheet-metal feature confirms an engine sheet");
+        sheet.ApplyCatiaComparison(new[] { new CatiaScanSnapshotItem("Sac A", "p", "r", "k", 4, false) });
+        Check(sheet.EffectiveCategory == MontajParcaKategorisi.OnayGerekli && sheet.ExplanationDisplay.Contains("sac unsuru yok") &&
+              sheet.CatiaMatchDisplay == "Eşleşti (adet farklı: CATIA 4)",
+            "no CATIA sheet-metal feature: geometric sheet, approval needed; quantity difference shown");
+        sheet.ApproveAsSheet();
+        Check(sheet.EffectiveCategory == MontajParcaKategorisi.Sac && sheet.HasUserDecision && sheet.DecisionDisplay == "Kullanıcı",
+            "the user approves a geometric sheet");
+        sheet.RestoreAutomaticDecision();
+        Check(sheet.EffectiveCategory == MontajParcaKategorisi.OnayGerekli && !sheet.HasUserDecision,
+            "automatic decision restored");
+        sheet.MoveToReview();
+        Check(sheet.IsInReviewTab && !sheet.IsInSheetTab, "the user moves a sheet to Kontrol gerekli");
+
+        MontajParcaSatiri conflict = Row(3);
+        Check(conflict.EffectiveCategory == MontajParcaKategorisi.KontrolGerekli, "sheet/hollow profile conflict needs review");
+        conflict.ApplyCatiaComparison(new[] { new CatiaScanSnapshotItem("Cakisma", "p", "r", "k", 1, true) });
+        Check(conflict.EffectiveCategory == MontajParcaKategorisi.Sac && conflict.ExplanationDisplay.Contains("çakışması"),
+            "the CATIA sheet-metal feature settles the conflict as Sac");
+
+        MontajParcaSatiri shaft = Row(4, null);
+        Check(shaft.EffectiveCategory == MontajParcaKategorisi.Diger && shaft.IsInReviewTab && !shaft.CanApproveAsSheet,
+            "an Other part is listed under Kontrol gerekli and cannot be approved as sheet");
+        shaft.ApproveAsSheet();
+        Check(shaft.EffectiveCategory == MontajParcaKategorisi.Diger, "no approval without an engine DXF");
+        Check(Row(0).EffectiveCategory == MontajParcaKategorisi.Profil, "a profile part goes to the profile list");
+
+        // Profile part as an existing profile row.
+        var full = new GeometryLabProcessAdapterResult { Status = GeometryLabProcessAdapterStatus.Succeeded, Analysis = analysis };
+        GeometryLabProcessAdapterResult narrowed = MontajParcaSatiri.ResultForPart(full, analysis.Parts[0]);
+        Check(narrowed.Analysis!.ProfileRecognitions.Count == 1 && narrowed.Analysis.Solids.Count == 1 &&
+              narrowed.Analysis.BaseStockProfile is null && !narrowed.HasMultipleProfileResults,
+            "a part narrows the analysis to its own solid");
+        var profileRow = new GeometryLabStepProfileListItem { SourceStepPath = "C:\\m.stp", PartName = "Kutu", PartQuantity = 3 };
+        profileRow.Apply(narrowed);
+        Check(profileRow.AnalysisStatus != "Çoklu solid" && profileRow.SourceFileName == "m.stp › Kutu (3 adet)",
+            "an assembly profile part is judged like a single-part STEP: " + profileRow.AnalysisStatus);
+
+        var snapshot = new CatiaScanSnapshot
+        {
+            CreatedAtUtc = DateTime.UtcNow, ScanId = "s",
+            Items = new[] { new CatiaScanSnapshotItem("Sac A_Rep", "p", "r", "k", 2, true), new CatiaScanSnapshotItem("Diger", "p", "r", "k", 1, false) }
+        };
+        Check(CatiaStepMatcher.MatchPartName(snapshot, "Sac A").Count == 1 && CatiaStepMatcher.MatchPartName(snapshot, "sac a_rep").Count == 1 &&
+              CatiaStepMatcher.MatchPartName(snapshot, "Yok").Count == 0, "CATIA rows are matched by part name");
+    }
+
+    private static void MotorDxfExport()
+    {
+        string root = Path.Combine(_root, "motor-dxf-export");
+        string source = Path.Combine(root, "kaynak");
+        Directory.CreateDirectory(source);
+        string a = Path.Combine(source, "part-2.dxf");
+        string b = Path.Combine(source, "part-3.dxf");
+        File.WriteAllText(a, "A");
+        File.WriteAllText(b, "B");
+        GeometryLabAnalysisTransport analysis = AssemblyAnalysis();
+        MontajParcaSatiri sheetA = MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[1], a, 20);
+        MontajParcaSatiri thick = MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[2], b, 20);
+        MontajParcaSatiri pending = MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[1], a, 20);
+        sheetA.ApproveAsSheet();
+        thick.ApproveAsSheet();
+
+        string target = Path.Combine(root, "hedef");
+        IReadOnlyList<MotorDxfIsi> plan = MotorDxfAktarici.Planla(new[] { sheetA, thick, pending }, target);
+        Check(plan.Count == 2, "only approved sheet rows are exported");
+        Check(plan[0].Hedef == Path.Combine(Path.GetFullPath(target), "Motor-DXF", "Sac A_20mm_2adet.dxf") &&
+              plan[1].Hedef.EndsWith("Kalin Sac_20.5mm_1adet.dxf", StringComparison.Ordinal),
+            "targets are <target>\\Motor-DXF\\<DxfAdi>: " + plan[0].Hedef);
+
+        int asked = 0;
+        MotorDxfAktarimSonucu first = MotorDxfAktarici.Uygula(plan, _ => { asked++; return (DxfCakismaSecimi.Atla, false); });
+        Check(first.Yazilan.Count == 2 && asked == 0 && File.ReadAllText(plan[0].Hedef) == "A", "new files are written without asking");
+
+        File.WriteAllText(a, "A2");
+        MotorDxfAktarimSonucu skipped = MotorDxfAktarici.Uygula(plan, _ => { asked++; return (DxfCakismaSecimi.Atla, false); });
+        Check(asked == 2 && skipped.Atlanan.Count == 2 && File.ReadAllText(plan[0].Hedef) == "A",
+            "each existing file is asked for; Atla keeps it");
+        asked = 0;
+        MotorDxfAktarimSonucu overwritten = MotorDxfAktarici.Uygula(plan, _ => { asked++; return (DxfCakismaSecimi.UzerineYaz, true); });
+        Check(asked == 1 && overwritten.Yazilan.Count == 2 && File.ReadAllText(plan[0].Hedef) == "A2",
+            "Üzerine yaz with 'apply to all' asks once and replaces both");
+        Check(!Directory.GetFiles(Path.GetDirectoryName(plan[0].Hedef)!, "*.tmp-*").Any(), "no temporary file is left");
+        MotorDxfAktarimSonucu cancelled = MotorDxfAktarici.Uygula(plan, _ => (DxfCakismaSecimi.Iptal, false));
+        Check(cancelled.IptalEdildi && cancelled.Yazilan.Count == 0, "İptal stops the export");
+
+        File.Delete(b);
+        MotorDxfAktarimSonucu missing = MotorDxfAktarici.Uygula(plan, _ => (DxfCakismaSecimi.Atla, true));
+        Check(missing.Hatali.Count == 1 && missing.Atlanan.Count == 1, "a missing engine DXF is reported as an error");
     }
 
     private static async Task CancellationAsync()

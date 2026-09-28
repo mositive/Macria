@@ -68,7 +68,12 @@ public enum GeometryLabExternalStepResultGroup
 public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged
 {
     public required string SourceStepPath { get; init; }
-    public string SourceFileName => System.IO.Path.GetFileName(SourceStepPath);
+    // Set for one part of an assembly STEP; the row then shows "file > part (xN)".
+    public string? PartName { get; init; }
+    public int PartQuantity { get; init; }
+    public string SourceFileName => PartName is null
+        ? System.IO.Path.GetFileName(SourceStepPath)
+        : System.IO.Path.GetFileName(SourceStepPath) + " › " + PartName + " (" + PartQuantity + " adet)";
 
     private string _analysisStatus = "Bekliyor";
     public string AnalysisStatus { get => _analysisStatus; private set => Set(ref _analysisStatus, value); }
