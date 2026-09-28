@@ -43,3 +43,6 @@ $RECYCLE.BIN/
 *.tmp
 *.cache
 *.bak
+
+# Claude Code kisisel ayarlari
+.claude/settings.local.json
