@@ -322,6 +322,7 @@ namespace Macria
             // Haricî STEP analizi CATIA/ProfilRow durumundan bağımsız, uygulama
             // oturumunda yaşayan Dosya Analiz Merkezi koleksiyonunu kullanır.
                 ExternalStepProfilListesiniKur();
+                MontajParcaListesiniKur();
                 ExternalStepOnizlemesiniKur();
                 DxfDwgListesiniKur();
 
@@ -1199,8 +1200,11 @@ namespace Macria
         {
             var pencere = new SettingsWindow { Owner = this };
             if (pencere.ShowDialog() == true)
+            {
+                MontajLazerEsiginiUygula();
                 LogInfo("Ayarlar Kaydedildi — Bekleme: " + Ayarlar.PanelBekleme + " ms" +
                         (Ayarlar.KonumVar ? ", Save As Konumu Öğretilmiş." : "."));
+            }
         }
 
         private void btnMin_Click(object sender, RoutedEventArgs e)

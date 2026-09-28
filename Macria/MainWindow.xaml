@@ -2159,127 +2159,277 @@
 
                 <Border x:Name="fileAnalysisStepResults" Grid.Row="2" Visibility="Collapsed" Margin="24,0,24,20" Background="{StaticResource CardBrush}"
                         BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" ClipToBounds="True">
-                    <Grid>
-                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                        <DockPanel Grid.Row="0" Margin="8,5,8,4">
-                            <WrapPanel DockPanel.Dock="Right">
-                                <Button x:Name="btnExternalStepExcelAktar" Style="{StaticResource SecondaryButton}"
-                                        Content="Excel'e Aktar" Height="28" Padding="10,0" Margin="0,0,10,0"
-                                        ToolTip="Yalnız görünür STEP analiz sonuçlarını Excel'e aktar"
-                                        Click="btnExternalStepExcelAktar_Click"/>
-                                <Button Style="{StaticResource SecondaryButton}"
-                                        Content="Üretim Paketi Hazırla" Height="28" Padding="10,0" Margin="0,0,10,0"
-                                        Click="btnExternalStepUretimPaketi_Click"/>
-                                <Button x:Name="btnExternalStepCatiaKarsilastir" Style="{StaticResource SecondaryButton}"
-                                        Content="Aktif 3B Tarama Verileriyle Karşılaştır" Height="28" Padding="10,0" Margin="0,0,10,0"
-                                        Click="btnExternalStepCatiaKarsilastir_Click"/>
-                                <Button x:Name="btnExternalStepDosyayiAc" Style="{StaticResource SecondaryButton}"
-                                        Content="Dosyayı Aç" Height="28" Padding="10,0" Margin="0,0,10,0"
-                                        ToolTip="Tek seçili STEP dosyasını Windows varsayılan uygulamasıyla açar"
-                                        Click="btnExternalStepDosyayiAc_Click"/>
-                                <Button x:Name="btnExternalStepKesin" Style="{StaticResource SecondaryButton}"
-                                        Content="Kesin Profile Aktar" Height="28" Padding="10,0" Margin="0,0,6,0"
-                                        Click="btnExternalStepKesin_Click"/>
-                                <Button x:Name="btnExternalStepIncele" Style="{StaticResource SecondaryButton}"
-                                        Content="İncelemeye Al" Height="28" Padding="10,0" Margin="0,0,6,0"
-                                        Click="btnExternalStepIncele_Click"/>
-                                <Button x:Name="btnExternalStepListeDisi" Style="{StaticResource SecondaryButton}"
-                                        Content="Liste Dışına Çıkar" Height="28" Padding="10,0" Margin="0,0,6,0"
-                                        Click="btnExternalStepListeDisi_Click"/>
-                                <Button x:Name="btnExternalStepOtomatik" Style="{StaticResource SecondaryButton}"
-                                        Content="Otomatik Karara Dön" Height="28" Padding="10,0" Margin="0,0,10,0"
-                                        Click="btnExternalStepOtomatik_Click"/>
-                            </WrapPanel>
-                            <TextBlock Text="Analiz Sonuçları" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                        </DockPanel>
-                        <WrapPanel Grid.Row="1" Margin="8,0,8,6">
-                            <Button x:Name="btnExternalStepTumFiltreler" Style="{StaticResource SecondaryButton}"
-                                    Content="Tümünü Göster" Height="28" Padding="10,0" Margin="0,0,10,0"
-                                    ToolTip="STEP analiz sonuç gruplarını topluca gösterir veya gizler"
-                                    Click="btnExternalStepTumFiltreler_Click"/>
-                            <CheckBox x:Name="chkExternalStepDefinite" Content="Kesin profiller (0)" IsChecked="True" Margin="0,0,10,0" Click="chkExternalStepFilter_Click"/>
-                            <CheckBox x:Name="chkExternalStepReview" Content="İnceleme gerekli (0)" Margin="0,0,10,0" Click="chkExternalStepFilter_Click"/>
-                            <CheckBox x:Name="chkExternalStepExcluded" Content="Liste dışı (0)" Margin="0,0,10,0" Click="chkExternalStepFilter_Click"/>
-                            <CheckBox x:Name="chkExternalStepUnclassified" Content="Tanımsız (0)" Click="chkExternalStepFilter_Click"/>
-                        </WrapPanel>
-                        <Grid Grid.Row="2" Margin="8,0,8,8">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="330" MinWidth="300" MaxWidth="360"/></Grid.ColumnDefinitions>
-                        <DataGrid Grid.Column="0" x:Name="gridExternalStepProfil" AutoGenerateColumns="False" IsReadOnly="True"
-                                  CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False"
-                                  SelectionMode="Extended" SelectionChanged="gridExternalStepProfil_SelectionChanged"
-                                  GridLinesVisibility="All" HeadersVisibility="Column"
-                                  FontSize="13" RowHeight="40"
-                                  ToolTip="Haricî STEP sonuçları yalnız bu uygulama oturumunda tutulur.">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Durum" Binding="{Binding EffectiveStatusDisplay}" Width="140">
-                                    <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="ToolTip" Value="{Binding DecisionToolTip}"/></Style></DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
-                                <DataGridTextColumn Header="STEP Dosyası" Binding="{Binding SourceFileName}" Width="210"/>
-                                <DataGridTextColumn Header="Parça Türü" Binding="{Binding EffectiveProfileTypeDisplay}" Width="160"/>
-                                <DataGridTextColumn Header="Kesit" Binding="{Binding SectionDisplay}" Width="155"/>
-                                <DataGridTextColumn Header="Boy" Binding="{Binding LengthDisplay}" Width="115"/>
-                                <DataGridTextColumn Header="CATIA Adedi" Binding="{Binding CatiaQuantityDisplay}" Width="85"/>
-                                <DataGridTextColumn Header="Eşleşme" Binding="{Binding CatiaMatchDisplay}" Width="130"/>
-                                <DataGridTextColumn Header="Topoloji Bilgisi" Binding="{Binding TopologyDisplay}" Width="245"/>
-                                <DataGridTextColumn Header="Açılı Kesim" Binding="{Binding CutDisplay}" Width="125"/>
-                                <DataGridTextColumn Header="İşlem Durumu" Binding="{Binding OperationDisplay}" Width="125">
-                                    <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="ToolTip" Value="{Binding OperationToolTip}"/><Setter Property="TextTrimming" Value="CharacterEllipsis"/></Style></DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
-                                <DataGridTemplateColumn Header="Açıklama" Width="*">
-                                    <DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding ExplanationDisplay}" ToolTip="{Binding SourceStepPath}" TextTrimming="CharacterEllipsis"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                            </DataGrid.Columns>
-                        </DataGrid>
-                        <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="{StaticResource BorderBrush}"/>
-                        <Border Grid.Column="2" Margin="8,0,0,0" Padding="12" CornerRadius="4" Background="{StaticResource BgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                    <!-- Montaj STEP'i: Profiller (mevcut ekran) / Saclar / Kontrol gerekli -->
+                    <TabControl x:Name="tabExternalStepSonuc" Margin="8,8,8,0"
+                                Background="Transparent" BorderThickness="0" Padding="0"
+                                HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                        <TabControl.Resources>
+                            <Style TargetType="{x:Type TabItem}">
+                                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+                                <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+                                <Setter Property="FontSize" Value="13"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="Padding" Value="16,6"/>
+                                <Setter Property="Margin" Value="0,0,6,6"/>
+                                <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="{x:Type TabItem}">
+                                            <Border x:Name="tabBorder"
+                                                    Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="1" CornerRadius="5"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter ContentSource="Header"
+                                                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="tabBorder" Property="Background" Value="{StaticResource SurfaceHoverBrush}"/>
+                                                    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="tabBorder" Property="Background" Value="{StaticResource AccentBrush}"/>
+                                                    <Setter TargetName="tabBorder" Property="BorderBrush" Value="{StaticResource AccentHoverBrush}"/>
+                                                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </TabControl.Resources>
+                        <TabItem x:Name="tabExternalStepProfiller" Header="Profiller">
                             <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="230"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="*"/>
-                                </Grid.RowDefinitions>
-                                <StackPanel Grid.Row="0">
-                                    <TextBlock Text="3B Önizleme" FontWeight="SemiBold" FontSize="14"/>
-                                    <WrapPanel Margin="0,7,0,7">
-                                        <Button x:Name="btnExternalStepBuyukAc" Style="{StaticResource SecondaryButton}" Content="Büyük Aç" Padding="9,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepBuyukAc_Click"/>
-                                        <Button x:Name="btnExternalStepIsometric" Style="{StaticResource SecondaryButton}" Content="İzometrik" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepIsometric_Click"/>
-                                        <Button x:Name="btnExternalStepFront" Style="{StaticResource SecondaryButton}" Content="Ön" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepFront_Click"/>
-                                        <Button x:Name="btnExternalStepBack" Style="{StaticResource SecondaryButton}" Content="Arka" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepBack_Click"/>
-                                        <Button x:Name="btnExternalStepLeft" Style="{StaticResource SecondaryButton}" Content="Sol" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepLeft_Click"/>
-                                        <Button x:Name="btnExternalStepRight" Style="{StaticResource SecondaryButton}" Content="Sağ" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepRight_Click"/>
-                                        <Button x:Name="btnExternalStepTop" Style="{StaticResource SecondaryButton}" Content="Üst" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepTop_Click"/>
-                                        <Button x:Name="btnExternalStepBottom" Style="{StaticResource SecondaryButton}" Content="Alt" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepBottom_Click"/>
-                                        <Button x:Name="btnExternalStepFitAll" Style="{StaticResource SecondaryButton}" Content="Sığdır" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepFitAll_Click"/>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <DockPanel Grid.Row="0" Margin="8,5,8,4">
+                                    <WrapPanel DockPanel.Dock="Right">
+                                        <Button x:Name="btnExternalStepExcelAktar" Style="{StaticResource SecondaryButton}"
+                                                Content="Excel'e Aktar" Height="28" Padding="10,0" Margin="0,0,10,0"
+                                                ToolTip="Yalnız görünür STEP analiz sonuçlarını Excel'e aktar"
+                                                Click="btnExternalStepExcelAktar_Click"/>
+                                        <Button Style="{StaticResource SecondaryButton}"
+                                                Content="Üretim Paketi Hazırla" Height="28" Padding="10,0" Margin="0,0,10,0"
+                                                Click="btnExternalStepUretimPaketi_Click"/>
+                                        <Button x:Name="btnExternalStepCatiaKarsilastir" Style="{StaticResource SecondaryButton}"
+                                                Content="Aktif 3B Tarama Verileriyle Karşılaştır" Height="28" Padding="10,0" Margin="0,0,10,0"
+                                                Click="btnExternalStepCatiaKarsilastir_Click"/>
+                                        <Button x:Name="btnExternalStepDosyayiAc" Style="{StaticResource SecondaryButton}"
+                                                Content="Dosyayı Aç" Height="28" Padding="10,0" Margin="0,0,10,0"
+                                                ToolTip="Tek seçili STEP dosyasını Windows varsayılan uygulamasıyla açar"
+                                                Click="btnExternalStepDosyayiAc_Click"/>
+                                        <Button x:Name="btnExternalStepKesin" Style="{StaticResource SecondaryButton}"
+                                                Content="Kesin Profile Aktar" Height="28" Padding="10,0" Margin="0,0,6,0"
+                                                Click="btnExternalStepKesin_Click"/>
+                                        <Button x:Name="btnExternalStepIncele" Style="{StaticResource SecondaryButton}"
+                                                Content="İncelemeye Al" Height="28" Padding="10,0" Margin="0,0,6,0"
+                                                Click="btnExternalStepIncele_Click"/>
+                                        <Button x:Name="btnExternalStepListeDisi" Style="{StaticResource SecondaryButton}"
+                                                Content="Liste Dışına Çıkar" Height="28" Padding="10,0" Margin="0,0,6,0"
+                                                Click="btnExternalStepListeDisi_Click"/>
+                                        <Button x:Name="btnExternalStepOtomatik" Style="{StaticResource SecondaryButton}"
+                                                Content="Otomatik Karara Dön" Height="28" Padding="10,0" Margin="0,0,10,0"
+                                                Click="btnExternalStepOtomatik_Click"/>
                                     </WrapPanel>
-                                </StackPanel>
-                                <Border Grid.Row="1" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Background="#1B2028">
-                                    <local:OcctViewportHost x:Name="externalStepViewport" DiagnosticName="Gömülü 3B"/>
-                                </Border>
-                                <TextBlock Grid.Row="2" x:Name="txtExternalStepViewportStatus" Margin="0,7,0,9" TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Text="3B önizleme hazırlanıyor..."/>
-                                <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
-                                    <StackPanel>
-                                        <TextBlock Text="Seçili Parça" FontWeight="SemiBold" FontSize="14"/>
-                                        <TextBlock x:Name="txtExternalStepDetailMessage" Margin="0,12,0,0" TextWrapping="Wrap" Foreground="{StaticResource TextDisabledBrush}" Text="Ayrıntıları görmek için listeden bir STEP seçin."/>
-                                        <StackPanel x:Name="pnlExternalStepDetail" Visibility="Collapsed" Margin="0,10,0,0">
-                                            <TextBlock x:Name="txtExternalStepDetailFile" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                            <TextBlock x:Name="txtExternalStepDetailStatus" Margin="0,10,0,0" ToolTip="{Binding Text, ElementName=txtExternalStepDetailStatus}"/>
-                                            <TextBlock x:Name="txtExternalStepDetailType" Margin="0,5,0,0"/>
-                                            <TextBlock x:Name="txtExternalStepDetailSection" Margin="0,5,0,0"/>
-                                            <TextBlock x:Name="txtExternalStepDetailLength" Margin="0,5,0,0"/>
-                                            <TextBlock x:Name="txtExternalStepDetailTopology" Margin="0,5,0,0" TextWrapping="Wrap"/>
-                                            <TextBlock x:Name="txtExternalStepDetailCut" Margin="0,5,0,0"/>
-                                            <TextBlock x:Name="txtExternalStepDetailOperation" Margin="0,5,0,0" TextWrapping="Wrap"/>
-                                            <TextBlock x:Name="txtExternalStepDetailCatia" Margin="0,5,0,0"/>
-                                            <TextBlock x:Name="txtExternalStepDetailMatch" Margin="0,5,0,0"/>
-                                            <TextBlock x:Name="txtExternalStepDetailExplanation" Margin="0,5,0,0" TextWrapping="Wrap"/>
+                                    <TextBlock Text="Analiz Sonuçları" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                </DockPanel>
+                                <WrapPanel Grid.Row="1" Margin="8,0,8,6">
+                                    <Button x:Name="btnExternalStepTumFiltreler" Style="{StaticResource SecondaryButton}"
+                                            Content="Tümünü Göster" Height="28" Padding="10,0" Margin="0,0,10,0"
+                                            ToolTip="STEP analiz sonuç gruplarını topluca gösterir veya gizler"
+                                            Click="btnExternalStepTumFiltreler_Click"/>
+                                    <CheckBox x:Name="chkExternalStepDefinite" Content="Kesin profiller (0)" IsChecked="True" Margin="0,0,10,0" Click="chkExternalStepFilter_Click"/>
+                                    <CheckBox x:Name="chkExternalStepReview" Content="İnceleme gerekli (0)" Margin="0,0,10,0" Click="chkExternalStepFilter_Click"/>
+                                    <CheckBox x:Name="chkExternalStepExcluded" Content="Liste dışı (0)" Margin="0,0,10,0" Click="chkExternalStepFilter_Click"/>
+                                    <CheckBox x:Name="chkExternalStepUnclassified" Content="Tanımsız (0)" Click="chkExternalStepFilter_Click"/>
+                                </WrapPanel>
+                                <Grid Grid.Row="2" Margin="8,0,8,8">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="330" MinWidth="300" MaxWidth="360"/></Grid.ColumnDefinitions>
+                                <DataGrid Grid.Column="0" x:Name="gridExternalStepProfil" AutoGenerateColumns="False" IsReadOnly="True"
+                                          CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False"
+                                          SelectionMode="Extended" SelectionChanged="gridExternalStepProfil_SelectionChanged"
+                                          GridLinesVisibility="All" HeadersVisibility="Column"
+                                          FontSize="13" RowHeight="40"
+                                          ToolTip="Haricî STEP sonuçları yalnız bu uygulama oturumunda tutulur.">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Durum" Binding="{Binding EffectiveStatusDisplay}" Width="140">
+                                            <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="ToolTip" Value="{Binding DecisionToolTip}"/></Style></DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="STEP Dosyası" Binding="{Binding SourceFileName}" Width="210"/>
+                                        <DataGridTextColumn Header="Parça Türü" Binding="{Binding EffectiveProfileTypeDisplay}" Width="160"/>
+                                        <DataGridTextColumn Header="Kesit" Binding="{Binding SectionDisplay}" Width="155"/>
+                                        <DataGridTextColumn Header="Boy" Binding="{Binding LengthDisplay}" Width="115"/>
+                                        <DataGridTextColumn Header="CATIA Adedi" Binding="{Binding CatiaQuantityDisplay}" Width="85"/>
+                                        <DataGridTextColumn Header="Eşleşme" Binding="{Binding CatiaMatchDisplay}" Width="130"/>
+                                        <DataGridTextColumn Header="Topoloji Bilgisi" Binding="{Binding TopologyDisplay}" Width="245"/>
+                                        <DataGridTextColumn Header="Açılı Kesim" Binding="{Binding CutDisplay}" Width="125"/>
+                                        <DataGridTextColumn Header="İşlem Durumu" Binding="{Binding OperationDisplay}" Width="125">
+                                            <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="ToolTip" Value="{Binding OperationToolTip}"/><Setter Property="TextTrimming" Value="CharacterEllipsis"/></Style></DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTemplateColumn Header="Açıklama" Width="*">
+                                            <DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding ExplanationDisplay}" ToolTip="{Binding SourceStepPath}" TextTrimming="CharacterEllipsis"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="{StaticResource BorderBrush}"/>
+                                <Border Grid.Column="2" Margin="8,0,0,0" Padding="12" CornerRadius="4" Background="{StaticResource BgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="230"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <StackPanel Grid.Row="0">
+                                            <TextBlock Text="3B Önizleme" FontWeight="SemiBold" FontSize="14"/>
+                                            <WrapPanel Margin="0,7,0,7">
+                                                <Button x:Name="btnExternalStepBuyukAc" Style="{StaticResource SecondaryButton}" Content="Büyük Aç" Padding="9,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepBuyukAc_Click"/>
+                                                <Button x:Name="btnExternalStepIsometric" Style="{StaticResource SecondaryButton}" Content="İzometrik" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepIsometric_Click"/>
+                                                <Button x:Name="btnExternalStepFront" Style="{StaticResource SecondaryButton}" Content="Ön" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepFront_Click"/>
+                                                <Button x:Name="btnExternalStepBack" Style="{StaticResource SecondaryButton}" Content="Arka" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepBack_Click"/>
+                                                <Button x:Name="btnExternalStepLeft" Style="{StaticResource SecondaryButton}" Content="Sol" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepLeft_Click"/>
+                                                <Button x:Name="btnExternalStepRight" Style="{StaticResource SecondaryButton}" Content="Sağ" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepRight_Click"/>
+                                                <Button x:Name="btnExternalStepTop" Style="{StaticResource SecondaryButton}" Content="Üst" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepTop_Click"/>
+                                                <Button x:Name="btnExternalStepBottom" Style="{StaticResource SecondaryButton}" Content="Alt" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepBottom_Click"/>
+                                                <Button x:Name="btnExternalStepFitAll" Style="{StaticResource SecondaryButton}" Content="Sığdır" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepFitAll_Click"/>
+                                            </WrapPanel>
                                         </StackPanel>
-                                    </StackPanel>
-                                </ScrollViewer>
+                                        <Border Grid.Row="1" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Background="#1B2028">
+                                            <local:OcctViewportHost x:Name="externalStepViewport" DiagnosticName="Gömülü 3B"/>
+                                        </Border>
+                                        <TextBlock Grid.Row="2" x:Name="txtExternalStepViewportStatus" Margin="0,7,0,9" TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Text="3B önizleme hazırlanıyor..."/>
+                                        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+                                            <StackPanel>
+                                                <TextBlock Text="Seçili Parça" FontWeight="SemiBold" FontSize="14"/>
+                                                <TextBlock x:Name="txtExternalStepDetailMessage" Margin="0,12,0,0" TextWrapping="Wrap" Foreground="{StaticResource TextDisabledBrush}" Text="Ayrıntıları görmek için listeden bir STEP seçin."/>
+                                                <StackPanel x:Name="pnlExternalStepDetail" Visibility="Collapsed" Margin="0,10,0,0">
+                                                    <TextBlock x:Name="txtExternalStepDetailFile" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                                    <TextBlock x:Name="txtExternalStepDetailStatus" Margin="0,10,0,0" ToolTip="{Binding Text, ElementName=txtExternalStepDetailStatus}"/>
+                                                    <TextBlock x:Name="txtExternalStepDetailType" Margin="0,5,0,0"/>
+                                                    <TextBlock x:Name="txtExternalStepDetailSection" Margin="0,5,0,0"/>
+                                                    <TextBlock x:Name="txtExternalStepDetailLength" Margin="0,5,0,0"/>
+                                                    <TextBlock x:Name="txtExternalStepDetailTopology" Margin="0,5,0,0" TextWrapping="Wrap"/>
+                                                    <TextBlock x:Name="txtExternalStepDetailCut" Margin="0,5,0,0"/>
+                                                    <TextBlock x:Name="txtExternalStepDetailOperation" Margin="0,5,0,0" TextWrapping="Wrap"/>
+                                                    <TextBlock x:Name="txtExternalStepDetailCatia" Margin="0,5,0,0"/>
+                                                    <TextBlock x:Name="txtExternalStepDetailMatch" Margin="0,5,0,0"/>
+                                                    <TextBlock x:Name="txtExternalStepDetailExplanation" Margin="0,5,0,0" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </ScrollViewer>
+                                    </Grid>
+                                </Border>
+                                </Grid>
                             </Grid>
-                        </Border>
-                        </Grid>
-                    </Grid>
+                        </TabItem>
+
+                        <TabItem x:Name="tabExternalStepSaclar" Header="Saclar (0)" Visibility="Collapsed">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <DockPanel Grid.Row="0" Margin="0,0,0,6">
+                                    <WrapPanel DockPanel.Dock="Right">
+                                        <Button x:Name="btnSacDxfUret" Style="{StaticResource PrimaryButton}"
+                                                Content="DXF Üret" Height="28" Padding="12,0" Margin="0,0,10,0"
+                                                ToolTip="Onaylı Sac satırlarının motor DXF'ini hedef klasörün altındaki Motor-DXF klasörüne yazar"
+                                                Click="btnSacDxfUret_Click"/>
+                                        <Button Style="{StaticResource SecondaryButton}" Content="Excel'e Aktar"
+                                                Height="28" Padding="10,0" Margin="0,0,10,0" Click="btnSacExcelAktar_Click"/>
+                                        <Button Style="{StaticResource SecondaryButton}" Content="Aktif 3B Tarama Verileriyle Karşılaştır"
+                                                Height="28" Padding="10,0" Margin="0,0,10,0" Click="btnExternalStepCatiaKarsilastir_Click"/>
+                                        <Button x:Name="btnSacOnayla" Style="{StaticResource SecondaryButton}" Content="Sac Olarak Onayla"
+                                                Height="28" Padding="10,0" Margin="0,0,6,0" IsEnabled="False" Click="btnSacOnayla_Click"/>
+                                        <Button x:Name="btnSacKontrole" Style="{StaticResource SecondaryButton}" Content="Kontrol Gerekliye Al"
+                                                Height="28" Padding="10,0" Margin="0,0,6,0" IsEnabled="False" Click="btnSacKontrole_Click"/>
+                                        <Button x:Name="btnSacOtomatik" Style="{StaticResource SecondaryButton}" Content="Otomatik Karara Dön"
+                                                Height="28" Padding="10,0" IsEnabled="False" Click="btnSacOtomatik_Click"/>
+                                    </WrapPanel>
+                                    <TextBlock x:Name="txtSacOzet" VerticalAlignment="Center" TextWrapping="Wrap"
+                                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                                </DockPanel>
+                                <Grid Grid.Row="1" Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="330" MinWidth="300" MaxWidth="360"/></Grid.ColumnDefinitions>
+                                    <DataGrid x:Name="gridSacParcalar" Grid.Column="0" AutoGenerateColumns="False" IsReadOnly="True"
+                                              CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False"
+                                              SelectionMode="Extended" SelectionChanged="gridSacParcalar_SelectionChanged"
+                                              GridLinesVisibility="All" HeadersVisibility="Column" FontSize="13" RowHeight="34">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Durum" Binding="{Binding StatusDisplay}" Width="190"/>
+                                            <DataGridTextColumn Header="Parça" Binding="{Binding PartName}" Width="170"/>
+                                            <DataGridTextColumn Header="Adet" Binding="{Binding Quantity}" Width="55"/>
+                                            <DataGridTextColumn Header="Kalınlık" Binding="{Binding ThicknessDisplay}" Width="80"/>
+                                            <DataGridTextColumn Header="Grup" Binding="{Binding GroupDisplay}" Width="105"/>
+                                            <DataGridTextColumn Header="Büküm" Binding="{Binding BendCountDisplay}" Width="65"/>
+                                            <DataGridTextColumn Header="Delikler" Binding="{Binding HoleSummary}" Width="260"/>
+                                            <DataGridTextColumn Header="CATIA Adedi" Binding="{Binding CatiaQuantityDisplay}" Width="85"/>
+                                            <DataGridTextColumn Header="Eşleşme" Binding="{Binding CatiaMatchDisplay}" Width="150"/>
+                                            <DataGridTextColumn Header="Karar" Binding="{Binding DecisionDisplay}" Width="115"/>
+                                            <DataGridTemplateColumn Header="Açıklama" Width="*">
+                                                <DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding ExplanationDisplay}" ToolTip="{Binding SourceStepPath}" TextTrimming="CharacterEllipsis"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                    <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="{StaticResource BorderBrush}"/>
+                                    <Border Grid.Column="2" Margin="8,0,0,0" Padding="12" CornerRadius="4" Background="{StaticResource BgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                                        <Grid>
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                            <TextBlock Text="Motor DXF Önizleme" FontWeight="SemiBold"/>
+                                            <Border Grid.Row="1" Margin="0,10,0,10" Padding="10" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4">
+                                                <Grid>
+                                                    <Path x:Name="sacOnizlemeCizim" Stretch="Uniform" Stroke="{StaticResource TextPrimaryBrush}" StrokeThickness="1" StrokeLineJoin="Round" Visibility="Collapsed"/>
+                                                    <TextBlock x:Name="txtSacOnizlemeMesaj" Text="Önizlemek için listeden bir sac parça seçin." TextWrapping="Wrap" TextAlignment="Center" Foreground="{StaticResource TextDisabledBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                            <StackPanel Grid.Row="2">
+                                                <TextBlock x:Name="txtSacOnizlemeDosya" FontSize="11" TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextDisabledBrush}"/>
+                                                <TextBlock x:Name="txtSacOnizlemeOlcu" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,3,0,0"/>
+                                                <TextBlock FontSize="11" TextWrapping="Wrap" Foreground="{StaticResource TextDisabledBrush}" Margin="0,6,0,0"
+                                                           Text="Not: Motor açınımı parçanın bir yüzünden çizer; CATIA DXF'i ters yüzden çizilmişse ayna görüntüsüdür ve UP/DOWN ters okunur."/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                            </Grid>
+                        </TabItem>
+
+                        <TabItem x:Name="tabExternalStepKontrol" Header="Kontrol gerekli (0)" Visibility="Collapsed">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <DockPanel Grid.Row="0" Margin="0,0,0,6">
+                                    <WrapPanel DockPanel.Dock="Right">
+                                        <Button Style="{StaticResource SecondaryButton}" Content="Aktif 3B Tarama Verileriyle Karşılaştır"
+                                                Height="28" Padding="10,0" Margin="0,0,10,0" Click="btnExternalStepCatiaKarsilastir_Click"/>
+                                        <Button x:Name="btnKontrolSacOnayla" Style="{StaticResource SecondaryButton}" Content="Sac Olarak Onayla"
+                                                Height="28" Padding="10,0" Margin="0,0,6,0" IsEnabled="False" Click="btnKontrolSacOnayla_Click"
+                                                ToolTip="Yalnız motorun açınımını üretebildiği (DXF'i olan) parçalar sac olarak onaylanabilir"/>
+                                        <Button x:Name="btnKontrolOtomatik" Style="{StaticResource SecondaryButton}" Content="Otomatik Karara Dön"
+                                                Height="28" Padding="10,0" IsEnabled="False" Click="btnKontrolOtomatik_Click"/>
+                                    </WrapPanel>
+                                    <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}"
+                                               Text="Motorun karar veremediği veya sac/profil olmayan (Diğer) montaj parçaları."/>
+                                </DockPanel>
+                                <DataGrid x:Name="gridKontrolParcalar" Grid.Row="1" Margin="0,0,0,8" AutoGenerateColumns="False" IsReadOnly="True"
+                                          CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False"
+                                          SelectionMode="Extended" SelectionChanged="gridKontrolParcalar_SelectionChanged"
+                                          GridLinesVisibility="All" HeadersVisibility="Column" FontSize="13" RowHeight="34">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Durum" Binding="{Binding StatusDisplay}" Width="130"/>
+                                        <DataGridTextColumn Header="Parça" Binding="{Binding PartName}" Width="170"/>
+                                        <DataGridTextColumn Header="Adet" Binding="{Binding Quantity}" Width="55"/>
+                                        <DataGridTextColumn Header="STEP Dosyası" Binding="{Binding SourceFileName}" Width="170"/>
+                                        <DataGridTextColumn Header="CATIA Adedi" Binding="{Binding CatiaQuantityDisplay}" Width="85"/>
+                                        <DataGridTextColumn Header="Eşleşme" Binding="{Binding CatiaMatchDisplay}" Width="150"/>
+                                        <DataGridTextColumn Header="Karar" Binding="{Binding DecisionDisplay}" Width="115"/>
+                                        <DataGridTemplateColumn Header="Açıklama" Width="*">
+                                            <DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding ExplanationDisplay}" ToolTip="{Binding ExplanationDisplay}" TextTrimming="CharacterEllipsis"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </TabItem>
+                    </TabControl>
                 </Border>
             </Grid>
 

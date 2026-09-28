@@ -24,8 +24,13 @@ public partial class MainWindow
     private void btnExternalStepCatiaKarsilastir_Click(object sender, RoutedEventArgs e)
     {
         if (_lastSuccessfulCatiaSnapshot == null) { MessageBox.Show(this, "Karşılaştırma için önce ana ekrandan CATIA taraması yapın."); return; }
-        if (_externalStepProfileRows.Count == 0) { MessageBox.Show(this, "Karşılaştırılacak STEP analiz sonucu bulunamadı."); return; }
-        foreach (var row in _externalStepProfileRows) row.ApplyCatiaComparison(CatiaStepMatcher.Match(_lastSuccessfulCatiaSnapshot, row.SourceStepPath));
+        if (_externalStepProfileRows.Count == 0 && _montajParcaRows.Count == 0) { MessageBox.Show(this, "Karşılaştırılacak STEP analiz sonucu bulunamadı."); return; }
+        // Assembly part rows are matched by part name, file rows by file name.
+        foreach (var row in _externalStepProfileRows)
+            row.ApplyCatiaComparison(row.PartName is null
+                ? CatiaStepMatcher.Match(_lastSuccessfulCatiaSnapshot, row.SourceStepPath)
+                : CatiaStepMatcher.MatchPartName(_lastSuccessfulCatiaSnapshot, row.PartName));
+        MontajCatiaKarsilastir(_lastSuccessfulCatiaSnapshot);
         _externalStepProfileView?.Refresh(); ExternalStepProfilOzetiniGuncelle();
     }
 
@@ -329,6 +334,9 @@ public partial class MainWindow
 
         // A successful new selection explicitly replaces only this session-only external list.
         _externalStepProfileRows.Clear();
+        _montajParcaRows.Clear();
+        string motorDxfKlasoru = MotorDxfOturumunuYenile();
+        MontajSekmeleriniGuncelle();
         foreach (string path in stepPaths)
             _externalStepProfileRows.Add(new GeometryLabStepProfileListItem { SourceStepPath = path });
         ExternalStepProfilOzetiniGuncelle();
@@ -345,15 +353,18 @@ public partial class MainWindow
             var adapter = new GeometryLabProcessAdapter(new GeometryLabProcessAdapterOptions
             {
                 EngineExecutablePath = engine.ExecutablePath!,
-                Timeout = Ayarlar.GeometryLabZamanAsimi()
+                Timeout = Ayarlar.GeometryLabZamanAsimi(),
+                PartDxfRootDirectory = motorDxfKlasoru
             });
 
-            foreach (GeometryLabStepProfileListItem item in _externalStepProfileRows)
+            // A snapshot: an assembly STEP replaces its own row with part rows.
+            foreach (GeometryLabStepProfileListItem item in _externalStepProfileRows.ToList())
             {
                 item.MarkAnalyzing();
                 LogInfo("External STEP analiz ediliyor: " + item.SourceFileName);
                 GeometryLabProcessAdapterResult result = await adapter.AnalyzeAsync(item.SourceStepPath);
                 item.Apply(result);
+                MontajSonucunuDagit(item, result);
                 ExternalStepProfilOzetiniGuncelle();
                 _externalStepProfileView?.Refresh();
                 if (result.IsSuccess)
