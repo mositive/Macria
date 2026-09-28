@@ -33,6 +33,8 @@ internal static class Program
             await InvalidJsonAsync();
             await UnsupportedSchemaAsync();
             await SheetMetalSchemaAsync();
+            await PartsSchemaAsync();
+            await RealAssemblyEngineAsync();
             await CancellationAsync();
             await MultipleProfilesAsync();
             StepProfileListFormatting();
@@ -127,7 +129,7 @@ internal static class Program
 
         GeometryLabProcessAdapterResult result = await Adapter(engine, TimeSpan.FromMinutes(1)).AnalyzeAsync(step);
         Check(result.Status == GeometryLabProcessAdapterStatus.Succeeded, "real engine succeeds through adapter");
-        Check(result.Analysis?.SchemaVersion == GeometryLabProcessAdapter.SupportedSchemaVersion,
+        Check(GeometryLabProcessAdapter.IsSupportedSchemaVersion(result.Analysis?.SchemaVersion),
             "real engine JSON schema is accepted");
         Check(result.Analysis?.ProfileRecognition?.ProfileType == "SquareHollowSection",
             "real engine profile transport preserves profile type");
@@ -279,9 +281,9 @@ internal static class Program
               result.Analysis.HoleFeatures[0].Type == "Countersink" && result.Analysis.HoleFeatures[0].ThroughDiameterMm == 16,
             "sheetMetalAnalyses and holeFeatures are read");
 
-        GeometryLabProcessAdapterResult future = await Adapter(CreateEngine("schema-1-2",
-            "echo {\"schemaVersion\":\"1.2\",\"status\":\"Succeeded\",\"exitCode\":0,\"errors\":[],\"warnings\":[],\"profileRecognitions\":[]}>\"%~4\"\r\nexit /b 0")).AnalyzeAsync(_step);
-        Check(future.Status == GeometryLabProcessAdapterStatus.UnsupportedSchema, "schema 1.2 is still rejected");
+        GeometryLabProcessAdapterResult future = await Adapter(CreateEngine("schema-2-0",
+            "echo {\"schemaVersion\":\"2.0\",\"status\":\"Succeeded\",\"exitCode\":0,\"errors\":[],\"warnings\":[],\"profileRecognitions\":[]}>\"%~4\"\r\nexit /b 0")).AnalyzeAsync(_step);
+        Check(future.Status == GeometryLabProcessAdapterStatus.UnsupportedSchema, "schema 2.0 is rejected");
 
         GeometryLabAnalysisTransport? legacy = JsonSerializer.Deserialize<GeometryLabAnalysisTransport>("{\"schemaVersion\":\"1.0\",\"status\":\"Succeeded\"}");
         Check(legacy?.SheetMetal is null && legacy.SheetMetalAnalyses.Count == 0 && legacy.HoleFeatures.Count == 0,
@@ -289,6 +291,126 @@ internal static class Program
         Check(GeometryLabProcessAdapter.IsSupportedSchemaVersion("1.0") && GeometryLabProcessAdapter.IsSupportedSchemaVersion("1.1") &&
               !GeometryLabProcessAdapter.IsSupportedSchemaVersion(null) && !GeometryLabProcessAdapter.IsSupportedSchemaVersion("1.10"),
             "only the exact supported schema versions are accepted");
+    }
+
+    private static async Task PartsSchemaAsync()
+    {
+        const string json = "{\"schemaVersion\":\"1.2\",\"status\":\"Succeeded\",\"exitCode\":0,\"errors\":[],\"warnings\":[],\"solids\":[{},{}],\"profileRecognitions\":[],"
+            + "\"parts\":[{\"localId\":1,\"name\":\"55RS100111-3\",\"productId\":\"55RS100111-3\",\"productName\":\"55RS100111-3\",\"quantity\":2,"
+            + "\"solidIds\":[{\"analysisId\":\"a\",\"localId\":1}],\"classification\":\"Sheet\",\"classificationReasons\":[\"Sac\"],"
+            + "\"sheetCandidate\":true,\"profileCandidate\":null,\"dxfFile\":\"part-1.dxf\"},"
+            + "{\"localId\":2,\"name\":\"01-Duz-Duz\",\"quantity\":3,\"solidIds\":[{\"analysisId\":\"a\",\"localId\":2}],"
+            + "\"classification\":\"Profile\",\"classificationReasons\":[],\"sheetCandidate\":false,\"profileCandidate\":\"SquareHollowSection\",\"dxfFile\":null}],"
+            + "\"holeFeatures\":[{\"localId\":1,\"type\":\"Countersink\",\"status\":\"Recognized\",\"throughDiameterMm\":6.647,"
+            + "\"threadDesignation\":\"M8x1.25\",\"warning\":\"threaded\"}]}";
+
+        // Without PartDxfRootDirectory the engine gets exactly --input/--output.
+        GeometryLabProcessAdapterResult plain = await Adapter(CreateEngine("parts-plain",
+            "if not \"%~5\"==\"\" exit /b 3\r\necho " + json + ">\"%~4\"\r\nexit /b 0")).AnalyzeAsync(_step);
+        Check(plain.Status == GeometryLabProcessAdapterStatus.Succeeded && plain.PartDxfDirectory is null,
+            "without a DXF root no --dxf-klasor argument is passed and no DXF folder is reported");
+        Check(plain.Analysis?.SchemaVersion == "1.2", "schema 1.2 JSON is accepted");
+        GeometryLabPartTransport? sheet = plain.Analysis?.Parts.FirstOrDefault(part => part.Name == "55RS100111-3");
+        Check(plain.Analysis?.Parts.Count == 2 && sheet is not null && sheet.Quantity == 2 && sheet.Classification == "Sheet" &&
+              sheet.SheetCandidate && sheet.ProfileCandidate is null && sheet.SolidIds[0].LocalId == 1 &&
+              sheet.ProductId == "55RS100111-3" && sheet.DxfFile == "part-1.dxf",
+            "parts: name, product id, quantity, solid ids, class and candidates are read");
+        Check(plain.Analysis?.Parts[1].ProfileCandidate == "SquareHollowSection" && plain.Analysis.Parts[1].DxfFile is null,
+            "profile part keeps its profile candidate and has no DXF");
+        Check(plain.Analysis?.HoleFeatures[0].ThreadDesignation == "M8x1.25" && plain.Analysis.HoleFeatures[0].Warning == "threaded",
+            "thread designation and warning are read");
+        Check(plain.PartDxfPath(sheet!) is null, "no DXF path without a DXF folder");
+
+        // With PartDxfRootDirectory: a new folder under the root is passed as --dxf-klasor.
+        string dxfRoot = Path.Combine(_root, "part-dxf");
+        var adapter = new GeometryLabProcessAdapter(new GeometryLabProcessAdapterOptions
+        {
+            EngineExecutablePath = CreateEngine("parts-dxf",
+                "if not \"%~5\"==\"--dxf-klasor\" exit /b 4\r\nmkdir \"%~6\"\r\necho 0>\"%~6\\part-1.dxf\"\r\necho " + json + ">\"%~4\"\r\nexit /b 0"),
+            Timeout = TimeSpan.FromSeconds(10),
+            TemporaryRootDirectory = Path.Combine(_root, "work"),
+            PartDxfRootDirectory = dxfRoot
+        });
+        GeometryLabProcessAdapterResult withDxf = await adapter.AnalyzeAsync(_step);
+        string? dxfPath = withDxf.Analysis is null ? null : withDxf.PartDxfPath(withDxf.Analysis.Parts[0]);
+        Check(withDxf.Status == GeometryLabProcessAdapterStatus.Succeeded && withDxf.PartDxfDirectory is not null &&
+              Path.GetDirectoryName(withDxf.PartDxfDirectory) == Path.GetFullPath(dxfRoot),
+            "the DXF folder is a new folder under the given root");
+        Check(dxfPath is not null && File.Exists(dxfPath), "the part DXF written by the engine survives the analysis");
+        Check(withDxf.TemporaryDirectoryCleaned, "the JSON work folder is still cleaned");
+        GeometryLabProcessAdapterResult second = await adapter.AnalyzeAsync(_step);
+        Check(second.PartDxfDirectory is not null && second.PartDxfDirectory != withDxf.PartDxfDirectory,
+            "every analysis gets its own DXF folder");
+        Check(withDxf.PartDxfPath(new GeometryLabPartTransport { DxfFile = "..\\x.dxf" }) is null,
+            "a DXF file name with path characters is not resolved");
+
+        GeometryLabProcessAdapterResult future = await Adapter(CreateEngine("schema-1-3",
+            "echo {\"schemaVersion\":\"1.3\",\"status\":\"Succeeded\",\"exitCode\":0,\"errors\":[],\"warnings\":[],\"profileRecognitions\":[]}>\"%~4\"\r\nexit /b 0")).AnalyzeAsync(_step);
+        Check(future.Status == GeometryLabProcessAdapterStatus.UnsupportedSchema, "schema 1.3 is rejected");
+        Check(GeometryLabProcessAdapter.IsSupportedSchemaVersion("1.2"), "1.2 is a supported schema version");
+        GeometryLabAnalysisTransport? legacy = JsonSerializer.Deserialize<GeometryLabAnalysisTransport>("{\"schemaVersion\":\"1.1\",\"status\":\"Succeeded\"}");
+        Check(legacy?.Parts.Count == 0, "schema 1.1 JSON has no parts");
+    }
+
+    // montaj-1 style folder: one assembly STEP and beklenen.txt with
+    // "<part name>: <quantity> <class>" (Sac, Profil, Diğer, Kontrol gerekli).
+    private static async Task RealAssemblyEngineAsync()
+    {
+        string? engine = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_EXE");
+        string? folder = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_ASSEMBLY_DIR");
+        if (string.IsNullOrWhiteSpace(engine) || string.IsNullOrWhiteSpace(folder))
+        {
+            Console.WriteLine("REAL_ASSEMBLY_ENGINE: SKIPPED - MACRIA_GEOMETRY_ENGINE_EXE / MACRIA_GEOMETRY_ENGINE_ASSEMBLY_DIR unavailable.");
+            return;
+        }
+        Check(File.Exists(engine) && Directory.Exists(folder), "given engine and assembly folder exist");
+        string[] steps = Directory.GetFiles(folder).Where(path =>
+            Path.GetExtension(path).Equals(".stp", StringComparison.OrdinalIgnoreCase) ||
+            Path.GetExtension(path).Equals(".step", StringComparison.OrdinalIgnoreCase)).ToArray();
+        Check(steps.Length == 1, "assembly folder holds exactly one STEP");
+        var expected = File.ReadAllLines(Path.Combine(folder, "beklenen.txt"))
+            .Select(line => line.Trim())
+            .Where(line => line.Length > 0 && !line.StartsWith('#'))
+            .Select(line =>
+            {
+                int colon = line.LastIndexOf(':');
+                string[] rest = line[(colon + 1)..].Trim().Split(' ', 2);
+                return (Name: line[..colon].Trim(),
+                    Quantity: int.Parse(rest[0], System.Globalization.CultureInfo.InvariantCulture),
+                    Class: rest[1].Trim());
+            }).ToArray();
+
+        var adapter = new GeometryLabProcessAdapter(new GeometryLabProcessAdapterOptions
+        {
+            EngineExecutablePath = engine,
+            Timeout = TimeSpan.FromMinutes(5),
+            TemporaryRootDirectory = Path.Combine(_root, "work"),
+            PartDxfRootDirectory = Path.Combine(_root, "assembly-dxf")
+        });
+        GeometryLabProcessAdapterResult result = await adapter.AnalyzeAsync(steps[0]);
+        Check(result.Status == GeometryLabProcessAdapterStatus.Succeeded && result.Analysis?.SchemaVersion == "1.2",
+            "real assembly analysis succeeds through the adapter with schema 1.2: " + result.Message);
+        IReadOnlyList<GeometryLabPartTransport> parts = result.Analysis!.Parts;
+        Check(parts.Count == expected.Length, "real assembly: part count " + parts.Count + " = " + expected.Length);
+        foreach (var row in expected)
+        {
+            GeometryLabPartTransport? part = parts.FirstOrDefault(candidate => candidate.Name == row.Name);
+            string engineClass = row.Class switch
+            {
+                "Sac" => "Sheet",
+                "Profil" => "Profile",
+                "Kontrol gerekli" => "ReviewRequired",
+                _ => "Other"
+            };
+            Check(part is not null && part.Quantity == row.Quantity && part.Classification == engineClass,
+                "real assembly " + row.Name + ": quantity " + part?.Quantity + "/" + row.Quantity +
+                ", class " + part?.Classification + "/" + engineClass);
+            string? dxf = part is null ? null : result.PartDxfPath(part);
+            Check((row.Class == "Sac") == (dxf is not null && File.Exists(dxf) && new FileInfo(dxf).Length > 0),
+                "real assembly " + row.Name + ": engine DXF exactly for sheet parts");
+            Console.WriteLine("REAL_ASSEMBLY_ENGINE: " + row.Name + " adet=" + part?.Quantity + " sinif=" + part?.Classification +
+                (dxf is null ? "" : " dxf=" + Path.GetFileName(dxf)));
+        }
     }
 
     private static async Task CancellationAsync()

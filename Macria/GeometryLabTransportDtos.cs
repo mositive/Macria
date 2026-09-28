@@ -60,6 +60,52 @@ public sealed record GeometryLabAnalysisTransport
     [JsonPropertyName("holeFeatures")]
     public IReadOnlyList<GeometryLabHoleFeatureTransport> HoleFeatures { get; init; } =
         Array.Empty<GeometryLabHoleFeatureTransport>();
+
+    // Schema 1.2 addition: distinct parts of the STEP product structure (an
+    // assembly lists every part once with its instance count).
+    [JsonPropertyName("parts")]
+    public IReadOnlyList<GeometryLabPartTransport> Parts { get; init; } = Array.Empty<GeometryLabPartTransport>();
+}
+
+public sealed record GeometryLabPartTransport
+{
+    [JsonPropertyName("localId")]
+    public int LocalId { get; init; }
+
+    // STEP PRODUCT name as XDE reads it; productId/productName are the raw
+    // STEP fields when the product could be traced (equal in 3DEXPERIENCE files).
+    [JsonPropertyName("name")]
+    public string? Name { get; init; }
+
+    [JsonPropertyName("productId")]
+    public string? ProductId { get; init; }
+
+    [JsonPropertyName("productName")]
+    public string? ProductName { get; init; }
+
+    [JsonPropertyName("quantity")]
+    public int Quantity { get; init; }
+
+    [JsonPropertyName("solidIds")]
+    public IReadOnlyList<GeometryLabLocalIdTransport> SolidIds { get; init; } = Array.Empty<GeometryLabLocalIdTransport>();
+
+    // Pure geometry: "Sheet", "Profile", "Other" or "ReviewRequired". Macria
+    // settles a sheet/profile conflict with the CATIA sheet-metal feature.
+    [JsonPropertyName("classification")]
+    public string? Classification { get; init; }
+
+    [JsonPropertyName("classificationReasons")]
+    public IReadOnlyList<string> ClassificationReasons { get; init; } = Array.Empty<string>();
+
+    [JsonPropertyName("sheetCandidate")]
+    public bool SheetCandidate { get; init; }
+
+    [JsonPropertyName("profileCandidate")]
+    public string? ProfileCandidate { get; init; }
+
+    // File name the engine wrote with --dxf-klasor (part-<id>.dxf), or null.
+    [JsonPropertyName("dxfFile")]
+    public string? DxfFile { get; init; }
 }
 
 public sealed record GeometryLabLocalIdTransport
@@ -195,6 +241,14 @@ public sealed record GeometryLabHoleFeatureTransport
 
     [JsonPropertyName("reason")]
     public string? Reason { get; init; }
+
+    // Tapped hole (through diameter is an ISO metric thread minor diameter):
+    // not drawn in the flat-pattern DXF; the warning says so.
+    [JsonPropertyName("threadDesignation")]
+    public string? ThreadDesignation { get; init; }
+
+    [JsonPropertyName("warning")]
+    public string? Warning { get; init; }
 }
 
 public sealed record GeometryLabSolidTransport

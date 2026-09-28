@@ -250,7 +250,8 @@ public partial class MainWindow
                     EnsurePip("GeometryLab Test").SetState(ExportPipWindow.PipState.Running, "GeometryLab analiz ediyor...");
                     var adapter = new GeometryLabProcessAdapter(new GeometryLabProcessAdapterOptions
                     {
-                        EngineExecutablePath = engine.ExecutablePath!
+                        EngineExecutablePath = engine.ExecutablePath!,
+                        Timeout = Ayarlar.GeometryLabZamanAsimi()
                     });
                     analysisResult = await adapter.AnalyzeAsync(workspace.StepFilePath, cancellationToken);
                     cancelled = analysisResult.Status == GeometryLabProcessAdapterStatus.Cancelled ||

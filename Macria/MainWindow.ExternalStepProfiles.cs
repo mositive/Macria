@@ -344,7 +344,8 @@ public partial class MainWindow
         {
             var adapter = new GeometryLabProcessAdapter(new GeometryLabProcessAdapterOptions
             {
-                EngineExecutablePath = engine.ExecutablePath!
+                EngineExecutablePath = engine.ExecutablePath!,
+                Timeout = Ayarlar.GeometryLabZamanAsimi()
             });
 
             foreach (GeometryLabStepProfileListItem item in _externalStepProfileRows)

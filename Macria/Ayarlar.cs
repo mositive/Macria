@@ -52,6 +52,15 @@ namespace Macria
         public static DateTime KurTarihi;
         public static string KurKaynagi = "";
 
+        // GeometryLab motoru icin sure siniri (saniye). Buyuk bir montaj STEP'i
+        // tek cagrida iki dakikadan uzun surebilir; ayarla uzatilir.
+        public static int GeometryLabZamanAsimiSaniye = 120;
+
+        public static TimeSpan GeometryLabZamanAsimi()
+        {
+            return TimeSpan.FromSeconds(GeometryLabZamanAsimiSaniye > 0 ? GeometryLabZamanAsimiSaniye : 120);
+        }
+
         private static string Klasor()
         {
             return Path.Combine(
@@ -112,6 +121,8 @@ namespace Macria
                         case "KurUsdTry": KurUsdTry = Ondalik(deger, KurUsdTry); break;
                         case "KurTarihi": KurTarihi = Gun(deger, KurTarihi); break;
                         case "KurKaynagi": KurKaynagi = deger; break;
+                        case "GeometryLabZamanAsimiSaniye":
+                            GeometryLabZamanAsimiSaniye = Sayi(deger, GeometryLabZamanAsimiSaniye); break;
                     }
                 }
             }
@@ -156,7 +167,8 @@ namespace Macria
                     "KurEurTry=" + KurEurTry.ToString(CultureInfo.InvariantCulture),
                     "KurUsdTry=" + KurUsdTry.ToString(CultureInfo.InvariantCulture),
                     "KurTarihi=" + KurTarihi.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                    "KurKaynagi=" + KurKaynagi
+                    "KurKaynagi=" + KurKaynagi,
+                    "GeometryLabZamanAsimiSaniye=" + GeometryLabZamanAsimiSaniye
                 };
 
                 File.WriteAllLines(DosyaYolu(), satirlar);

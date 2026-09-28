@@ -13,6 +13,11 @@ public sealed record GeometryLabProcessAdapterOptions
     public required string EngineExecutablePath { get; init; }
     public TimeSpan Timeout { get; init; } = TimeSpan.FromMinutes(2);
     public string? TemporaryRootDirectory { get; init; }
+
+    // When set, the engine writes one DXF per sheet part (--dxf-klasor) into a
+    // new, unique folder under this root. The folder outlives the analysis;
+    // naming, moving and cleaning the files is the caller's job.
+    public string? PartDxfRootDirectory { get; init; }
 }
 
 public enum GeometryLabProcessAdapterStatus
@@ -40,7 +45,18 @@ public sealed record GeometryLabProcessAdapterResult
     public GeometryLabAnalysisTransport? Analysis { get; init; }
     public bool HasMultipleProfileResults { get; init; }
     public bool TemporaryDirectoryCleaned { get; init; }
+    // Folder the engine wrote the part DXFs into; null without PartDxfRootDirectory.
+    public string? PartDxfDirectory { get; init; }
     public bool IsSuccess => Status == GeometryLabProcessAdapterStatus.Succeeded;
+
+    // Full path of a part's engine DXF, or null when none was written.
+    public string? PartDxfPath(GeometryLabPartTransport part)
+    {
+        if (PartDxfDirectory is null || string.IsNullOrWhiteSpace(part.DxfFile) ||
+            part.DxfFile.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+            return null;
+        return Path.Combine(PartDxfDirectory, part.DxfFile);
+    }
 }
 
 /// <summary>
@@ -51,8 +67,9 @@ public sealed class GeometryLabProcessAdapter
 {
     public const string SupportedSchemaVersion = "1.0";
 
-    // 1.1 only adds sheetMetal, sheetMetalAnalyses and holeFeatures; every 1.0 field is unchanged.
-    public static readonly IReadOnlyList<string> SupportedSchemaVersions = new[] { SupportedSchemaVersion, "1.1" };
+    // 1.1 adds sheetMetal, sheetMetalAnalyses and holeFeatures; 1.2 adds parts.
+    // Every 1.0 field is unchanged.
+    public static readonly IReadOnlyList<string> SupportedSchemaVersions = new[] { SupportedSchemaVersion, "1.1", "1.2" };
 
     public static bool IsSupportedSchemaVersion(string? schemaVersion)
     {
@@ -115,13 +132,26 @@ public sealed class GeometryLabProcessAdapter
             return Result(GeometryLabProcessAdapterStatus.InvalidConfiguration, exception.Message);
         }
 
+        string? partDxfDirectory = null;
+        if (!string.IsNullOrWhiteSpace(_options.PartDxfRootDirectory))
+        {
+            try
+            {
+                partDxfDirectory = Path.Combine(Path.GetFullPath(_options.PartDxfRootDirectory), Guid.NewGuid().ToString("N"));
+            }
+            catch (Exception exception) when (exception is ArgumentException or NotSupportedException or PathTooLongException)
+            {
+                return Result(GeometryLabProcessAdapterStatus.InvalidConfiguration, exception.Message);
+            }
+        }
+
         string workDirectory = Path.Combine(temporaryRoot, Guid.NewGuid().ToString("N"));
         GeometryLabProcessAdapterResult result;
         bool cleaned = false;
         try
         {
             Directory.CreateDirectory(workDirectory);
-            result = await RunEngineAsync(enginePath, inputPath, workDirectory, cancellationToken)
+            result = await RunEngineAsync(enginePath, inputPath, workDirectory, partDxfDirectory, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (Exception exception)
@@ -141,13 +171,18 @@ public sealed class GeometryLabProcessAdapter
             }
         }
 
-        return result with { TemporaryDirectoryCleaned = cleaned };
+        return result with
+        {
+            TemporaryDirectoryCleaned = cleaned,
+            PartDxfDirectory = result.IsSuccess ? partDxfDirectory : null
+        };
     }
 
     private async Task<GeometryLabProcessAdapterResult> RunEngineAsync(
         string enginePath,
         string inputPath,
         string workDirectory,
+        string? partDxfDirectory,
         CancellationToken cancellationToken)
     {
         string outputPath = Path.Combine(workDirectory, "analysis.json");
@@ -166,6 +201,11 @@ public sealed class GeometryLabProcessAdapter
         startInfo.ArgumentList.Add(inputPath);
         startInfo.ArgumentList.Add("--output");
         startInfo.ArgumentList.Add(outputPath);
+        if (partDxfDirectory is not null)
+        {
+            startInfo.ArgumentList.Add("--dxf-klasor");
+            startInfo.ArgumentList.Add(partDxfDirectory);
+        }
 
         using var process = new Process { StartInfo = startInfo };
         try
