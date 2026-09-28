@@ -694,3 +694,32 @@ Prototipin sınırlarını görmek için 22 STEP'te de çalıştırıldı ve CAT
 2. **Dişli delikler DXF'e yazılmayacak.** Dişli delik (ör. parça 3'teki 6,647/8,647 çiftine uyan M8) tanınınca DXF'e daire yazılmaz. JSON'daki kaydında bunu belirten bir uyarı bulunur.
 3. **Blok/sac ayrımı Macria entegrasyonunda.** Levha gibi tanınan kalın bloklar (ör. 10×20×30 kutu, 10 mm "levha") için "sac mı, blok mu?" kararı motorda değil, Macria entegrasyonunda verilecek.
 4. **Ardından çok bükümlü parçalar.** Yukarıdakiler bitince çok bükümlü parçalara geçilecek. Bugünkü durum: 3, 4, 5 ve 9 sac olarak tanınıyor ama açınımları `Unsupported`; 2, 10, 11 ve 9_rev ise hiç tanınmıyor (`NotSheet`).
+
+## 11. Macria entegrasyonu (Aşama 1–4)
+
+Aşama 1 (motor: montaj STEP'i, parça sınıfı, `--dxf-klasor`) GeometryLab'da uygulandı. Aşama 2–4 henüz kodlanmadı; bu bölüm kararları ve notları tutar.
+
+**Kararlar (2026-09-28):**
+
+- **Arayüz:** B, yani sekmeler (Profiller / Saclar / Kontrol gerekli). Mevcut profil ekranı değişmeden kalır.
+- **Sınıf:** Motor yalnız geometriye bakar. Sac/profil çakışmasını Macria, CATIA taramasındaki `SheetMetalConfirmed` bayrağıyla çözer.
+- **DXF:** Motor DXF'i geçici klasöre `part-<id>.dxf` olarak yazar. Macria dosyayı `DxfAdi` ile adlandırıp `Motor-DXF\` alt klasörüne, CATIA DXF'leriyle aynı adla taşır. Var olan dosyanın üzerine sormadan yazmaz.
+- **Zaman aşımı:** Adaptör zaman aşımı bir ayar olur.
+- **Aynalı çizim:** Motorun çizdiği yüz CATIA'nınkinden farklı olabilir. Şimdilik operatör notu yeterli.
+
+**Şirket kuralı (2026-09-28), motorda uygulandı:**
+
+- Profil yalnız içi boş kesitlerdir (kutu, boru).
+- Dolu kesitler (SolidRectangular/Square/CircularBar) profil sayılmaz. Parça sac olarak tanındıysa bükümlü ya da bükümsüz fark etmeksizin sınıfı Sac olur. Sac olmayan dolu çubuk Diğer olur.
+- Motorun yorumu (onay bekliyor): Uzun dolu bir milin iki uç yüzü de sac kabuğu gibi eşleşir; o zaman mil boyu "kalınlık" olarak ölçülür. Bu yüzden sac iddiası ancak kalınlık açınımın en dar ölçüsünü aşmıyorsa geçerlidir. Tanım gereği levha, kalınlığından daha geniştir. Örnek: Ø20 × 500 mil Diğer çıkar, Ø118 × 50 disk (parça 5) Sac kalır.
+
+**Aşama 3–4'e not, Lazer / Şalama-Kütük (şirket kuralı, henüz kod yok):**
+
+- Macria ayarı: **Lazer azami kalınlık**, varsayılan 20 mm.
+- Kalınlığı bu değere eşit ya da küçük olan Sac parçalar **Lazer** grubuna, büyük olanlar **Şalama/Kütük** grubuna girer.
+- **İki grubun da DXF'i üretilir.** Grup yalnız listeleme, filtre ve rapor için kullanılır.
+- Karşılaştırmada motorun ölçtüğü kalınlık kullanılır. 20 mm'lik bir parça Lazer grubuna girer (eşitlik dahil).
+- Ayarın varsayılan değeri kod içine sabit yazılmaz, kullanıcı ayarından gelir.
+- Etkilenen aşamalar:
+  - Aşama 3: DTO'da grup alanı yoktur; grubu Macria hesaplar.
+  - Aşama 4: Saclar sekmesinde Grup sütunu ve filtre olur; "DXF üret" iki grubu da kapsar.
