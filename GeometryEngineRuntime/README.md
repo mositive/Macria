@@ -10,5 +10,13 @@ DLL'leri alınır. Test EXE'leri, `.pdb`, `.lib`, `.exp` ve CMake ara
 dosyaları buraya konmaz. `Macria.csproj` bu klasörü Debug, Release ve publish
 çıktılarında `GeometryEngine\` altına kopyalar.
 
-Bu paket Macria işlemine native DLL yüklemez; motor yalnız ayrı bir child
-process olarak başlatılır.
+Analiz motoru (`Macria.GeometryEngine.exe`) her zaman ayrı bir child process
+olarak başlatılır. 3B STEP görüntüleyici ise farklıdır: `OcctViewerNative`,
+`Macria.GeometryViewer.dll`'i ve OCCT DLL'lerini `LoadLibraryEx` ile Macria
+işlemine yükler; görüntüleyicideki native bir çökme Macria'yı da kapatır.
+
+## Sürüm kaydı
+
+| Tarih | Değişen | Kaynak | Not |
+|---|---|---|---|
+| 2026-09-28 | `Macria.GeometryEngine.exe` | GeometryLab `1b9ea13`, x64 Release | JSON şema 1.2: sac tanıma, delikler, çok bükümlü açınım, montaj parçaları (`parts`), `--dxf-klasor`. Diğer 38 dosya (OCCT DLL'leri, viewer) bayt bayt aynı kaldı. Yeni exe'nin DLL bağımlılıkları (TKCDF, TKLCAF, TKXCAF dahil) bu klasörde mevcut. Önceki paket: `MACRIA-RUNTIME-ASAMA2-BEFORE-20260928-231623` (ZIP SHA-256 `B9095F0E…019651`). |
