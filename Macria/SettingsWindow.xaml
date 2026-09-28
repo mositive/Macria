@@ -117,6 +117,28 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Sac uretim grubu -->
+                <TextBlock Text="Sac Üretim Grubu" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="0,20,0,0"/>
+
+                <Border Background="{StaticResource CardBrush}"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                        CornerRadius="4" Padding="14" Margin="0,8,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Lazer Azami Kalınlık (mm)" FontSize="12"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="0,0,0,5"/>
+                        <TextBox x:Name="txtLazerKalinlik" Style="{StaticResource FieldBox}"
+                                 Width="130" HorizontalAlignment="Left"
+                                 PreviewTextInput="SadeceOndalik"/>
+                        <TextBlock TextWrapping="Wrap" FontSize="12.5" LineHeight="19"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="0,8,0,0"
+                                   Text="Bu kalınlığa eşit ve daha ince saclar Lazer, daha kalınlar Şalama/Kütük grubunda listelenir. İki grubun da DXF'i üretilir."/>
+                    </StackPanel>
+                </Border>
+
                 <!-- Uyarilar -->
                 <TextBlock Text="Uyarılar" FontSize="12" FontWeight="SemiBold"
                            Foreground="{StaticResource TextSecondaryBrush}"

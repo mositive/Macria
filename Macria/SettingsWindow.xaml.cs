@@ -22,6 +22,7 @@ namespace Macria
             WindowEffects.RoundCorners(this);
 
             txtBekleme.Text = Ayarlar.PanelBekleme.ToString(CultureInfo.InvariantCulture);
+            txtLazerKalinlik.Text = Ayarlar.LazerAzamiKalinlikMm.ToString("0.##", CultureInfo.CurrentCulture);
             chkFareUyarisi.IsChecked = !Ayarlar.FareUyarisiGizle;
             chkBukumKapat.IsChecked = Ayarlar.BukumKapat;
 
@@ -272,6 +273,11 @@ namespace Macria
             Ayarlar.PanelBekleme = Sayi(txtBekleme.Text, Ayarlar.PanelBekleme, 500, 30000);
             Ayarlar.FareUyarisiGizle = chkFareUyarisi.IsChecked != true;
             Ayarlar.BukumKapat = chkBukumKapat.IsChecked == true;
+            double lazer;
+            string lazerMetni = (txtLazerKalinlik.Text ?? "").Trim();
+            if ((double.TryParse(lazerMetni, NumberStyles.Float, CultureInfo.CurrentCulture, out lazer) ||
+                 double.TryParse(lazerMetni, NumberStyles.Float, CultureInfo.InvariantCulture, out lazer)) && lazer > 0)
+                Ayarlar.LazerAzamiKalinlikMm = lazer;
             Ayarlar.Kaydet();
 
             DialogResult = true;
@@ -294,6 +300,12 @@ namespace Macria
         {
             foreach (char c in e.Text)
                 if (c < '0' || c > '9') { e.Handled = true; return; }
+        }
+
+        private void SadeceOndalik(object sender, TextCompositionEventArgs e)
+        {
+            foreach (char c in e.Text)
+                if ((c < '0' || c > '9') && c != ',' && c != '.') { e.Handled = true; return; }
         }
 
         private void Baslik_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

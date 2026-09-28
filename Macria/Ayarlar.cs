@@ -56,6 +56,10 @@ namespace Macria
         // tek cagrida iki dakikadan uzun surebilir; ayarla uzatilir.
         public static int GeometryLabZamanAsimiSaniye = 120;
 
+        // Sac uretim grubu: bu kalinliga esit ve ince saclar "Lazer", daha
+        // kalinlar "Salama/Kutuk" grubunda listelenir (ikisinin de DXF'i uretilir).
+        public static double LazerAzamiKalinlikMm = 20;
+
         public static TimeSpan GeometryLabZamanAsimi()
         {
             return TimeSpan.FromSeconds(GeometryLabZamanAsimiSaniye > 0 ? GeometryLabZamanAsimiSaniye : 120);
@@ -123,6 +127,10 @@ namespace Macria
                         case "KurKaynagi": KurKaynagi = deger; break;
                         case "GeometryLabZamanAsimiSaniye":
                             GeometryLabZamanAsimiSaniye = Sayi(deger, GeometryLabZamanAsimiSaniye); break;
+                        case "LazerAzamiKalinlikMm":
+                            double lazer = Ondalik(deger, LazerAzamiKalinlikMm);
+                            if (lazer > 0) LazerAzamiKalinlikMm = lazer;
+                            break;
                     }
                 }
             }
@@ -168,7 +176,8 @@ namespace Macria
                     "KurUsdTry=" + KurUsdTry.ToString(CultureInfo.InvariantCulture),
                     "KurTarihi=" + KurTarihi.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
                     "KurKaynagi=" + KurKaynagi,
-                    "GeometryLabZamanAsimiSaniye=" + GeometryLabZamanAsimiSaniye
+                    "GeometryLabZamanAsimiSaniye=" + GeometryLabZamanAsimiSaniye,
+                    "LazerAzamiKalinlikMm=" + LazerAzamiKalinlikMm.ToString(CultureInfo.InvariantCulture)
                 };
 
                 File.WriteAllLines(DosyaYolu(), satirlar);
