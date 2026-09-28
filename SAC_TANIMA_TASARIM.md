@@ -110,6 +110,7 @@ Bu tasarımda iki tür sayı birbirinden ayrılır:
 |---|---|---|
 | **Alan (domain) eşiği** | **Kullanılmaz** | "t 0,3–30 mm arasında olmalı", "delik Ø ≤ X", "R < 5t ise…", "derinlik farkı < 0,05 mm" |
 | **Ölçüm hassasiyeti** | Kullanılır; motorun mevcut sabitleriyle aynı mantıkta | `Precision::Confusion()` (1e-7), açısal hassasiyet, `MeasurementToleranceMm = 1e-4` ya da model boyutuna göre göreli tolerans. Bu toleranslar "aynı sayı mı?" sorusunu yanıtlar; "üretimde makul mü?" sorusunu yanıtlamaz. |
+| **Genel standart tablolar (ISO/DIN)** | **İzinlidir** (kullanıcı onayı, 2026-09-28) | ISO 261/724 metrik diş çekirdek çapı D1 = D − 1,082532·P (dişli delik tanıma). Tablo parçaya özel değil, herkese açık bir standarttır; ayrı, birim testli bir fonksiyonda tutulur ve kaynağı kodda yazılır. |
 
 **Prototip bu ilkeye uymuyor**, ilk aşamada ayıklanmalı:
 
