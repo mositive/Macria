@@ -303,6 +303,7 @@ namespace Macria
                 }
                 _stopRequested = true;
                 ExternalStepOnizlemeyiKapat();
+                MontajOnizlemesiniKapat();
                 HideKahveMola();
             };
 

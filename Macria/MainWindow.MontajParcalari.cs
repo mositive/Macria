@@ -22,13 +22,105 @@ public partial class MainWindow
     private ICollectionView? _kontrolParcaView;
     private string? _motorDxfOturumKlasoru;
 
+    // Tab filters, like the Profiller ones: which statuses each tab lists.
+    private bool _sacOnayliGorunur = true;
+    private bool _sacBekleyenGorunur = true;
+    private bool _kontrolGerekliGorunur = true;
+    private bool _kontrolDigerGorunur = true;
+
     private void MontajParcaListesiniKur()
     {
-        _sacParcaView = new ListCollectionView(_montajParcaRows) { Filter = item => item is MontajParcaSatiri row && row.IsInSheetTab };
-        _kontrolParcaView = new ListCollectionView(_montajParcaRows) { Filter = item => item is MontajParcaSatiri row && row.IsInReviewTab };
+        _sacParcaView = new ListCollectionView(_montajParcaRows)
+        {
+            Filter = item => item is MontajParcaSatiri row && row.IsInSheetTab &&
+                             (row.EffectiveCategory == MontajParcaKategorisi.Sac ? _sacOnayliGorunur : _sacBekleyenGorunur)
+        };
+        _kontrolParcaView = new ListCollectionView(_montajParcaRows)
+        {
+            Filter = item => item is MontajParcaSatiri row && row.IsInReviewTab &&
+                             (row.EffectiveCategory == MontajParcaKategorisi.Diger ? _kontrolDigerGorunur : _kontrolGerekliGorunur)
+        };
         if (gridSacParcalar != null) gridSacParcalar.ItemsSource = _sacParcaView;
         if (gridKontrolParcalar != null) gridKontrolParcalar.ItemsSource = _kontrolParcaView;
+        if (kontrolStepViewport != null)
+        {
+            kontrolStepViewport.StatusChanged += KontrolViewport_StatusChanged;
+            kontrolStepViewport.Diagnostic += KontrolViewport_Diagnostic;
+        }
         MontajSekmeleriniGuncelle();
+    }
+
+    private void MontajOnizlemesiniKapat()
+    {
+        if (kontrolStepViewport == null) return;
+        kontrolStepViewport.StatusChanged -= KontrolViewport_StatusChanged;
+        kontrolStepViewport.Diagnostic -= KontrolViewport_Diagnostic;
+        kontrolStepViewport.Shutdown();
+    }
+
+    private void KontrolViewport_StatusChanged(object? sender, OcctViewportStatusChangedEventArgs e)
+    {
+        bool loaded = e.State == OcctViewportState.Loaded;
+        if (btnKontrolIsometric != null) btnKontrolIsometric.IsEnabled = loaded;
+        if (btnKontrolFitAll != null) btnKontrolFitAll.IsEnabled = loaded;
+        if (txtKontrolViewportStatus != null)
+            txtKontrolViewportStatus.Text = loaded
+                ? "Seçili parça montaj içinde vurgulanır; diğer parçalar soluk görünür."
+                : e.Message;
+    }
+
+    private void KontrolViewport_Diagnostic(object? sender, OcctViewportDiagnosticEventArgs e) => LogInfo(e.Message);
+
+    private void btnKontrolIsometric_Click(object sender, RoutedEventArgs e) => kontrolStepViewport.SetView(OcctStandardView.Isometric);
+
+    private void btnKontrolFitAll_Click(object sender, RoutedEventArgs e) => kontrolStepViewport.FitAll();
+
+    private void chkMontajFiltre_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not CheckBox checkBox) return;
+        bool visible = checkBox.IsChecked == true;
+        switch (checkBox.Name)
+        {
+            case "chkSacOnayli": _sacOnayliGorunur = visible; break;
+            case "chkSacOnayGerekli": _sacBekleyenGorunur = visible; break;
+            case "chkKontrolGerekli": _kontrolGerekliGorunur = visible; break;
+            case "chkKontrolDiger": _kontrolDigerGorunur = visible; break;
+            default: return;
+        }
+        MontajSekmeleriniGuncelle();
+    }
+
+    private void btnSacTumFiltreler_Click(object sender, RoutedEventArgs e)
+    {
+        bool show = !(_sacOnayliGorunur && _sacBekleyenGorunur);
+        _sacOnayliGorunur = _sacBekleyenGorunur = show;
+        MontajSekmeleriniGuncelle();
+    }
+
+    private void btnKontrolTumFiltreler_Click(object sender, RoutedEventArgs e)
+    {
+        bool show = !(_kontrolGerekliGorunur && _kontrolDigerGorunur);
+        _kontrolGerekliGorunur = _kontrolDigerGorunur = show;
+        MontajSekmeleriniGuncelle();
+    }
+
+    private void MontajFiltreleriniGoster()
+    {
+        int Count(MontajParcaKategorisi category) => _montajParcaRows.Count(x => x.EffectiveCategory == category);
+        void Set(CheckBox? box, string caption, int count, bool visible)
+        {
+            if (box == null) return;
+            box.Content = caption + " (" + count + ")";
+            box.IsChecked = visible;
+        }
+        Set(chkSacOnayli, "Sac", Count(MontajParcaKategorisi.Sac), _sacOnayliGorunur);
+        Set(chkSacOnayGerekli, "Geometrik sac, onay gerekli", Count(MontajParcaKategorisi.OnayGerekli), _sacBekleyenGorunur);
+        Set(chkKontrolGerekli, "Kontrol gerekli", Count(MontajParcaKategorisi.KontrolGerekli), _kontrolGerekliGorunur);
+        Set(chkKontrolDiger, "Diğer", Count(MontajParcaKategorisi.Diger), _kontrolDigerGorunur);
+        if (btnSacTumFiltreler != null)
+            btnSacTumFiltreler.Content = _sacOnayliGorunur && _sacBekleyenGorunur ? "Tümünü Gizle" : "Tümünü Göster";
+        if (btnKontrolTumFiltreler != null)
+            btnKontrolTumFiltreler.Content = _kontrolGerekliGorunur && _kontrolDigerGorunur ? "Tümünü Gizle" : "Tümünü Göster";
     }
 
     /// <summary>A new, empty folder for this analysis run's engine DXFs; the previous run's is removed.</summary>
@@ -97,6 +189,7 @@ public partial class MainWindow
     {
         _sacParcaView?.Refresh();
         _kontrolParcaView?.Refresh();
+        MontajFiltreleriniGoster();
         int sac = _montajParcaRows.Count(x => x.IsInSheetTab);
         int kontrol = _montajParcaRows.Count(x => x.IsInReviewTab);
         bool montajVar = _montajParcaRows.Count > 0;
@@ -163,7 +256,24 @@ public partial class MainWindow
         SacOnizlemesiniGoster(selected.Count == 1 ? selected[0] : null, selected.Count > 1);
     }
 
-    private void gridKontrolParcalar_SelectionChanged(object sender, SelectionChangedEventArgs e) => MontajKomutlariniGuncelle();
+    private void gridKontrolParcalar_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        MontajKomutlariniGuncelle();
+        List<MontajParcaSatiri> selected = SeciliKontrolSatirlari();
+        if (kontrolStepViewport == null) return;
+        if (selected.Count != 1 || !File.Exists(selected[0].SourceStepPath))
+        {
+            kontrolStepViewport.ClearModel();
+            if (txtKontrolViewportStatus != null)
+                txtKontrolViewportStatus.Text = selected.Count > 1
+                    ? "Birden fazla parça seçildi."
+                    : "Önizlemek için listeden bir parça seçin.";
+            return;
+        }
+        // The whole assembly with the selected part highlighted, the rest faded.
+        kontrolStepViewport.LoadStep(selected[0].SourceStepPath);
+        kontrolStepViewport.HighlightPart(selected[0].PartName);
+    }
 
     private void btnSacOnayla_Click(object sender, RoutedEventArgs e) => MontajKarariUygula(SeciliSacSatirlari(), row => row.ApproveAsSheet());
 

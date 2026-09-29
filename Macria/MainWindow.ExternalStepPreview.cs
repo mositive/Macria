@@ -47,6 +47,8 @@ public partial class MainWindow
 
         btnExternalStepBuyukAc.IsEnabled = true;
         externalStepViewport.LoadStep(item.SourceStepPath);
+        // An assembly part row: the part is highlighted inside the assembly.
+        externalStepViewport.HighlightPart(item.PartName);
         _externalStepPreviewWindow?.ShowStep(item.SourceStepPath);
     }
 

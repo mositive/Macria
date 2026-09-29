@@ -74,6 +74,13 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged
     public string SourceFileName => PartName is null
         ? System.IO.Path.GetFileName(SourceStepPath)
         : System.IO.Path.GetFileName(SourceStepPath) + " › " + PartName + " (" + PartQuantity + " adet)";
+    // Table columns: the part (assembly part or the STEP's own name) and its
+    // quantity; the file name is shown as a tooltip.
+    public string PartDisplay => PartName ?? System.IO.Path.GetFileNameWithoutExtension(SourceStepPath);
+    private int? _stepQuantity;
+    public string QuantityDisplay => PartName != null
+        ? PartQuantity.ToString(CultureInfo.InvariantCulture)
+        : _stepQuantity?.ToString(CultureInfo.InvariantCulture) ?? "—";
 
     private string _analysisStatus = "Bekliyor";
     public string AnalysisStatus { get => _analysisStatus; private set => Set(ref _analysisStatus, value); }
@@ -166,6 +173,8 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged
 
     public void Apply(GeometryLabProcessAdapterResult result)
     {
+        _stepQuantity = result.Analysis?.Parts.Count == 1 ? result.Analysis.Parts[0].Quantity : null;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(QuantityDisplay)));
         RawLengthCandidates = null;
         RawBaseStockProfile = null;
         RawModificationAnalysis = null;

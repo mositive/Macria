@@ -52,6 +52,8 @@ public sealed class OcctViewportHost : HwndHost
     private OcctViewerNative? _native;
     private string? _pendingPath;
     private string? _loadedPath;
+    // Assembly part to highlight once the model is loaded; "" = none.
+    private string _pendingHighlight = "";
     private bool _shuttingDown;
     private IntPtr _parentWindow;
     private IntPtr _childWindow;
@@ -91,6 +93,8 @@ public sealed class OcctViewportHost : HwndHost
             return;
         }
 
+        // A different file starts without the previous part highlighted.
+        _pendingHighlight = "";
         _pendingPath = fullPath;
         if (_viewerHandle == IntPtr.Zero)
         {
@@ -102,10 +106,35 @@ public sealed class OcctViewportHost : HwndHost
         LoadPendingStep();
     }
 
+    /// <summary>
+    /// Highlights every instance of the named assembly part in the loaded (or
+    /// next loaded) model and fades the rest; null or "" shows the plain model.
+    /// </summary>
+    public void HighlightPart(string? partName)
+    {
+        _pendingHighlight = partName ?? "";
+        ApplyPendingHighlight();
+    }
+
+    private void ApplyPendingHighlight()
+    {
+        if (_shuttingDown || _native == null || _viewerHandle == IntPtr.Zero || !HasLoadedModel) return;
+        if (!_native.SupportsHighlight)
+        {
+            if (_pendingHighlight.Length > 0)
+                Diagnostic?.Invoke(this, new OcctViewportDiagnosticEventArgs(DiagnosticName + ": parça vurgulama bu DLL'de yok."));
+            return;
+        }
+        if (!_native.HighlightPart(_viewerHandle, _pendingHighlight, out string error))
+            Diagnostic?.Invoke(this, new OcctViewportDiagnosticEventArgs(
+                DiagnosticName + ": \"" + _pendingHighlight + "\" vurgulanamadı: " + error));
+    }
+
     public void ClearModel()
     {
         _pendingPath = null;
         _loadedPath = null;
+        _pendingHighlight = "";
         if (_native != null && _viewerHandle != IntPtr.Zero && !_native.Clear(_viewerHandle, out string error))
         {
             SetStatus(OcctViewportState.Error, "3B önizleme temizlenemedi: " + error);
@@ -282,6 +311,7 @@ public sealed class OcctViewportHost : HwndHost
         {
             _loadedPath = path;
             SetStatus(OcctViewportState.Loaded, "3B önizleme hazır: " + Path.GetFileName(path));
+            ApplyPendingHighlight();
         }
         else
         {

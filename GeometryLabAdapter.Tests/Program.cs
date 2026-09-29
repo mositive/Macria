@@ -539,6 +539,12 @@ internal static class Program
         profileRow.Apply(narrowed);
         Check(profileRow.AnalysisStatus != "Çoklu solid" && profileRow.SourceFileName == "m.stp › Kutu (3 adet)",
             "an assembly profile part is judged like a single-part STEP: " + profileRow.AnalysisStatus);
+        Check(profileRow.PartDisplay == "Kutu" && profileRow.QuantityDisplay == "3",
+            "assembly profile rows show part and quantity columns");
+        var fileRow = new GeometryLabStepProfileListItem { SourceStepPath = @"C:\x\01-Duz-Duz_Rep.stp" };
+        fileRow.Apply(full with { Analysis = analysis with { Parts = new[] { analysis.Parts[0] with { Quantity = 1 } } } });
+        Check(fileRow.PartDisplay == "01-Duz-Duz_Rep" && fileRow.QuantityDisplay == "1",
+            "a single-part STEP row shows its file name as part and the STEP quantity");
 
         var snapshot = new CatiaScanSnapshot
         {

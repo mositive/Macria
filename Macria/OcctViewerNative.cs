@@ -30,6 +30,13 @@ internal sealed class OcctViewerNative : IDisposable
     private delegate int SimpleCommandDelegate(IntPtr viewerHandle, [Out] StringBuilder error, int errorLength);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
+    private delegate int HighlightPartDelegate(
+        IntPtr viewerHandle,
+        [MarshalAs(UnmanagedType.LPWStr)] string partName,
+        [Out] StringBuilder error,
+        int errorLength);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
     private delegate int SetViewDelegate(IntPtr viewerHandle, int view, [Out] StringBuilder error, int errorLength);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -56,6 +63,8 @@ internal sealed class OcctViewerNative : IDisposable
     private readonly SetViewDelegate _setView;
     private readonly ProcessMessageDelegate _processMessage;
     private readonly GetDiagnosticsDelegate _getDiagnostics;
+    // Optional: an older viewer DLL without it still previews, only without highlighting.
+    private readonly HighlightPartDelegate? _highlightPart;
 
     private OcctViewerNative(IntPtr module)
     {
@@ -69,7 +78,13 @@ internal sealed class OcctViewerNative : IDisposable
         _setView = GetExport<SetViewDelegate>("MacriaGeometryViewer_SetView");
         _processMessage = GetExport<ProcessMessageDelegate>("MacriaGeometryViewer_ProcessMessage");
         _getDiagnostics = GetExport<GetDiagnosticsDelegate>("MacriaGeometryViewer_GetDiagnostics");
+        IntPtr highlight = GetProcAddress(_module, "MacriaGeometryViewer_HighlightPart");
+        _highlightPart = highlight == IntPtr.Zero
+            ? null
+            : Marshal.GetDelegateForFunctionPointer<HighlightPartDelegate>(highlight);
     }
+
+    public bool SupportsHighlight => _highlightPart != null;
 
     public static bool TryLoad(out OcctViewerNative? native, out string error)
     {
@@ -130,6 +145,17 @@ internal sealed class OcctViewerNative : IDisposable
 
     public bool FitAll(IntPtr viewerHandle, out string error) =>
         Invoke(buffer => _fitAll(viewerHandle, buffer, buffer.Capacity), out error);
+
+    /// <summary>Highlights every instance of the named assembly part; "" restores the model.</summary>
+    public bool HighlightPart(IntPtr viewerHandle, string partName, out string error)
+    {
+        if (_highlightPart == null)
+        {
+            error = "3B önizleme DLL'i parça vurgulamayı desteklemiyor.";
+            return false;
+        }
+        return Invoke(buffer => _highlightPart(viewerHandle, partName, buffer, buffer.Capacity), out error);
+    }
 
     public bool SetView(IntPtr viewerHandle, OcctStandardView view, out string error) =>
         Invoke(buffer => _setView(viewerHandle, (int)view, buffer, buffer.Capacity), out error);
