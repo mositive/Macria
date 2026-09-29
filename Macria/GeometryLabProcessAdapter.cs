@@ -49,13 +49,15 @@ public sealed record GeometryLabProcessAdapterResult
     public string? PartDxfDirectory { get; init; }
     public bool IsSuccess => Status == GeometryLabProcessAdapterStatus.Succeeded;
 
-    // Full path of a part's engine DXF, or null when none was written.
-    public string? PartDxfPath(GeometryLabPartTransport part)
+    // Full path of a part's engine DXF (with or without bend information),
+    // or null when none was written.
+    public string? PartDxfPath(GeometryLabPartTransport part, bool cutOnly = false)
     {
-        if (PartDxfDirectory is null || string.IsNullOrWhiteSpace(part.DxfFile) ||
-            part.DxfFile.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        string? file = cutOnly ? part.DxfCutOnlyFile : part.DxfFile;
+        if (PartDxfDirectory is null || string.IsNullOrWhiteSpace(file) ||
+            file.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
             return null;
-        return Path.Combine(PartDxfDirectory, part.DxfFile);
+        return Path.Combine(PartDxfDirectory, file);
     }
 }
 

@@ -37,6 +37,11 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
     public string HoleSummary { get; init; } = "—";
     /// <summary>Engine DXF (part-&lt;id&gt;.dxf in the analysis' DXF folder), or null.</summary>
     public string? DxfSourcePath { get; init; }
+    /// <summary>Same pattern without bend information (part-&lt;id&gt;-kesim.dxf), or null.</summary>
+    public string? DxfCutOnlySourcePath { get; init; }
+
+    /// <summary>The engine DXF to use: with bend information or KESIM only.</summary>
+    public string? DxfFor(bool bendInfo) => bendInfo ? DxfSourcePath : DxfCutOnlySourcePath;
 
     public string SourceFileName => System.IO.Path.GetFileName(SourceStepPath);
     public string ThicknessDisplay => ThicknessMm is double t ? FormatNumber(t) + " mm" : "—";
@@ -103,7 +108,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
 
     /// <summary>Row for one part; engine evidence comes from the same analysis.</summary>
     public static MontajParcaSatiri Olustur(string stepPath, GeometryLabAnalysisTransport analysis,
-        GeometryLabPartTransport part, string? dxfSourcePath, double laserMaximumMm)
+        GeometryLabPartTransport part, string? dxfSourcePath, double laserMaximumMm, string? dxfCutOnlySourcePath = null)
     {
         int? solidId = part.SolidIds.Count == 1 ? part.SolidIds[0].LocalId : null;
         GeometryLabSheetMetalTransport? sheet = solidId is null
@@ -124,7 +129,8 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
             HoleSummary = solidId is null
                 ? "—"
                 : HoleSummaryFor(analysis.HoleFeatures.Where(x => x.SolidId?.LocalId == solidId)),
-            DxfSourcePath = part.SheetCandidate ? dxfSourcePath : null
+            DxfSourcePath = part.SheetCandidate ? dxfSourcePath : null,
+            DxfCutOnlySourcePath = part.SheetCandidate ? dxfCutOnlySourcePath : null
         };
         row._laserMaximumMm = laserMaximumMm;
         row.Recalculate();

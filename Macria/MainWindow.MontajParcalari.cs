@@ -69,7 +69,7 @@ public partial class MainWindow
         foreach (GeometryLabPartTransport part in analysis.Parts)
         {
             var row = MontajParcaSatiri.Olustur(fileRow.SourceStepPath, analysis, part, result.PartDxfPath(part),
-                Ayarlar.LazerAzamiKalinlikMm);
+                Ayarlar.LazerAzamiKalinlikMm, result.PartDxfPath(part, cutOnly: true));
             if (row.EffectiveCategory == MontajParcaKategorisi.Profil)
             {
                 var profileRow = new GeometryLabStepProfileListItem
@@ -126,6 +126,9 @@ public partial class MainWindow
     {
         foreach (MontajParcaSatiri row in _montajParcaRows) row.SetLaserMaximum(Ayarlar.LazerAzamiKalinlikMm);
         MontajSekmeleriniGuncelle();
+        // The bend-information setting changes which engine DXF is shown.
+        List<MontajParcaSatiri> selected = SeciliSacSatirlari();
+        SacOnizlemesiniGoster(selected.Count == 1 ? selected[0] : null, selected.Count > 1);
     }
 
     private void MontajCatiaKarsilastir(CatiaScanSnapshot snapshot)
@@ -191,7 +194,8 @@ public partial class MainWindow
 
     private void SacOnizlemesiniGoster(MontajParcaSatiri? row, bool coklu)
     {
-        if (row == null || row.DxfSourcePath == null)
+        string? dxf = row?.DxfFor(Ayarlar.BukumBilgisiDxf);
+        if (row == null || dxf == null)
         {
             SacOnizlemesiniBosalt(coklu ? "Birden fazla parça seçildi."
                 : row == null ? "Önizlemek için listeden bir sac parça seçin."
@@ -200,7 +204,7 @@ public partial class MainWindow
         }
         DxfPreviewReadResult result = _dxfDwgPreviewAdapter.Read(new PreviewRequest
         {
-            SourcePath = row.DxfSourcePath,
+            SourcePath = dxf,
             Capability = PreviewCapability.Preview2D,
             Presentation = PreviewPresentation.Embedded,
             SourceContext = "Dosya Analiz Merkezi — Saclar"
@@ -253,7 +257,7 @@ public partial class MainWindow
             dialog.InitialDirectory = Ayarlar.SonCiktiKlasoru;
         if (dialog.ShowDialog(this) != true) return;
 
-        IReadOnlyList<MotorDxfIsi> plan = MotorDxfAktarici.Planla(onayli, dialog.FolderName);
+        IReadOnlyList<MotorDxfIsi> plan = MotorDxfAktarici.Planla(onayli, dialog.FolderName, Ayarlar.BukumBilgisiDxf);
         MotorDxfAktarimSonucu sonuc = MotorDxfAktarici.Uygula(plan, hedef => DxfCakismaWindow.Sor(this, hedef));
 
         string klasor = Path.Combine(dialog.FolderName, MotorDxfAktarici.AltKlasor);
@@ -262,7 +266,8 @@ public partial class MainWindow
         foreach ((string hedef, string neden) in sonuc.Hatali) LogError("Motor DXF yazılamadı: " + hedef + " — " + neden);
 
         string rapor = (sonuc.IptalEdildi ? "İşlem iptal edildi.\n\n" : "") +
-                       "Klasör: " + klasor + "\n\n" +
+                       "Klasör: " + klasor + "\n" +
+                       "Büküm bilgisi: " + (Ayarlar.BukumBilgisiDxf ? "yazıldı (BUKUM katmanı)" : "yazılmadı (yalnız KESIM)") + "\n\n" +
                        "Yazılan: " + sonuc.Yazilan.Count + "\n" +
                        "Atlanan (zaten vardı): " + sonuc.Atlanan.Count + "\n" +
                        "Hatalı: " + sonuc.Hatali.Count +

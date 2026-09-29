@@ -136,6 +136,12 @@
                                    Foreground="{StaticResource TextSecondaryBrush}"
                                    Margin="0,8,0,0"
                                    Text="Bu kalınlığa eşit ve daha ince saclar Lazer, daha kalınlar Şalama/Kütük grubunda listelenir. İki grubun da DXF'i üretilir."/>
+                        <CheckBox x:Name="chkBukumBilgisiDxf" Margin="0,12,0,0"
+                                  Content="Büküm bilgisi DXF'e yazılsın"/>
+                        <TextBlock TextWrapping="Wrap" FontSize="12.5" LineHeight="19"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="24,6,0,0"
+                                   Text="Açıkken büküm bölgesinin sınırları kesik-noktalı çizgi ve büküm etiketi BUKUM katmanına yazılır. Kapalıyken DXF'te yalnız kontur ve delikler (KESIM katmanı) bulunur."/>
                     </StackPanel>
                 </Border>
 

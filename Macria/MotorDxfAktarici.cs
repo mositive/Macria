@@ -32,12 +32,14 @@ public static class MotorDxfAktarici
     public const string AltKlasor = "Motor-DXF";
 
     /// <summary>Only approved sheet rows with an engine DXF; the rest is not planned.</summary>
-    public static IReadOnlyList<MotorDxfIsi> Planla(IEnumerable<MontajParcaSatiri> satirlar, string hedefKlasor)
+    /// <param name="bukumBilgisi">With bend information (BUKUM layer) or KESIM only.</param>
+    public static IReadOnlyList<MotorDxfIsi> Planla(IEnumerable<MontajParcaSatiri> satirlar, string hedefKlasor,
+        bool bukumBilgisi = true)
     {
         string klasor = Path.Combine(Path.GetFullPath(hedefKlasor), AltKlasor);
         return satirlar
-            .Where(x => x.EffectiveCategory == MontajParcaKategorisi.Sac && x.DxfSourcePath != null && x.ThicknessMm != null)
-            .Select(x => new MotorDxfIsi(x.PartName, x.DxfSourcePath!,
+            .Where(x => x.EffectiveCategory == MontajParcaKategorisi.Sac && x.DxfFor(bukumBilgisi) != null && x.ThicknessMm != null)
+            .Select(x => new MotorDxfIsi(x.PartName, x.DxfFor(bukumBilgisi)!,
                 Path.Combine(klasor, DxfAdi.Uret(x.PartName, x.ThicknessMm!.Value, x.Quantity))))
             .ToList();
     }

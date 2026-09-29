@@ -301,7 +301,7 @@ internal static class Program
         const string json = "{\"schemaVersion\":\"1.2\",\"status\":\"Succeeded\",\"exitCode\":0,\"errors\":[],\"warnings\":[],\"solids\":[{},{}],\"profileRecognitions\":[],"
             + "\"parts\":[{\"localId\":1,\"name\":\"55RS100111-3\",\"productId\":\"55RS100111-3\",\"productName\":\"55RS100111-3\",\"quantity\":2,"
             + "\"solidIds\":[{\"analysisId\":\"a\",\"localId\":1}],\"classification\":\"Sheet\",\"classificationReasons\":[\"Sac\"],"
-            + "\"sheetCandidate\":true,\"profileCandidate\":null,\"dxfFile\":\"part-1.dxf\"},"
+            + "\"sheetCandidate\":true,\"profileCandidate\":null,\"dxfFile\":\"part-1.dxf\",\"dxfCutOnlyFile\":\"part-1-kesim.dxf\"},"
             + "{\"localId\":2,\"name\":\"01-Duz-Duz\",\"quantity\":3,\"solidIds\":[{\"analysisId\":\"a\",\"localId\":2}],"
             + "\"classification\":\"Profile\",\"classificationReasons\":[],\"sheetCandidate\":false,\"profileCandidate\":\"SquareHollowSection\",\"dxfFile\":null}],"
             + "\"holeFeatures\":[{\"localId\":1,\"type\":\"Countersink\",\"status\":\"Recognized\",\"throughDiameterMm\":6.647,"
@@ -340,6 +340,10 @@ internal static class Program
               Path.GetDirectoryName(withDxf.PartDxfDirectory) == Path.GetFullPath(dxfRoot),
             "the DXF folder is a new folder under the given root");
         Check(dxfPath is not null && File.Exists(dxfPath), "the part DXF written by the engine survives the analysis");
+        string? cutOnlyPath = withDxf.Analysis is null ? null : withDxf.PartDxfPath(withDxf.Analysis.Parts[0], cutOnly: true);
+        Check(cutOnlyPath is not null && Path.GetFileName(cutOnlyPath) == "part-1-kesim.dxf" &&
+              withDxf.PartDxfPath(withDxf.Analysis!.Parts[1], cutOnly: true) is null,
+            "the cut-only DXF path is resolved next to the full one");
         Check(withDxf.TemporaryDirectoryCleaned, "the JSON work folder is still cleaned");
         GeometryLabProcessAdapterResult second = await adapter.AnalyzeAsync(_step);
         Check(second.PartDxfDirectory is not null && second.PartDxfDirectory != withDxf.PartDxfDirectory,
@@ -411,6 +415,10 @@ internal static class Program
             string? dxf = part is null ? null : result.PartDxfPath(part);
             Check((row.Class == "Sac") == (dxf is not null && File.Exists(dxf) && new FileInfo(dxf).Length > 0),
                 "real assembly " + row.Name + ": engine DXF exactly for sheet parts");
+            string? cutOnly = part is null ? null : result.PartDxfPath(part, cutOnly: true);
+            Check((row.Class == "Sac") == (cutOnly is not null && File.Exists(cutOnly) &&
+                                           !File.ReadAllText(cutOnly).Contains("BUKUM", StringComparison.Ordinal)),
+                "real assembly " + row.Name + ": cut-only DXF without the BUKUM layer for sheet parts");
             Console.WriteLine("REAL_ASSEMBLY_ENGINE: " + row.Name + " adet=" + part?.Quantity + " sinif=" + part?.Classification +
                 (dxf is null ? "" : " dxf=" + Path.GetFileName(dxf)));
         }
@@ -615,7 +623,9 @@ internal static class Program
         File.WriteAllText(a, "A");
         File.WriteAllText(b, "B");
         GeometryLabAnalysisTransport analysis = AssemblyAnalysis();
-        MontajParcaSatiri sheetA = MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[1], a, 20);
+        string aCut = Path.Combine(source, "part-2-kesim.dxf");
+        File.WriteAllText(aCut, "A-KESIM");
+        MontajParcaSatiri sheetA = MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[1], a, 20, aCut);
         MontajParcaSatiri thick = MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[2], b, 20);
         MontajParcaSatiri pending = MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[1], a, 20);
         sheetA.ApproveAsSheet();
@@ -624,6 +634,9 @@ internal static class Program
         string target = Path.Combine(root, "hedef");
         IReadOnlyList<MotorDxfIsi> plan = MotorDxfAktarici.Planla(new[] { sheetA, thick, pending }, target);
         Check(plan.Count == 2, "only approved sheet rows are exported");
+        IReadOnlyList<MotorDxfIsi> cutPlan = MotorDxfAktarici.Planla(new[] { sheetA, thick }, target, bukumBilgisi: false);
+        Check(cutPlan.Count == 1 && cutPlan[0].Kaynak == aCut && cutPlan[0].Hedef == plan[0].Hedef,
+            "without bend information the cut-only DXF is exported under the same name; a row without one is not");
         Check(plan[0].Hedef == Path.Combine(Path.GetFullPath(target), "Motor-DXF", "Sac A_20mm_2adet.dxf") &&
               plan[1].Hedef.EndsWith("Kalin Sac_20.5mm_1adet.dxf", StringComparison.Ordinal),
             "targets are <target>\\Motor-DXF\\<DxfAdi>: " + plan[0].Hedef);

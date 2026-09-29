@@ -23,6 +23,7 @@ namespace Macria
 
             txtBekleme.Text = Ayarlar.PanelBekleme.ToString(CultureInfo.InvariantCulture);
             txtLazerKalinlik.Text = Ayarlar.LazerAzamiKalinlikMm.ToString("0.##", CultureInfo.CurrentCulture);
+            chkBukumBilgisiDxf.IsChecked = Ayarlar.BukumBilgisiDxf;
             chkFareUyarisi.IsChecked = !Ayarlar.FareUyarisiGizle;
             chkBukumKapat.IsChecked = Ayarlar.BukumKapat;
 
@@ -278,6 +279,7 @@ namespace Macria
             if ((double.TryParse(lazerMetni, NumberStyles.Float, CultureInfo.CurrentCulture, out lazer) ||
                  double.TryParse(lazerMetni, NumberStyles.Float, CultureInfo.InvariantCulture, out lazer)) && lazer > 0)
                 Ayarlar.LazerAzamiKalinlikMm = lazer;
+            Ayarlar.BukumBilgisiDxf = chkBukumBilgisiDxf.IsChecked == true;
             Ayarlar.Kaydet();
 
             DialogResult = true;

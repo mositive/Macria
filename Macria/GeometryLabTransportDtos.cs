@@ -124,6 +124,10 @@ public sealed record GeometryLabPartTransport
     // File name the engine wrote with --dxf-klasor (part-<id>.dxf), or null.
     [JsonPropertyName("dxfFile")]
     public string? DxfFile { get; init; }
+
+    // Same pattern without bend information (KESIM layer only), or null.
+    [JsonPropertyName("dxfCutOnlyFile")]
+    public string? DxfCutOnlyFile { get; init; }
 }
 
 public sealed record GeometryLabLocalIdTransport

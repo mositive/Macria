@@ -60,6 +60,10 @@ namespace Macria
         // kalinlar "Salama/Kutuk" grubunda listelenir (ikisinin de DXF'i uretilir).
         public static double LazerAzamiKalinlikMm = 20;
 
+        // Motor DXF'inde bukum cizgileri ve etiketleri (BUKUM katmani); kapaliyken
+        // yalniz kontur ve delikler (KESIM katmani) yazilir.
+        public static bool BukumBilgisiDxf = true;
+
         public static TimeSpan GeometryLabZamanAsimi()
         {
             return TimeSpan.FromSeconds(GeometryLabZamanAsimiSaniye > 0 ? GeometryLabZamanAsimiSaniye : 120);
@@ -127,6 +131,7 @@ namespace Macria
                         case "KurKaynagi": KurKaynagi = deger; break;
                         case "GeometryLabZamanAsimiSaniye":
                             GeometryLabZamanAsimiSaniye = Sayi(deger, GeometryLabZamanAsimiSaniye); break;
+                        case "BukumBilgisiDxf": BukumBilgisiDxf = deger != "0"; break;
                         case "LazerAzamiKalinlikMm":
                             double lazer = Ondalik(deger, LazerAzamiKalinlikMm);
                             if (lazer > 0) LazerAzamiKalinlikMm = lazer;
@@ -177,7 +182,8 @@ namespace Macria
                     "KurTarihi=" + KurTarihi.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
                     "KurKaynagi=" + KurKaynagi,
                     "GeometryLabZamanAsimiSaniye=" + GeometryLabZamanAsimiSaniye,
-                    "LazerAzamiKalinlikMm=" + LazerAzamiKalinlikMm.ToString(CultureInfo.InvariantCulture)
+                    "LazerAzamiKalinlikMm=" + LazerAzamiKalinlikMm.ToString(CultureInfo.InvariantCulture),
+                    "BukumBilgisiDxf=" + (BukumBilgisiDxf ? "1" : "0")
                 };
 
                 File.WriteAllLines(DosyaYolu(), satirlar);
