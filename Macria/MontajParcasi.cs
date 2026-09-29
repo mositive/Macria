@@ -252,7 +252,8 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
     /// <summary>
     /// The analysis narrowed to one part's solid, so the existing profile row
     /// (GeometryLabStepProfileListItem.Apply) judges it like a single-part STEP.
-    /// Whole-shape aggregates (base stock, axis candidates) are left out.
+    /// The part's own base stock replaces the whole-shape one (a processed
+    /// profile keeps its fallback); whole-shape axis candidates are left out.
     /// </summary>
     public static GeometryLabProcessAdapterResult ResultForPart(GeometryLabProcessAdapterResult result,
         GeometryLabPartTransport part)
@@ -261,6 +262,9 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
         var solidIds = part.SolidIds.Select(x => x.LocalId).ToHashSet();
         GeometryLabProfileRecognitionTransport[] profiles = result.Analysis.ProfileRecognitions
             .Where(x => x.SolidId != null && solidIds.Contains(x.SolidId.LocalId)).ToArray();
+        GeometryLabSolidBaseStockTransport? stock = part.SolidIds.Count == 1
+            ? result.Analysis.BaseStockProfiles.FirstOrDefault(x => x.SolidId?.LocalId == part.SolidIds[0].LocalId)
+            : null;
         return result with
         {
             Analysis = result.Analysis with
@@ -268,8 +272,9 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
                 ProfileRecognitions = profiles,
                 ProfileRecognition = profiles.Length == 1 ? profiles[0] : null,
                 Solids = result.Analysis.Solids.Take(part.SolidIds.Count).ToArray(),
-                BaseStockProfile = null,
-                ModificationAnalysis = null,
+                BaseStockProfile = stock?.BaseStockProfile,
+                ModificationAnalysis = stock?.ModificationAnalysis,
+                BaseStockProfiles = stock is null ? Array.Empty<GeometryLabSolidBaseStockTransport>() : new[] { stock },
                 ProfileGeometryAnalysis = null,
                 Parts = new[] { part }
             },

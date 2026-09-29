@@ -36,6 +36,7 @@ internal static class Program
             await PartsSchemaAsync();
             await RealAssemblyEngineAsync();
             AssemblyPartRows();
+            AssemblyProcessedProfilePart();
             MotorDxfExport();
             await CancellationAsync();
             await MultipleProfilesAsync();
@@ -538,6 +539,70 @@ internal static class Program
         };
         Check(CatiaStepMatcher.MatchPartName(snapshot, "Sac A").Count == 1 && CatiaStepMatcher.MatchPartName(snapshot, "sac a_rep").Count == 1 &&
               CatiaStepMatcher.MatchPartName(snapshot, "Yok").Count == 0, "CATIA rows are matched by part name");
+    }
+
+    // A marked/processed box profile inside an assembly: the section is not
+    // uniform, the part's own base stock recognizes it; the profile row must
+    // show it as a processed profile, as for a single-part STEP.
+    private static void AssemblyProcessedProfilePart()
+    {
+        var baseStock = new GeometryLabBaseStockProfileTransport
+        {
+            Status = "Recognized", ProfileType = "RectangularHollowSection", AxisCandidateId = 3,
+            OuterWidthMm = 60, OuterHeightMm = 40, InnerWidthMm = 54, InnerHeightMm = 34, WallThicknessMm = 3,
+            StableSectionRegions = new[] { new GeometryLabStableSectionRegionTransport { LengthMm = 100 },
+                new GeometryLabStableSectionRegionTransport { LengthMm = 100 } }
+        };
+        var analysis = new GeometryLabAnalysisTransport
+        {
+            SchemaVersion = "1.2",
+            Status = "Succeeded",
+            Solids = new[] { new GeometryLabSolidTransport(), new GeometryLabSolidTransport() },
+            ProfileRecognitions = new[]
+            {
+                new GeometryLabProfileRecognitionTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 1 },
+                    Status = "Succeeded", SectionRecognitionStatus = "Ambiguous", ProfileType = "Unknown" },
+                new GeometryLabProfileRecognitionTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 2 },
+                    Status = "Succeeded", SectionRecognitionStatus = "Recognized", ProfileType = "SquareHollowSection" }
+            },
+            // Whole-shape aggregate of a multi-solid analysis: no base stock.
+            BaseStockProfile = new GeometryLabBaseStockProfileTransport { Status = "InsufficientEvidence" },
+            ModificationAnalysis = new GeometryLabModificationAnalysisTransport { Status = "Unknown" },
+            BaseStockProfiles = new[]
+            {
+                new GeometryLabSolidBaseStockTransport
+                {
+                    SolidId = new GeometryLabLocalIdTransport { LocalId = 1 }, BaseStockProfile = baseStock,
+                    ModificationAnalysis = new GeometryLabModificationAnalysisTransport { Status = "LocallyModified" }
+                },
+                new GeometryLabSolidBaseStockTransport
+                {
+                    SolidId = new GeometryLabLocalIdTransport { LocalId = 2 },
+                    BaseStockProfile = new GeometryLabBaseStockProfileTransport { Status = "InsufficientEvidence" },
+                    ModificationAnalysis = new GeometryLabModificationAnalysisTransport { Status = "Unknown" }
+                }
+            },
+            Parts = new[]
+            {
+                Part(1, "55RS100111-13", 1, "Profile", false, "RectangularHollowSection", null),
+                Part(2, "Kutu", 2, "Profile", false, "SquareHollowSection", null)
+            }
+        };
+        var full = new GeometryLabProcessAdapterResult { Status = GeometryLabProcessAdapterStatus.Succeeded, Analysis = analysis };
+        GeometryLabProcessAdapterResult narrowed = MontajParcaSatiri.ResultForPart(full, analysis.Parts[0]);
+        Check(narrowed.Analysis!.BaseStockProfile?.Status == "Recognized" &&
+              narrowed.Analysis.ModificationAnalysis?.Status == "LocallyModified",
+            "the part's own base stock replaces the multi-solid aggregate");
+        var row = new GeometryLabStepProfileListItem { SourceStepPath = "C:\\m.stp", PartName = "55RS100111-13", PartQuantity = 1 };
+        row.Apply(narrowed);
+        Check(row.AutomaticCategory == GeometryLabExternalStepResultGroup.ProcessedProfile &&
+              row.ResultGroup == GeometryLabExternalStepResultGroup.DefiniteProfile && row.OperationDisplay == "Lokal işlemli",
+            "a processed profile inside an assembly is listed as a processed profile: " + row.ResultGroup + " / " + row.AnalysisStatus);
+        Check(MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[0], null, 20).EffectiveCategory ==
+              MontajParcaKategorisi.Profil, "a processed profile part goes to the Profiller tab");
+        GeometryLabProcessAdapterResult plain = MontajParcaSatiri.ResultForPart(full, analysis.Parts[1]);
+        Check(plain.Analysis!.BaseStockProfile?.Status == "InsufficientEvidence",
+            "a plain profile part keeps its own (unrecognized) base stock");
     }
 
     private static void MotorDxfExport()

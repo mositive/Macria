@@ -65,6 +65,24 @@ public sealed record GeometryLabAnalysisTransport
     // assembly lists every part once with its instance count).
     [JsonPropertyName("parts")]
     public IReadOnlyList<GeometryLabPartTransport> Parts { get; init; } = Array.Empty<GeometryLabPartTransport>();
+
+    // Per-solid base stock (processed profiles inside an assembly); the fields
+    // above keep their single-solid meaning.
+    [JsonPropertyName("baseStockProfiles")]
+    public IReadOnlyList<GeometryLabSolidBaseStockTransport> BaseStockProfiles { get; init; } =
+        Array.Empty<GeometryLabSolidBaseStockTransport>();
+}
+
+public sealed record GeometryLabSolidBaseStockTransport
+{
+    [JsonPropertyName("solidId")]
+    public GeometryLabLocalIdTransport? SolidId { get; init; }
+
+    [JsonPropertyName("baseStockProfile")]
+    public GeometryLabBaseStockProfileTransport? BaseStockProfile { get; init; }
+
+    [JsonPropertyName("modificationAnalysis")]
+    public GeometryLabModificationAnalysisTransport? ModificationAnalysis { get; init; }
 }
 
 public sealed record GeometryLabPartTransport
