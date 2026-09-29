@@ -20,3 +20,4 @@ işlemine yükler; görüntüleyicideki native bir çökme Macria'yı da kapatı
 | Tarih | Değişen | Kaynak | Not |
 |---|---|---|---|
 | 2026-09-28 | `Macria.GeometryEngine.exe` | GeometryLab `1b9ea13`, x64 Release | JSON şema 1.2: sac tanıma, delikler, çok bükümlü açınım, montaj parçaları (`parts`), `--dxf-klasor`. Diğer 38 dosya (OCCT DLL'leri, viewer) bayt bayt aynı kaldı. Yeni exe'nin DLL bağımlılıkları (TKCDF, TKLCAF, TKXCAF dahil) bu klasörde mevcut. Önceki paket: `MACRIA-RUNTIME-ASAMA2-BEFORE-20260928-231623` (ZIP SHA-256 `B9095F0E…019651`). |
+| 2026-09-29 | `Macria.GeometryEngine.exe` | GeometryLab `f385952`, x64 Release | İşlenmiş/markalanmış kutu profil parça sınıfında Profil; temel stok solid başına (`baseStockProfiles`). Diğer 38 dosya aynı. Önceki paket: `MACRIA-RUNTIME-ISLENMIS-PROFIL-BEFORE-20260929-234720` (ZIP SHA-256 `94CA7909…81EEBAC`). |
