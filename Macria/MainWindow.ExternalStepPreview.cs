@@ -9,6 +9,9 @@ public partial class MainWindow
 
     private void ExternalStepOnizlemesiniKur()
     {
+        OcctViewportHost.InputTraceEnabled = Ayarlar.GomuluTeshisKaydi;
+        // Notification cards stay above the embedded 3D view.
+        externalStepViewport.AddOverlay(bildirimKatmani);
         externalStepViewport.StatusChanged += ExternalStepViewport_StatusChanged;
         externalStepViewport.Diagnostic += ExternalStepViewport_Diagnostic;
         ExternalStepViewportDurumunuGuncelle(
@@ -56,7 +59,15 @@ public partial class MainWindow
         ExternalStepViewportDurumunuGuncelle(e);
 
     private void ExternalStepViewport_Diagnostic(object? sender, OcctViewportDiagnosticEventArgs e) =>
-        LogInfo(e.Message);
+        ViewportTeshisiniYaz(e);
+
+    // WM_* traces go to the console only; real problems (e.g. a failed
+    // highlight) are still shown as a notification.
+    private void ViewportTeshisiniYaz(OcctViewportDiagnosticEventArgs e)
+    {
+        if (e.IsTrace) LogTrace(e.Message);
+        else LogInfo(e.Message);
+    }
 
     private void ExternalStepViewportDurumunuGuncelle(OcctViewportStatusChangedEventArgs e)
     {

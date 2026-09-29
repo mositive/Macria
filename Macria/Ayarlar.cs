@@ -64,6 +64,10 @@ namespace Macria
         // yalniz kontur ve delikler (KESIM katmani) yazilir.
         public static bool BukumBilgisiDxf = true;
 
+        // Gomulu 3B onizlemenin WM_* giris/HWND teshis satirlari. Kapaliyken
+        // hic uretilmez; acikken yalniz konsola yazilir (kart olarak cikmaz).
+        public static bool GomuluTeshisKaydi;
+
         public static TimeSpan GeometryLabZamanAsimi()
         {
             return TimeSpan.FromSeconds(GeometryLabZamanAsimiSaniye > 0 ? GeometryLabZamanAsimiSaniye : 120);
@@ -132,6 +136,7 @@ namespace Macria
                         case "GeometryLabZamanAsimiSaniye":
                             GeometryLabZamanAsimiSaniye = Sayi(deger, GeometryLabZamanAsimiSaniye); break;
                         case "BukumBilgisiDxf": BukumBilgisiDxf = deger != "0"; break;
+                        case "GomuluTeshisKaydi": GomuluTeshisKaydi = deger == "1"; break;
                         case "LazerAzamiKalinlikMm":
                             double lazer = Ondalik(deger, LazerAzamiKalinlikMm);
                             if (lazer > 0) LazerAzamiKalinlikMm = lazer;
@@ -183,7 +188,8 @@ namespace Macria
                     "KurKaynagi=" + KurKaynagi,
                     "GeometryLabZamanAsimiSaniye=" + GeometryLabZamanAsimiSaniye,
                     "LazerAzamiKalinlikMm=" + LazerAzamiKalinlikMm.ToString(CultureInfo.InvariantCulture),
-                    "BukumBilgisiDxf=" + (BukumBilgisiDxf ? "1" : "0")
+                    "BukumBilgisiDxf=" + (BukumBilgisiDxf ? "1" : "0"),
+                    "GomuluTeshisKaydi=" + (GomuluTeshisKaydi ? "1" : "0")
                 };
 
                 File.WriteAllLines(DosyaYolu(), satirlar);

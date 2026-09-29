@@ -46,6 +46,7 @@ public partial class MainWindow
         {
             kontrolStepViewport.StatusChanged += KontrolViewport_StatusChanged;
             kontrolStepViewport.Diagnostic += KontrolViewport_Diagnostic;
+            kontrolStepViewport.AddOverlay(bildirimKatmani);
         }
         MontajSekmeleriniGuncelle();
     }
@@ -69,7 +70,7 @@ public partial class MainWindow
                 : e.Message;
     }
 
-    private void KontrolViewport_Diagnostic(object? sender, OcctViewportDiagnosticEventArgs e) => LogInfo(e.Message);
+    private void KontrolViewport_Diagnostic(object? sender, OcctViewportDiagnosticEventArgs e) => ViewportTeshisiniYaz(e);
 
     private void btnKontrolIsometric_Click(object sender, RoutedEventArgs e) => kontrolStepViewport.SetView(OcctStandardView.Isometric);
 

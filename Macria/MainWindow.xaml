@@ -2247,7 +2247,7 @@
                                     <CheckBox x:Name="chkExternalStepUnclassified" Content="Tanımsız (0)" Click="chkExternalStepFilter_Click"/>
                                 </WrapPanel>
                                 <Grid Grid.Row="2" Margin="8,0,8,8">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="330" MinWidth="300" MaxWidth="360"/></Grid.ColumnDefinitions>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="2*" MinWidth="320"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*" MinWidth="300"/></Grid.ColumnDefinitions>
                                 <DataGrid Grid.Column="0" x:Name="gridExternalStepProfil" AutoGenerateColumns="False" IsReadOnly="True"
                                           CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False"
                                           SelectionMode="Extended" SelectionChanged="gridExternalStepProfil_SelectionChanged"
@@ -2282,9 +2282,9 @@
                                     <Grid>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="230"/>
+                                            <RowDefinition Height="3*" MinHeight="180"/>
                                             <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="2*" MinHeight="90"/>
                                         </Grid.RowDefinitions>
                                         <StackPanel Grid.Row="0">
                                             <TextBlock Text="3B Önizleme" FontWeight="SemiBold" FontSize="14"/>
@@ -2430,7 +2430,7 @@
                                     <CheckBox x:Name="chkKontrolDiger" Content="Diğer (0)" IsChecked="True" VerticalAlignment="Center" Click="chkMontajFiltre_Click"/>
                                 </WrapPanel>
                                 <Grid Grid.Row="2" Margin="0,0,0,8">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="330" MinWidth="300" MaxWidth="360"/></Grid.ColumnDefinitions>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="2*" MinWidth="320"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*" MinWidth="300"/></Grid.ColumnDefinitions>
                                     <DataGrid x:Name="gridKontrolParcalar" Grid.Column="0" AutoGenerateColumns="False" IsReadOnly="True"
                                               CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False"
                                               SelectionMode="Extended" SelectionChanged="gridKontrolParcalar_SelectionChanged"

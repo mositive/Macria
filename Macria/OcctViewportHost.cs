@@ -1,8 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace Macria;
@@ -23,9 +27,15 @@ public sealed class OcctViewportStatusChangedEventArgs(OcctViewportState state, 
     public string Message { get; } = message;
 }
 
-public sealed class OcctViewportDiagnosticEventArgs(string message) : EventArgs
+public sealed class OcctViewportDiagnosticEventArgs(string message, bool isTrace = false) : EventArgs
 {
     public string Message { get; } = message;
+
+    /// <summary>
+    /// Input/HWND trace (WM_* messages); for the console only, never a
+    /// notification. False for real problems such as a failed highlight.
+    /// </summary>
+    public bool IsTrace { get; } = isTrace;
 }
 
 public sealed class OcctViewportHost : HwndHost
@@ -66,6 +76,17 @@ public sealed class OcctViewportHost : HwndHost
     private ulong _setFocus;
     private ulong _killFocus;
     private ulong _captureLost;
+    // WPF elements drawn over the viewport (e.g. notification cards). The
+    // native child HWND always paints above WPF content in the same window,
+    // so their areas are cut out of the child window's region.
+    private readonly List<FrameworkElement> _overlays = new();
+    private string _clipKey = "";
+
+    /// <summary>
+    /// Publishes WM_* input traces through <see cref="Diagnostic"/>; off by
+    /// default because every click and wheel notch produces one.
+    /// </summary>
+    public static bool InputTraceEnabled { get; set; }
 
     public event EventHandler<OcctViewportStatusChangedEventArgs>? StatusChanged;
     public event EventHandler<OcctViewportDiagnosticEventArgs>? Diagnostic;
@@ -153,7 +174,138 @@ public sealed class OcctViewportHost : HwndHost
     {
         if (_shuttingDown) return;
         _shuttingDown = true;
+        LayoutUpdated -= OnLayoutUpdated;
         Dispose();
+    }
+
+    /// <summary>
+    /// Keeps the viewport from painting over <paramref name="overlay"/>; for a
+    /// panel, each visible child is cut out separately.
+    /// </summary>
+    public void AddOverlay(FrameworkElement overlay)
+    {
+        if (!_overlays.Contains(overlay)) _overlays.Add(overlay);
+        UpdateClipRegion();
+    }
+
+    protected override void OnWindowPositionChanged(Rect rcBoundingBox)
+    {
+        base.OnWindowPositionChanged(rcBoundingBox);
+        // The OCCT view only renders at its old size until it is told the
+        // window changed; do it here instead of relying on WM_SIZE alone.
+        if (!_shuttingDown && _native != null && _viewerHandle != IntPtr.Zero)
+            _native.Resize(_viewerHandle, out _);
+        UpdateClipRegion();
+    }
+
+    private void OnLayoutUpdated(object? sender, EventArgs e) => UpdateClipRegion();
+
+    // A child HWND ignores WPF clipping and z-order: it paints its whole
+    // rectangle above everything WPF draws in the window. The region limits it
+    // to the part its WPF ancestors actually show, minus the overlays.
+    private void UpdateClipRegion()
+    {
+        if (_shuttingDown || _childWindow == IntPtr.Zero) return;
+        PresentationSource? source = PresentationSource.FromVisual(this);
+        if (source?.CompositionTarget == null || ActualWidth <= 0 || ActualHeight <= 0) return;
+
+        Rect full = new(0, 0, ActualWidth, ActualHeight);
+        Rect visible = full;
+        for (DependencyObject? parent = VisualTreeHelper.GetParent(this);
+             parent is Visual && !visible.IsEmpty;
+             parent = VisualTreeHelper.GetParent(parent))
+        {
+            if (parent is FrameworkElement ancestor && TryGetBounds(ancestor, out Rect bounds))
+                visible.Intersect(bounds);
+        }
+
+        var holes = new List<Rect>();
+        if (!visible.IsEmpty)
+        {
+            foreach (FrameworkElement overlay in _overlays)
+            {
+                if (!overlay.IsVisible) continue;
+                if (overlay is Panel panel)
+                {
+                    foreach (UIElement child in panel.Children)
+                        AddHole(child, visible, holes);
+                }
+                else
+                {
+                    AddHole(overlay, visible, holes);
+                }
+            }
+        }
+
+        Matrix toDevice = source.CompositionTarget.TransformToDevice;
+        bool whole = holes.Count == 0 && !visible.IsEmpty &&
+                     Math.Abs(visible.Width - full.Width) < 0.5 && Math.Abs(visible.Height - full.Height) < 0.5;
+        int[] area = visible.IsEmpty ? new[] { 0, 0, 0, 0 } : ToDevice(visible, toDevice, false);
+        var keyParts = new List<string> { whole ? "whole" : string.Join(",", area) };
+        var holeAreas = new List<int[]>();
+        foreach (Rect hole in holes)
+        {
+            int[] device = ToDevice(hole, toDevice, true);
+            holeAreas.Add(device);
+            keyParts.Add(string.Join(",", device));
+        }
+        string key = string.Join(";", keyParts);
+        if (key == _clipKey) return;
+        _clipKey = key;
+
+        if (whole)
+        {
+            SetWindowRgn(_childWindow, IntPtr.Zero, true);
+            return;
+        }
+
+        IntPtr region = CreateRectRgn(area[0], area[1], area[2], area[3]);
+        if (region == IntPtr.Zero) return;
+        foreach (int[] hole in holeAreas)
+        {
+            IntPtr cut = CreateRectRgn(hole[0], hole[1], hole[2], hole[3]);
+            if (cut == IntPtr.Zero) continue;
+            CombineRgn(region, region, cut, RgnDiff);
+            DeleteObject(cut);
+        }
+        // On success the system owns the region.
+        if (SetWindowRgn(_childWindow, region, true) == 0)
+            DeleteObject(region);
+    }
+
+    private void AddHole(UIElement element, Rect visible, List<Rect> holes)
+    {
+        if (!element.IsVisible || element.Opacity <= 0) return;
+        if (!TryGetBounds(element, out Rect bounds)) return;
+        bounds.Intersect(visible);
+        if (!bounds.IsEmpty && bounds.Width > 0 && bounds.Height > 0) holes.Add(bounds);
+    }
+
+    private bool TryGetBounds(UIElement element, out Rect bounds)
+    {
+        bounds = Rect.Empty;
+        if (element.RenderSize.Width <= 0 || element.RenderSize.Height <= 0) return false;
+        try
+        {
+            bounds = element.TransformToVisual(this).TransformBounds(new Rect(element.RenderSize));
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            // Not in the same visual tree (e.g. a closed or detached element).
+            return false;
+        }
+    }
+
+    // Visible area rounds inward, holes outward, so no native pixel is left
+    // over an overlay.
+    private static int[] ToDevice(Rect rect, Matrix toDevice, bool outward)
+    {
+        double left = rect.Left * toDevice.M11, top = rect.Top * toDevice.M22;
+        double right = rect.Right * toDevice.M11, bottom = rect.Bottom * toDevice.M22;
+        return outward
+            ? new[] { (int)Math.Floor(left), (int)Math.Floor(top), (int)Math.Ceiling(right), (int)Math.Ceiling(bottom) }
+            : new[] { (int)Math.Ceiling(left), (int)Math.Ceiling(top), (int)Math.Floor(right), (int)Math.Floor(bottom) };
     }
 
     protected override HandleRef BuildWindowCore(HandleRef hwndParent)
@@ -175,6 +327,9 @@ public sealed class OcctViewportHost : HwndHost
         if (childWindow == IntPtr.Zero)
             throw new Win32Exception(Marshal.GetLastWin32Error(), "3B önizleme child HWND oluşturulamadı.");
         _childWindow = childWindow;
+        _clipKey = "";
+        LayoutUpdated -= OnLayoutUpdated;
+        LayoutUpdated += OnLayoutUpdated;
 
         if (!OcctViewerNative.TryLoad(out OcctViewerNative? native, out string loadError) || native == null)
         {
@@ -192,7 +347,7 @@ public sealed class OcctViewportHost : HwndHost
             return new HandleRef(this, childWindow);
         }
 
-        PublishDiagnosticsDeferred("HWND zinciri oluşturuldu", childWindow);
+        if (InputTraceEnabled) PublishDiagnosticsDeferred("HWND zinciri oluşturuldu", childWindow);
         SetStatusDeferred(OcctViewportState.Idle, "Önizlemek için listeden tek bir STEP seçin.");
         Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(LoadPendingStep));
         return new HandleRef(this, childWindow);
@@ -200,6 +355,7 @@ public sealed class OcctViewportHost : HwndHost
 
     protected override void DestroyWindowCore(HandleRef hwnd)
     {
+        LayoutUpdated -= OnLayoutUpdated;
         if (_native != null)
         {
             _native.Destroy(_viewerHandle);
@@ -229,7 +385,7 @@ public sealed class OcctViewportHost : HwndHost
         }
         handled = baseHandled || viewerHandled;
 
-        if (ShouldPublishInputDiagnostics(msg))
+        if (InputTraceEnabled && ShouldPublishInputDiagnostics(msg))
             PublishDiagnosticsDeferred(MessageName(msg), hwnd);
 
         return result;
@@ -288,7 +444,7 @@ public sealed class OcctViewportHost : HwndHost
             $"Move={_mouseMove}, Wheel={_mouseWheel}, SetFocus={_setFocus}, KillFocus={_killFocus}, " +
             $"CaptureLost={_captureLost} | {native}";
         Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
-            Diagnostic?.Invoke(this, new OcctViewportDiagnosticEventArgs(message))));
+            Diagnostic?.Invoke(this, new OcctViewportDiagnosticEventArgs(message, isTrace: true))));
     }
 
     private static string FormatHandle(IntPtr handle) => $"0x{handle.ToInt64():X}";
@@ -363,4 +519,19 @@ public sealed class OcctViewportHost : HwndHost
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
     private static extern IntPtr GetWindowLongPtr(IntPtr window, int index);
+
+    private const int RgnDiff = 4;
+
+    [DllImport("gdi32.dll")]
+    private static extern IntPtr CreateRectRgn(int left, int top, int right, int bottom);
+
+    [DllImport("gdi32.dll")]
+    private static extern int CombineRgn(IntPtr destination, IntPtr source1, IntPtr source2, int mode);
+
+    [DllImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool DeleteObject(IntPtr handle);
+
+    [DllImport("user32.dll")]
+    private static extern int SetWindowRgn(IntPtr window, IntPtr region, [MarshalAs(UnmanagedType.Bool)] bool redraw);
 }

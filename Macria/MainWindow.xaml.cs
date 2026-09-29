@@ -353,6 +353,8 @@ namespace Macria
         // ================= KONSOL =================
 
         private void LogInfo(string message) { AddLog(message, "LogInfoBrush"); }
+        // Yalniz konsola: teshis izleri kose karti olarak cikmaz
+        private void LogTrace(string message) { AddLog(message, "LogInfoBrush", bildir: false); }
         private void LogSuccess(string message) { AddLog(message, "LogSuccessBrush"); }
         private void LogError(string message) { AddLog(message, "LogErrorBrush"); }
 
@@ -381,7 +383,7 @@ namespace Macria
             return Math.Max(1, (int)Math.Round(sure.TotalMilliseconds)) + " ms";
         }
 
-        private void AddLog(string message, string brushKey)
+        private void AddLog(string message, string brushKey, bool bildir = true)
         {
             // Bir parcaya ait export devam ederken konsola dusen hata satirlari
             // ayni zamanda basarisiz DXF simgesinin tooltip aciklamasi olur.
@@ -404,7 +406,7 @@ namespace Macria
                 _pip.SetLastLog(entry.Text, entry.Color);
 
             // Konsol kapaliyken satir kosede kisa sureli bir kart olarak cikar
-            Bildir(message, brushKey);
+            if (bildir) Bildir(message, brushKey);
         }
 
         // ================= ARAMA =================
@@ -1203,6 +1205,7 @@ namespace Macria
             if (pencere.ShowDialog() == true)
             {
                 MontajLazerEsiginiUygula();
+                OcctViewportHost.InputTraceEnabled = Ayarlar.GomuluTeshisKaydi;
                 LogInfo("Ayarlar Kaydedildi — Bekleme: " + Ayarlar.PanelBekleme + " ms" +
                         (Ayarlar.KonumVar ? ", Save As Konumu Öğretilmiş." : "."));
             }
