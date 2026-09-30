@@ -933,7 +933,6 @@ namespace Macria
             SayfayiAc(menuView, menuKaydir, -GecisKaymasi);
 
             btnBack.Visibility = Visibility.Collapsed;
-            btnSettings.Visibility = Visibility.Collapsed;
             btnTutorial.Visibility = Visibility.Collapsed;
             txtTitleBar.Text = "Macria";
         }
@@ -945,8 +944,8 @@ namespace Macria
             SayfayiAc(sayfa, kaydir, GecisKaymasi);
 
             btnBack.Visibility = Visibility.Visible;
-            btnSettings.Visibility = ayarlarVar ? Visibility.Visible : Visibility.Collapsed;
-            btnTutorial.Visibility = btnSettings.Visibility;
+            // Ayarlar her ekranda gorunur; rehber yalniz ayarlari olan sayfada
+            btnTutorial.Visibility = ayarlarVar ? Visibility.Visible : Visibility.Collapsed;
             txtTitleBar.Text = "Macria — " + baslik;
 
             logText.ScrollToEnd();

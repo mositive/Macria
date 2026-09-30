@@ -63,14 +63,15 @@
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
-                    <!-- Rehber ve Ayarlar yalnizca Toplu DXF Export sayfasina ait -->
+                    <!-- Rehber yalnizca Toplu DXF Export sayfasina ait -->
                     <Button x:Name="btnTutorial" Style="{StaticResource WindowButton}"
                             Content="&#xE897;" FontSize="14" ToolTip="Rehber"
                             Visibility="Collapsed" Click="btnTutorial_Click"
                             WindowChrome.IsHitTestVisibleInChrome="True"/>
+                    <!-- Ayarlar her ekranda, bilgi simgesinin yaninda -->
                     <Button x:Name="btnSettings" Style="{StaticResource WindowButton}"
                             Content="&#xE713;" FontSize="14" ToolTip="Ayarlar"
-                            Visibility="Collapsed" Click="btnSettings_Click"
+                            Click="btnSettings_Click"
                             WindowChrome.IsHitTestVisibleInChrome="True"/>
                     <Button x:Name="btnAbout" Style="{StaticResource WindowButton}"
                             Content="&#xE946;" FontSize="14" ToolTip="Hakkında"
@@ -214,42 +215,6 @@
                                                FontFamily="{StaticResource AppFontDisplay}"
                                                Foreground="{StaticResource TileTextBrush}"/>
                                     <TextBlock Text="Ürün ağacını referans veya montaj hiyerarşisiyle yönetin."
-                                               FontSize="12" TextWrapping="Wrap"
-                                               Foreground="{StaticResource TileSubTextBrush}"
-                                               Margin="0,3,0,0"/>
-                                </StackPanel>
-                            </Grid>
-                        </Button>
-
-                        <!-- Akilli Renklendirme -->
-                        <Button x:Name="btnAkilliRenklendirme" Style="{StaticResource MetroTile}"
-                                 Width="310" Height="150"
-                                 Background="#7A4BA3"
-                                 ToolTip="Aktif CATIA montajındaki aynı referansa ait parçaları aynı renkle gösterir."
-                                 Click="btnAkilliRenklendirme_Click">
-                            <Button.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem Header="Renklendirme 2.0 — Uygula"
-                                              Style="{x:Null}"
-                                              Background="{StaticResource SurfaceBrush}"
-                                              Foreground="{StaticResource TextPrimaryBrush}"
-                                              Click="Renklendirme2Uygula_Click"/>
-                                    <MenuItem Header="Renklendirme 2.0 — Automatic'e Dön"
-                                              Style="{x:Null}"
-                                              Background="{StaticResource SurfaceBrush}"
-                                              Foreground="{StaticResource TextPrimaryBrush}"
-                                              Click="Renklendirme2AutomaticDon_Click"/>
-                                </ContextMenu>
-                            </Button.ContextMenu>
-                            <Grid>
-                                <TextBlock Text="&#xE790;" FontFamily="Segoe MDL2 Assets"
-                                           FontSize="34" VerticalAlignment="Top"
-                                           Foreground="{StaticResource TileTextBrush}"/>
-                                <StackPanel VerticalAlignment="Bottom">
-                                    <TextBlock Text="Akıllı Renklendirme" FontSize="17"
-                                               FontFamily="{StaticResource AppFontDisplay}"
-                                               Foreground="{StaticResource TileTextBrush}"/>
-                                    <TextBlock Text="Aynı parça, aynı renk."
                                                FontSize="12" TextWrapping="Wrap"
                                                Foreground="{StaticResource TileSubTextBrush}"
                                                Margin="0,3,0,0"/>
@@ -2334,15 +2299,25 @@
 
                         <TabItem x:Name="tabExternalStepSaclar" Header="Saclar (0)" Visibility="Collapsed">
                             <Grid>
-                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                                <DockPanel Grid.Row="0" Margin="0,0,0,6">
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <!-- Uretim grubu alt sekmeleri: ayni liste, Lazer ya da Salama/Kutuk suzgeci -->
+                                <TabControl x:Name="tabSacGrubu" Grid.Row="0" Margin="0,0,0,4" VerticalAlignment="Top"
+                                            Background="Transparent" BorderThickness="0" Padding="0"
+                                            SelectionChanged="tabSacGrubu_SelectionChanged">
+                                    <TabItem x:Name="tabSacLazer" Header="Lazer (0)" FontSize="12" Padding="14,4"
+                                             ToolTip="Ayarlardaki lazer azami kalınlığına eşit ve daha ince saclar"/>
+                                    <TabItem x:Name="tabSacSalama" Header="Şalama/Kütük (0)" FontSize="12" Padding="14,4"
+                                             ToolTip="Ayarlardaki lazer azami kalınlığından kalın saclar"/>
+                                </TabControl>
+                                <DockPanel Grid.Row="1" Margin="0,0,0,6">
                                     <WrapPanel DockPanel.Dock="Right">
                                         <Button x:Name="btnSacDxfUret" Style="{StaticResource PrimaryButton}"
                                                 Content="DXF Üret" Height="28" Padding="12,0" Margin="0,0,10,0"
-                                                ToolTip="Onaylı Sac satırlarının motor DXF'ini hedef klasörün altındaki Motor-DXF klasörüne yazar"
+                                                ToolTip="Açık alt sekmedeki (Lazer ya da Şalama/Kütük) onaylı sac satırlarının motor DXF'ini hedef klasörün altındaki Motor-DXF klasörüne yazar"
                                                 Click="btnSacDxfUret_Click"/>
                                         <Button Style="{StaticResource SecondaryButton}" Content="Excel'e Aktar"
-                                                Height="28" Padding="10,0" Margin="0,0,10,0" Click="btnSacExcelAktar_Click"/>
+                                                Height="28" Padding="10,0" Margin="0,0,10,0" Click="btnSacExcelAktar_Click"
+                                                ToolTip="Açık alt sekmede listelenen satırları Excel'e yazar"/>
                                         <Button Style="{StaticResource SecondaryButton}" Content="Aktif 3B Tarama Verileriyle Karşılaştır"
                                                 Height="28" Padding="10,0" Margin="0,0,10,0" Click="btnExternalStepCatiaKarsilastir_Click"/>
                                         <Button x:Name="btnSacOnayla" Style="{StaticResource SecondaryButton}" Content="Sac Olarak Onayla"
@@ -2355,14 +2330,14 @@
                                     <TextBlock x:Name="txtSacOzet" VerticalAlignment="Center" TextWrapping="Wrap"
                                                Foreground="{StaticResource TextSecondaryBrush}"/>
                                 </DockPanel>
-                                <WrapPanel Grid.Row="1" Margin="0,0,0,6">
+                                <WrapPanel Grid.Row="2" Margin="0,0,0,6">
                                     <Button x:Name="btnSacTumFiltreler" Style="{StaticResource SecondaryButton}"
                                             Content="Tümünü Gizle" Height="28" Padding="10,0" Margin="0,0,10,0"
                                             Click="btnSacTumFiltreler_Click"/>
                                     <CheckBox x:Name="chkSacOnayli" Content="Sac (0)" IsChecked="True" Margin="0,0,10,0" VerticalAlignment="Center" Click="chkMontajFiltre_Click"/>
                                     <CheckBox x:Name="chkSacOnayGerekli" Content="Geometrik sac, onay gerekli (0)" IsChecked="True" VerticalAlignment="Center" Click="chkMontajFiltre_Click"/>
                                 </WrapPanel>
-                                <Grid Grid.Row="2" Margin="0,0,0,8">
+                                <Grid Grid.Row="3" Margin="0,0,0,8">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="330" MinWidth="300" MaxWidth="360"/></Grid.ColumnDefinitions>
                                     <DataGrid x:Name="gridSacParcalar" Grid.Column="0" AutoGenerateColumns="False" IsReadOnly="True"
                                               CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False"

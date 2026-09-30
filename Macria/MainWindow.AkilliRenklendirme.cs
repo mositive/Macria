@@ -7,79 +7,13 @@ using System.Windows.Threading;
 
 namespace Macria
 {
+    // Eski "Akilli Renklendirme" ekrani kaldirildi. Buradaki yardimcilar
+    // (referans anahtari, yaprak toplama, kilit, COM hata ayrimi) Renklendirme
+    // 2.0 ve renk teshisleri tarafindan kullaniliyor.
     public partial class MainWindow
     {
         private readonly AkilliRenklendirmeKilidi _akilliRenklendirmeKilidi =
             new AkilliRenklendirmeKilidi();
-
-        private async void btnAkilliRenklendirme_Click(object sender, RoutedEventArgs e)
-        {
-            if (!_akilliRenklendirmeKilidi.Baslat()) return;
-
-            if (!OnayWindow.Sor(
-                    this,
-                    "Akıllı Renklendirme",
-                    "Aktif CATIA montajındaki parçaların görünüm renkleri değiştirilecek. Devam edilsin mi?",
-                    "Devam Et"))
-            {
-                _akilliRenklendirmeKilidi.Bitir();
-                return;
-            }
-
-            btnAkilliRenklendirme.IsEnabled = false;
-            var sure = System.Diagnostics.Stopwatch.StartNew();
-            LogInfo("Akıllı Renklendirme Başlatıldı.");
-
-            try
-            {
-                object? catiaObj = GetCatia();
-                if (catiaObj == null)
-                    throw new InvalidOperationException("CATIA bağlantısı kurulamadı.");
-
-                dynamic catia = catiaObj;
-                dynamic editor = catia.ActiveEditor;
-                dynamic root = editor.ActiveObject;
-                if (!HasOccurrences(root))
-                    throw new InvalidOperationException("Aktif CATIA nesnesi bir Physical Product montajı değil.");
-
-                dynamic selection = editor.Selection;
-                List<object> oncekiSecim = SecimiSakla(selection);
-
-                try
-                {
-                    List<object> yapraklar = await AkilliRenklendirmeYapraklariniTopla(root);
-                    AkilliRenklendirmeSonucu sonuc = AkilliRenklendirmeMantigi.Isle(
-                        yapraklar,
-                        AkilliRenklendirmeReferansAnahtari,
-                        (occurrence, renk) => OccurrenceBoya(selection, occurrence, renk),
-                        (occurrence, ex) => LogError(
-                            "Akıllı Renklendirme — " + OccurrenceAdi(occurrence) +
-                            ": " + Kisa(ex.Message)),
-                        KritikComHatasiMi);
-
-                    LogSuccess(
-                        "Akıllı Renklendirme tamamlandı.\n" +
-                        "Benzersiz parça: " + sonuc.BenzersizReferansSayisi + "\n" +
-                        "Boyanan örnek: " + sonuc.BoyananOccurrenceSayisi + "\n" +
-                        "Atlanan: " + sonuc.AtlananSayisi + "\n" +
-                        "Hata: " + sonuc.HataSayisi);
-                }
-                finally
-                {
-                    SecimiGeriYukle(selection, oncekiSecim);
-                }
-            }
-            catch (Exception ex)
-            {
-                LogError("Akıllı Renklendirme tamamlanamadı: " + Kisa(ex.Message));
-            }
-            finally
-            {
-                btnAkilliRenklendirme.IsEnabled = true;
-                _akilliRenklendirmeKilidi.Bitir();
-                IslemSuresiniYaz("Akıllı Renklendirme", sure);
-            }
-        }
 
         private static async Task<List<object>> AkilliRenklendirmeYapraklariniTopla(dynamic root)
         {
@@ -177,23 +111,6 @@ namespace Macria
             {
                 if (KritikComHatasiMi(ex)) throw;
                 return "";
-            }
-        }
-
-        private static void OccurrenceBoya(
-            dynamic selection, object occurrence, AkilliRenk renk)
-        {
-            try
-            {
-                selection.Clear();
-                selection.Add(occurrence);
-                dynamic visualProperties = selection.VisProperties;
-                visualProperties.SetRealColor(
-                    (int)renk.Kirmizi, (int)renk.Yesil, (int)renk.Mavi, 1);
-            }
-            finally
-            {
-                try { selection.Clear(); } catch { }
             }
         }
 

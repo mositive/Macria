@@ -497,8 +497,10 @@ internal static class Program
             "hole summary: countersink, counterbore and tapped hole: " + sheet.HoleSummary);
         MontajParcaSatiri thick = Row(2);
         Check(thick.GroupDisplay == "Şalama/Kütük" && thick.HoleSummary == "1× Ø16 düz", "20,5 mm is Şalama/Kütük");
+        Check(!sheet.IsThickPlate && thick.IsThickPlate, "20 mm is in the Lazer sub-tab, 20,5 mm in Şalama/Kütük");
         thick.SetLaserMaximum(25);
         Check(thick.GroupDisplay == "Lazer", "the group follows the laser maximum setting");
+        Check(!thick.IsThickPlate, "the sub-tab follows the laser maximum setting");
 
         sheet.ApplyCatiaComparison(new[] { new CatiaScanSnapshotItem("Sac A", "p", "r", "k", 2, true) });
         Check(sheet.EffectiveCategory == MontajParcaKategorisi.Sac && sheet.DecisionSource == GeometryLabDecisionSource.ThreeDScan &&

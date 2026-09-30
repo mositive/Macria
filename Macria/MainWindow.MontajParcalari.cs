@@ -27,12 +27,14 @@ public partial class MainWindow
     private bool _sacBekleyenGorunur = true;
     private bool _kontrolGerekliGorunur = true;
     private bool _kontrolDigerGorunur = true;
+    // Saclar alt sekmesi: false = Lazer, true = Şalama/Kütük.
+    private bool _sacSalamaSekmesi;
 
     private void MontajParcaListesiniKur()
     {
         _sacParcaView = new ListCollectionView(_montajParcaRows)
         {
-            Filter = item => item is MontajParcaSatiri row && row.IsInSheetTab &&
+            Filter = item => item is MontajParcaSatiri row && row.IsInSheetTab && row.IsThickPlate == _sacSalamaSekmesi &&
                              (row.EffectiveCategory == MontajParcaKategorisi.Sac ? _sacOnayliGorunur : _sacBekleyenGorunur)
         };
         _kontrolParcaView = new ListCollectionView(_montajParcaRows)
@@ -117,14 +119,17 @@ public partial class MainWindow
     private void MontajFiltreleriniGoster()
     {
         int Count(MontajParcaKategorisi category) => _montajParcaRows.Count(x => x.EffectiveCategory == category);
+        // The Saclar filters count the open sub-tab only.
+        int SacCount(MontajParcaKategorisi category) =>
+            SacGrubuSatirlari().Count(x => x.EffectiveCategory == category);
         void Set(CheckBox? box, string caption, int count, bool visible)
         {
             if (box == null) return;
             box.Content = caption + " (" + count + ")";
             box.IsChecked = visible;
         }
-        Set(chkSacOnayli, "Sac", Count(MontajParcaKategorisi.Sac), _sacOnayliGorunur);
-        Set(chkSacOnayGerekli, "Geometrik sac, onay gerekli", Count(MontajParcaKategorisi.OnayGerekli), _sacBekleyenGorunur);
+        Set(chkSacOnayli, "Sac", SacCount(MontajParcaKategorisi.Sac), _sacOnayliGorunur);
+        Set(chkSacOnayGerekli, "Geometrik sac, onay gerekli", SacCount(MontajParcaKategorisi.OnayGerekli), _sacBekleyenGorunur);
         Set(chkKontrolGerekli, "Kontrol gerekli", Count(MontajParcaKategorisi.KontrolGerekli), _kontrolGerekliGorunur);
         Set(chkKontrolDiger, "Diğer", Count(MontajParcaKategorisi.Diger), _kontrolDigerGorunur);
         if (btnSacTumFiltreler != null)
@@ -163,6 +168,7 @@ public partial class MainWindow
     private bool MontajSonucunuDagit(GeometryLabStepProfileListItem fileRow, GeometryLabProcessAdapterResult result)
     {
         if (!result.IsSuccess || !MontajParcaSatiri.IsAssembly(result.Analysis)) return false;
+        bool ilkMontaj = _montajParcaRows.Count == 0;
         GeometryLabAnalysisTransport analysis = result.Analysis!;
         int index = _externalStepProfileRows.IndexOf(fileRow);
         if (index >= 0) _externalStepProfileRows.RemoveAt(index);
@@ -191,6 +197,10 @@ public partial class MainWindow
         LogSuccess("Montaj STEP'i: " + fileRow.SourceFileName + " — " + analysis.Parts.Count + " parça (" +
                    _montajParcaRows.Count(x => x.SourceStepPath == fileRow.SourceStepPath && x.IsInSheetTab) + " sac, " +
                    _montajParcaRows.Count(x => x.SourceStepPath == fileRow.SourceStepPath && x.IsInReviewTab) + " kontrol).");
+        // A new list opens on the sub-tab that has sheets: Lazer unless it is empty.
+        if (ilkMontaj)
+            SacGrubunuSec(!_montajParcaRows.Any(x => x.IsInSheetTab && !x.IsThickPlate) &&
+                          _montajParcaRows.Any(x => x.IsInSheetTab && x.IsThickPlate));
         MontajSekmeleriniGuncelle();
         return true;
     }
@@ -215,14 +225,48 @@ public partial class MainWindow
         }
         if (!montajVar && tabExternalStepSonuc != null && tabExternalStepProfiller != null)
             tabExternalStepSonuc.SelectedItem = tabExternalStepProfiller;
+        if (tabSacLazer != null)
+            tabSacLazer.Header = "Lazer (" + _montajParcaRows.Count(x => x.IsInSheetTab && !x.IsThickPlate) + ")";
+        if (tabSacSalama != null)
+            tabSacSalama.Header = "Şalama/Kütük (" + _montajParcaRows.Count(x => x.IsInSheetTab && x.IsThickPlate) + ")";
         if (txtSacOzet != null)
         {
-            int onayli = _montajParcaRows.Count(x => x.EffectiveCategory == MontajParcaKategorisi.Sac);
-            int bekleyen = _montajParcaRows.Count(x => x.EffectiveCategory == MontajParcaKategorisi.OnayGerekli);
-            txtSacOzet.Text = onayli + " onaylı sac, " + bekleyen + " onay bekleyen. Lazer ≤ " +
-                              MontajParcaSatiri.FormatNumber(Ayarlar.LazerAzamiKalinlikMm) + " mm (Ayarlar).";
+            List<MontajParcaSatiri> grup = SacGrubuSatirlari();
+            int onayli = grup.Count(x => x.EffectiveCategory == MontajParcaKategorisi.Sac);
+            int bekleyen = grup.Count(x => x.EffectiveCategory == MontajParcaKategorisi.OnayGerekli);
+            string esik = MontajParcaSatiri.FormatNumber(Ayarlar.LazerAzamiKalinlikMm);
+            txtSacOzet.Text = SacGrubuAdi() + ": " + onayli + " onaylı sac, " + bekleyen + " onay bekleyen. " +
+                              (_sacSalamaSekmesi ? "Kalınlık > " : "Kalınlık ≤ ") + esik + " mm (Ayarlar).";
         }
         MontajKomutlariniGuncelle();
+    }
+
+    /// <summary>Sheet rows of the open sub-tab (Lazer or Şalama/Kütük), filters ignored.</summary>
+    private List<MontajParcaSatiri> SacGrubuSatirlari() =>
+        _montajParcaRows.Where(x => x.IsInSheetTab && x.IsThickPlate == _sacSalamaSekmesi).ToList();
+
+    private string SacGrubuAdi() => _sacSalamaSekmesi ? "Şalama/Kütük" : "Lazer";
+
+    private void SacGrubunuSec(bool salama)
+    {
+        _sacSalamaSekmesi = salama;
+        if (tabSacGrubu != null)
+            tabSacGrubu.SelectedItem = salama ? tabSacSalama : tabSacLazer;
+    }
+
+    private void tabSacGrubu_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // Keep the switch from reaching the outer tab controls.
+        e.Handled = true;
+        if (!ReferenceEquals(e.OriginalSource, tabSacGrubu)) return;
+        bool salama = ReferenceEquals(tabSacGrubu.SelectedItem, tabSacSalama);
+        if (salama == _sacSalamaSekmesi && e.RemovedItems.Count > 0) return;
+        _sacSalamaSekmesi = salama;
+        // The first selection happens while the window is still being built.
+        if (_sacParcaView == null) return;
+        MontajSekmeleriniGuncelle();
+        List<MontajParcaSatiri> selected = SeciliSacSatirlari();
+        SacOnizlemesiniGoster(selected.Count == 1 ? selected[0] : null, selected.Count > 1);
     }
 
     private void MontajLazerEsiginiUygula()
@@ -242,7 +286,8 @@ public partial class MainWindow
     }
 
     private List<MontajParcaSatiri> SeciliSacSatirlari() =>
-        gridSacParcalar?.SelectedItems.OfType<MontajParcaSatiri>().Where(x => x.IsInSheetTab).ToList() ?? new();
+        gridSacParcalar?.SelectedItems.OfType<MontajParcaSatiri>()
+            .Where(x => x.IsInSheetTab && x.IsThickPlate == _sacSalamaSekmesi).ToList() ?? new();
 
     private List<MontajParcaSatiri> SeciliKontrolSatirlari() =>
         gridKontrolParcalar?.SelectedItems.OfType<MontajParcaSatiri>().Where(x => x.IsInReviewTab).ToList() ?? new();
@@ -253,7 +298,7 @@ public partial class MainWindow
         if (btnSacOnayla != null) btnSacOnayla.IsEnabled = sac.Any(x => x.EffectiveCategory != MontajParcaKategorisi.Sac && x.CanApproveAsSheet);
         if (btnSacKontrole != null) btnSacKontrole.IsEnabled = sac.Count > 0;
         if (btnSacOtomatik != null) btnSacOtomatik.IsEnabled = sac.Any(x => x.HasUserDecision);
-        if (btnSacDxfUret != null) btnSacDxfUret.IsEnabled = _montajParcaRows.Any(x => x.EffectiveCategory == MontajParcaKategorisi.Sac);
+        if (btnSacDxfUret != null) btnSacDxfUret.IsEnabled = SacGrubuSatirlari().Any(x => x.EffectiveCategory == MontajParcaKategorisi.Sac);
         List<MontajParcaSatiri> kontrol = SeciliKontrolSatirlari();
         if (btnKontrolSacOnayla != null) btnKontrolSacOnayla.IsEnabled = kontrol.Any(x => x.CanApproveAsSheet);
         if (btnKontrolOtomatik != null) btnKontrolOtomatik.IsEnabled = kontrol.Any(x => x.HasUserDecision);
@@ -365,17 +410,19 @@ public partial class MainWindow
 
     private void btnSacDxfUret_Click(object sender, RoutedEventArgs e)
     {
-        List<MontajParcaSatiri> onayli = _montajParcaRows.Where(x => x.EffectiveCategory == MontajParcaKategorisi.Sac).ToList();
-        int bekleyen = _montajParcaRows.Count(x => x.EffectiveCategory == MontajParcaKategorisi.OnayGerekli);
+        // Only the open sub-tab (Lazer or Şalama/Kütük) is written.
+        List<MontajParcaSatiri> grup = SacGrubuSatirlari();
+        List<MontajParcaSatiri> onayli = grup.Where(x => x.EffectiveCategory == MontajParcaKategorisi.Sac).ToList();
+        int bekleyen = grup.Count(x => x.EffectiveCategory == MontajParcaKategorisi.OnayGerekli);
         if (onayli.Count == 0)
         {
-            MessageBox.Show(this, "Onaylı sac satırı yok. " + (bekleyen > 0
+            MessageBox.Show(this, SacGrubuAdi() + " sekmesinde onaylı sac satırı yok. " + (bekleyen > 0
                     ? bekleyen + " parça onay bekliyor: seçip \"Sac Olarak Onayla\" deyin ya da CATIA ile karşılaştırın."
                     : ""), "DXF Üret", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
-        var dialog = new OpenFolderDialog { Title = "DXF'lerin Yazılacağı Klasörü Seçin (Motor-DXF alt klasörü oluşturulur)" };
+        var dialog = new OpenFolderDialog { Title = SacGrubuAdi() + " DXF'lerinin Yazılacağı Klasörü Seçin (Motor-DXF alt klasörü oluşturulur)" };
         if (!string.IsNullOrWhiteSpace(Ayarlar.SonCiktiKlasoru) && Directory.Exists(Ayarlar.SonCiktiKlasoru))
             dialog.InitialDirectory = Ayarlar.SonCiktiKlasoru;
         if (dialog.ShowDialog(this) != true) return;
@@ -389,6 +436,7 @@ public partial class MainWindow
         foreach ((string hedef, string neden) in sonuc.Hatali) LogError("Motor DXF yazılamadı: " + hedef + " — " + neden);
 
         string rapor = (sonuc.IptalEdildi ? "İşlem iptal edildi.\n\n" : "") +
+                       "Grup: " + SacGrubuAdi() + "\n" +
                        "Klasör: " + klasor + "\n" +
                        "Büküm bilgisi: " + (Ayarlar.BukumBilgisiDxf ? "yazıldı (BUKUM katmanı)" : "yazılmadı (yalnız KESIM)") + "\n\n" +
                        "Yazılan: " + sonuc.Yazilan.Count + "\n" +
@@ -405,23 +453,24 @@ public partial class MainWindow
         List<MontajParcaSatiri> rows = (_sacParcaView?.Cast<MontajParcaSatiri>() ?? Enumerable.Empty<MontajParcaSatiri>()).ToList();
         if (rows.Count == 0)
         {
-            MessageBox.Show(this, "Saclar sekmesinde aktarılacak satır yok.", "Excel'e Aktar", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(this, SacGrubuAdi() + " sekmesinde aktarılacak satır yok.", "Excel'e Aktar", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
         var dialog = new SaveFileDialog
         {
-            Title = "Montaj Sac Listesini Kaydet",
+            Title = "Montaj Sac Listesini Kaydet — " + SacGrubuAdi(),
             Filter = "Excel Çalışma Kitabı (*.xlsx)|*.xlsx",
             DefaultExt = "xlsx",
             AddExtension = true,
             OverwritePrompt = true,
-            FileName = "Macria_Montaj_Saclar_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".xlsx"
+            FileName = "Macria_Montaj_Saclar_" + (_sacSalamaSekmesi ? "Salama-Kutuk" : "Lazer") + "_" +
+                       DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".xlsx"
         };
         if (dialog.ShowDialog(this) != true) return;
         try
         {
-            ExcelYazici.Yaz(SacExcelRaporuHazirla(rows), dialog.FileName);
-            LogSuccess("Montaj sac listesi Excel'e yazıldı: " + dialog.FileName);
+            ExcelYazici.Yaz(SacExcelRaporuHazirla(rows, _sacSalamaSekmesi ? "Saclar - Şalama-Kütük" : "Saclar - Lazer"), dialog.FileName);
+            LogSuccess("Montaj sac listesi (" + SacGrubuAdi() + ") Excel'e yazıldı: " + dialog.FileName);
             MessageBox.Show(this, "Excel dosyası oluşturuldu:\n" + dialog.FileName, "Excel'e Aktar", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception exception)
@@ -431,11 +480,11 @@ public partial class MainWindow
         }
     }
 
-    private static Rapor SacExcelRaporuHazirla(IEnumerable<MontajParcaSatiri> rows)
+    private static Rapor SacExcelRaporuHazirla(IEnumerable<MontajParcaSatiri> rows, string sayfaAdi)
     {
         var rapor = new Rapor
         {
-            SayfaAdi = "Montaj Saclar",
+            SayfaAdi = sayfaAdi,
             TabloIlkSatirdanBaslar = true,
             IlkSatiriDondur = true,
             OtomatikFiltre = true

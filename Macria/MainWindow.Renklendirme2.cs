@@ -21,7 +21,6 @@ namespace Macria
                 return;
             }
 
-            btnAkilliRenklendirme.IsEnabled = false;
             SetRenklendirme2PanelEnabled(false);
             var stopwatch = Stopwatch.StartNew();
             dynamic? selection = null;
@@ -319,7 +318,6 @@ namespace Macria
             {
                 if (selection != null && previousSelection != null)
                     SecimiGeriYukle(selection, previousSelection);
-                btnAkilliRenklendirme.IsEnabled = true;
                 SetRenklendirme2PanelEnabled(true);
                 _akilliRenklendirmeKilidi.Bitir();
             }
@@ -333,7 +331,6 @@ namespace Macria
                 return;
             }
 
-            btnAkilliRenklendirme.IsEnabled = false;
             SetRenklendirme2PanelEnabled(false);
             var stopwatch = Stopwatch.StartNew();
             dynamic? selection = null;
@@ -474,7 +471,6 @@ namespace Macria
             {
                 if (selection != null && previousSelection != null)
                     SecimiGeriYukle(selection, previousSelection);
-                btnAkilliRenklendirme.IsEnabled = true;
                 SetRenklendirme2PanelEnabled(true);
                 _akilliRenklendirmeKilidi.Bitir();
             }

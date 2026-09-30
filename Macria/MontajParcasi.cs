@@ -53,6 +53,12 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
         ? (t <= _laserMaximumMm ? "Lazer" : "Şalama/Kütük")
         : "—";
 
+    /// <summary>
+    /// Thicker than the laser maximum: listed under Şalama/Kütük. A sheet row
+    /// without a thickness stays under Lazer, where its "—" group shows.
+    /// </summary>
+    public bool IsThickPlate => ThicknessMm is double t && t > _laserMaximumMm;
+
     /// <summary>null: no CATIA comparison or no single match.</summary>
     public bool? CatiaSheetMetalFeature { get; private set; }
     public string CatiaMatchDisplay { get; private set; } = "CATIA taraması yok";
@@ -141,6 +147,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
     {
         _laserMaximumMm = laserMaximumMm;
         Raise(nameof(GroupDisplay));
+        Raise(nameof(IsThickPlate));
     }
 
     public void ApplyCatiaComparison(IReadOnlyList<CatiaScanSnapshotItem> matches)
