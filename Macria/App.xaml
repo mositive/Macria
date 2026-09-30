@@ -770,6 +770,12 @@
             <Setter Property="HorizontalContentAlignment" Value="Right"/>
         </Style>
 
+        <!-- Uzun metin sutunlari: sigmayan metin "..." ile kisalir, tamami ipucunda -->
+        <Style x:Key="KirpilanHucre" TargetType="TextBlock">
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Setter Property="ToolTip" Value="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+        </Style>
+
         <!-- Tek satirlari hafif koyu: uzun tabloda satir takibi kolaylasir.
              Tetikleyici sirasi onemli, fare/secim vurgusu en sonda kalmali. -->
         <Style x:Key="ZebraRow" TargetType="DataGridRow">
