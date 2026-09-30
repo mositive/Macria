@@ -352,6 +352,11 @@ public sealed record GeometryLabProfileAxisCandidateTransport
     [JsonPropertyName("localId")]
     public int LocalId { get; init; }
 
+    // Solid the candidate was found on; lets an assembly part use only its own
+    // candidates. Missing in older engine outputs.
+    [JsonPropertyName("solidId")]
+    public GeometryLabLocalIdTransport? SolidId { get; init; }
+
     [JsonPropertyName("projectionSpanMm")]
     public double? ProjectionSpanMm { get; init; }
 

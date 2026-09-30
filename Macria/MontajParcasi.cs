@@ -288,10 +288,33 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
                 BaseStockProfile = stock?.BaseStockProfile,
                 ModificationAnalysis = stock?.ModificationAnalysis,
                 BaseStockProfiles = stock is null ? Array.Empty<GeometryLabSolidBaseStockTransport>() : new[] { stock },
-                ProfileGeometryAnalysis = null,
+                ProfileGeometryAnalysis = GeometryForPart(result.Analysis.ProfileGeometryAnalysis, solidIds),
                 Parts = new[] { part }
             },
             HasMultipleProfileResults = profiles.Length > 1
         };
+    }
+
+    /// <summary>
+    /// The profile axis analysis of one part's own solids. The assembly-wide
+    /// status is "Unknown" as soon as any other part has no reliable axis, so
+    /// it is recomputed with the engine's per-solid rule: every solid has
+    /// exactly one reliable axis → Determined; one with several → Ambiguous;
+    /// otherwise Unknown. Candidates without a solid (old engines) give null,
+    /// as before, so the length stays "—" rather than being guessed.
+    /// </summary>
+    internal static GeometryLabProfileGeometryAnalysisTransport? GeometryForPart(
+        GeometryLabProfileGeometryAnalysisTransport? geometry, IReadOnlySet<int> solidIds)
+    {
+        if (geometry is null || solidIds.Count == 0) return null;
+        GeometryLabProfileAxisCandidateTransport[] candidates = geometry.AxisCandidates
+            .Where(x => x.SolidId != null && solidIds.Contains(x.SolidId.LocalId)).ToArray();
+        if (candidates.Length == 0) return null;
+        int[] reliablePerSolid = solidIds
+            .Select(id => candidates.Count(x => x.SolidId!.LocalId == id && x.Reliable)).ToArray();
+        string status = reliablePerSolid.Any(count => count > 1) ? "Ambiguous"
+            : reliablePerSolid.Any(count => count == 0) ? "Unknown"
+            : "Determined";
+        return geometry with { AxisDetectionStatus = status, AxisCandidates = candidates };
     }
 }

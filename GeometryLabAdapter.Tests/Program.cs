@@ -37,6 +37,7 @@ internal static class Program
             await RealAssemblyEngineAsync();
             AssemblyPartRows();
             AssemblyProcessedProfilePart();
+            AssemblyPartProfileGeometry();
             MotorDxfExport();
             await CancellationAsync();
             await MultipleProfilesAsync();
@@ -422,6 +423,68 @@ internal static class Program
             Console.WriteLine("REAL_ASSEMBLY_ENGINE: " + row.Name + " adet=" + part?.Quantity + " sinif=" + part?.Classification +
                 (dxf is null ? "" : " dxf=" + Path.GetFileName(dxf)));
         }
+
+        // Profile rows: length, topology and cuts from the part's own solid,
+        // the same as the part's single-part STEP when one is given.
+        string? singleFolder = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_SINGLE_PART_DIR");
+        foreach (GeometryLabPartTransport part in parts.Where(x => x.Classification == "Profile"))
+        {
+            var assemblyRow = new GeometryLabStepProfileListItem { SourceStepPath = steps[0], PartName = part.Name, PartQuantity = part.Quantity };
+            assemblyRow.Apply(MontajParcaSatiri.ResultForPart(result, part));
+            Check(assemblyRow.LengthDisplay != "—", "real assembly " + part.Name + ": profile length is measured (" + assemblyRow.LengthDisplay + ")");
+            Console.WriteLine("REAL_ASSEMBLY_PROFILE: " + part.Name + " kesit=" + assemblyRow.SectionDisplay + " boy=" + assemblyRow.LengthDisplay +
+                " topoloji=" + assemblyRow.TopologyDisplay + " kesim=" + assemblyRow.CutDisplay);
+            string? single = string.IsNullOrWhiteSpace(singleFolder) ? null : Directory.GetFiles(singleFolder)
+                .Where(path => Path.GetFileName(path).StartsWith(part.Name + "_", StringComparison.OrdinalIgnoreCase) ||
+                               Path.GetFileNameWithoutExtension(path).Equals(part.Name, StringComparison.OrdinalIgnoreCase))
+                .FirstOrDefault(path => Path.GetExtension(path).Equals(".stp", StringComparison.OrdinalIgnoreCase) ||
+                                        Path.GetExtension(path).Equals(".step", StringComparison.OrdinalIgnoreCase));
+            if (single is null)
+            {
+                Console.WriteLine("REAL_ASSEMBLY_PROFILE: " + part.Name + " single-part comparison SKIPPED (MACRIA_GEOMETRY_ENGINE_SINGLE_PART_DIR).");
+                continue;
+            }
+            var singleRow = new GeometryLabStepProfileListItem { SourceStepPath = single };
+            singleRow.Apply(await adapter.AnalyzeAsync(single));
+            Check(assemblyRow.SectionDisplay == singleRow.SectionDisplay && assemblyRow.LengthDisplay == singleRow.LengthDisplay &&
+                  assemblyRow.TopologyDisplay == singleRow.TopologyDisplay && assemblyRow.CutDisplay == singleRow.CutDisplay,
+                "real assembly " + part.Name + " equals its single-part STEP " + Path.GetFileName(single) + ": section " +
+                assemblyRow.SectionDisplay + "/" + singleRow.SectionDisplay + ", length " + assemblyRow.LengthDisplay + "/" +
+                singleRow.LengthDisplay + ", topology " + assemblyRow.TopologyDisplay + "/" + singleRow.TopologyDisplay +
+                ", cuts " + assemblyRow.CutDisplay + "/" + singleRow.CutDisplay);
+        }
+    }
+
+    private static void AssemblyPartProfileGeometry()
+    {
+        GeometryLabProfileAxisCandidateTransport Axis(int id, int solid, double span, bool reliable) => new()
+        {
+            LocalId = id, SolidId = new GeometryLabLocalIdTransport { LocalId = solid }, ProjectionSpanMm = span, Reliable = reliable
+        };
+        var geometry = new GeometryLabProfileGeometryAnalysisTransport
+        {
+            // Assembly-wide: solid 3 has no reliable axis, so the whole analysis is Unknown.
+            AxisDetectionStatus = "Unknown",
+            AxisCandidates = new[]
+            {
+                Axis(1, 1, 85, true), Axis(2, 1, 40, false),
+                Axis(3, 2, 120, true), Axis(4, 2, 118, true),
+                Axis(5, 3, 60, false)
+            }
+        };
+        GeometryLabProfileGeometryAnalysisTransport? first = MontajParcaSatiri.GeometryForPart(geometry, new HashSet<int> { 1 });
+        Check(first?.AxisDetectionStatus == "Determined" && first.AxisCandidates.Count == 2 &&
+              first.AxisCandidates.Single(x => x.Reliable).ProjectionSpanMm == 85,
+            "assembly part profile geometry: its own solid's one reliable axis is Determined (85 mm)");
+        Check(MontajParcaSatiri.GeometryForPart(geometry, new HashSet<int> { 2 })?.AxisDetectionStatus == "Ambiguous",
+            "assembly part profile geometry: two reliable axes on the part's solid stay Ambiguous");
+        Check(MontajParcaSatiri.GeometryForPart(geometry, new HashSet<int> { 3 })?.AxisDetectionStatus == "Unknown",
+            "assembly part profile geometry: no reliable axis stays Unknown");
+        Check(MontajParcaSatiri.GeometryForPart(geometry, new HashSet<int> { 1, 3 })?.AxisDetectionStatus == "Unknown",
+            "assembly part profile geometry: every solid of the part needs its axis");
+        var old = geometry with { AxisCandidates = geometry.AxisCandidates.Select(x => x with { SolidId = null }).ToArray() };
+        Check(MontajParcaSatiri.GeometryForPart(old, new HashSet<int> { 1 }) is null,
+            "assembly part profile geometry: candidates without a solid (old engine) are not guessed");
     }
 
     private static GeometryLabAnalysisTransport AssemblyAnalysis() => new()
