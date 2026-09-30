@@ -2434,6 +2434,7 @@
                                             <StackPanel Grid.Row="0">
                                                 <TextBlock Text="3B Önizleme" FontWeight="SemiBold" FontSize="14"/>
                                                 <WrapPanel Margin="0,7,0,7">
+                                                    <Button x:Name="btnKontrolBuyukAc" Style="{StaticResource SecondaryButton}" Content="Büyük Aç" Padding="9,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnKontrolBuyukAc_Click"/>
                                                     <Button x:Name="btnKontrolParcaGorunumu" Style="{StaticResource SecondaryButton}" Content="Montaj içinde göster" Padding="7,0" Height="25" Margin="0,0,4,4"
                                                             IsEnabled="False" Click="btnMontajParcaGorunumu_Click"
                                                             ToolTip="Seçili parçayı tek başına ya da montajın içinde (diğerleri soluk) gösterir"/>

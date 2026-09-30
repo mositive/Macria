@@ -20,14 +20,6 @@ namespace Macria
         public byte Mavi { get; }
     }
 
-    internal sealed class AkilliRenklendirmeSonucu
-    {
-        public int BenzersizReferansSayisi { get; internal set; }
-        public int BoyananOccurrenceSayisi { get; internal set; }
-        public int AtlananSayisi { get; internal set; }
-        public int HataSayisi { get; internal set; }
-    }
-
     internal sealed class AkilliRenklendirmeKilidi
     {
         private int _calisiyor;
@@ -90,55 +82,6 @@ namespace Macria
             }
 
             return yapraklar;
-        }
-
-        internal static AkilliRenklendirmeSonucu Isle<T>(
-            IEnumerable<T> occurrences,
-            Func<T, string?> referansAnahtari,
-            Action<T, AkilliRenk> boya,
-            Action<T, Exception>? hataBildir = null,
-            Func<Exception, bool>? kritikHata = null)
-        {
-            var sonuc = new AkilliRenklendirmeSonucu();
-            var referanslar = new HashSet<string>(StringComparer.Ordinal);
-
-            foreach (T occurrence in occurrences)
-            {
-                string? anahtar;
-                try
-                {
-                    anahtar = referansAnahtari(occurrence);
-                }
-                catch (Exception ex)
-                {
-                    if (kritikHata != null && kritikHata(ex)) throw;
-                    sonuc.AtlananSayisi++;
-                    hataBildir?.Invoke(occurrence, ex);
-                    continue;
-                }
-
-                if (string.IsNullOrWhiteSpace(anahtar))
-                {
-                    sonuc.AtlananSayisi++;
-                    continue;
-                }
-
-                referanslar.Add(anahtar);
-                try
-                {
-                    boya(occurrence, RenkOlustur(anahtar));
-                    sonuc.BoyananOccurrenceSayisi++;
-                }
-                catch (Exception ex)
-                {
-                    if (kritikHata != null && kritikHata(ex)) throw;
-                    sonuc.HataSayisi++;
-                    hataBildir?.Invoke(occurrence, ex);
-                }
-            }
-
-            sonuc.BenzersizReferansSayisi = referanslar.Count;
-            return sonuc;
         }
 
         private static AkilliRenk HsvToRgb(double h, double s, double v)

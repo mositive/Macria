@@ -66,6 +66,7 @@ public partial class MainWindow
         bool loaded = e.State == OcctViewportState.Loaded;
         if (btnKontrolIsometric != null) btnKontrolIsometric.IsEnabled = loaded;
         if (btnKontrolFitAll != null) btnKontrolFitAll.IsEnabled = loaded;
+        if (btnKontrolBuyukAc != null) btnKontrolBuyukAc.IsEnabled = loaded;
         List<MontajParcaSatiri> selected = SeciliKontrolSatirlari();
         ParcaGorunumuDugmesiniGuncelle(btnKontrolParcaGorunumu, selected.Count == 1 ? selected[0].PartName : null,
             kontrolStepViewport, gizle: false);
@@ -86,6 +87,13 @@ public partial class MainWindow
     private void btnKontrolIsometric_Click(object sender, RoutedEventArgs e) => kontrolStepViewport.SetView(OcctStandardView.Isometric);
 
     private void btnKontrolFitAll_Click(object sender, RoutedEventArgs e) => kontrolStepViewport.FitAll();
+
+    private void btnKontrolBuyukAc_Click(object sender, RoutedEventArgs e)
+    {
+        List<MontajParcaSatiri> selected = SeciliKontrolSatirlari();
+        if (selected.Count != 1 || !File.Exists(selected[0].SourceStepPath)) return;
+        BuyukOnizlemeyiAc(selected[0].SourceStepPath, selected[0].PartName);
+    }
 
     private void chkMontajFiltre_Click(object sender, RoutedEventArgs e)
     {
@@ -331,6 +339,8 @@ public partial class MainWindow
         kontrolStepViewport.LoadStep(selected[0].SourceStepPath);
         kontrolStepViewport.ShowPart(selected[0].PartName, _montajParcaGorunumu);
         KontrolDurumYazisiniGuncelle();
+        if (_buyukOnizlemeKontrolden)
+            _externalStepPreviewWindow?.ShowStep(selected[0].SourceStepPath, selected[0].PartName, _montajParcaGorunumu);
     }
 
     private void btnSacOnayla_Click(object sender, RoutedEventArgs e) => MontajKarariUygula(SeciliSacSatirlari(), row => row.ApproveAsSheet());

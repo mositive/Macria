@@ -39,7 +39,7 @@ public partial class MainWindow
         {
             btnExternalStepBuyukAc.IsEnabled = false;
             externalStepViewport.ClearModel();
-            _externalStepPreviewWindow?.ShowStep(null);
+            if (!_buyukOnizlemeKontrolden) _externalStepPreviewWindow?.ShowStep(null);
             return;
         }
 
@@ -48,7 +48,7 @@ public partial class MainWindow
             btnExternalStepBuyukAc.IsEnabled = false;
             externalStepViewport.ClearModel();
             txtExternalStepViewportStatus.Text = "STEP dosyası artık belirtilen konumda bulunmuyor.";
-            _externalStepPreviewWindow?.ShowStep(item.SourceStepPath);
+            if (!_buyukOnizlemeKontrolden) _externalStepPreviewWindow?.ShowStep(item.SourceStepPath);
             return;
         }
 
@@ -56,7 +56,7 @@ public partial class MainWindow
         externalStepViewport.LoadStep(item.SourceStepPath);
         // An assembly part row: the part alone or inside the faded assembly.
         externalStepViewport.ShowPart(item.PartName, _montajParcaGorunumu);
-        _externalStepPreviewWindow?.ShowStep(item.SourceStepPath, item.PartName, _montajParcaGorunumu);
+        if (!_buyukOnizlemeKontrolden) _externalStepPreviewWindow?.ShowStep(item.SourceStepPath, item.PartName, _montajParcaGorunumu);
     }
 
     private GeometryLabStepProfileListItem? ExternalStepOnizlemeSatiri()
@@ -146,10 +146,19 @@ public partial class MainWindow
     {
         GeometryLabStepProfileListItem? item = GorunenSeciliExternalStepSatirlari().SingleOrDefault();
         if (item == null || !File.Exists(item.SourceStepPath)) return;
+        BuyukOnizlemeyiAc(item.SourceStepPath, item.PartName, fromKontrol: false);
+    }
 
+    // One "Büyük Aç" window for both tabs; it follows the selection of the tab
+    // that opened it last.
+    private bool _buyukOnizlemeKontrolden;
+
+    private void BuyukOnizlemeyiAc(string stepPath, string? partName, bool fromKontrol = true)
+    {
+        _buyukOnizlemeKontrolden = fromKontrol;
         if (_externalStepPreviewWindow != null)
         {
-            _externalStepPreviewWindow.ShowStep(item.SourceStepPath, item.PartName, _montajParcaGorunumu);
+            _externalStepPreviewWindow.ShowStep(stepPath, partName, _montajParcaGorunumu);
             if (_externalStepPreviewWindow.WindowState == WindowState.Minimized)
                 _externalStepPreviewWindow.WindowState = WindowState.Normal;
             _externalStepPreviewWindow.Activate();
@@ -167,7 +176,7 @@ public partial class MainWindow
             if (ReferenceEquals(_externalStepPreviewWindow, previewWindow))
                 _externalStepPreviewWindow = null;
         };
-        previewWindow.ShowStep(item.SourceStepPath, item.PartName, _montajParcaGorunumu);
+        previewWindow.ShowStep(stepPath, partName, _montajParcaGorunumu);
         previewWindow.Show();
     }
 }

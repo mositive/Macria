@@ -80,7 +80,6 @@ internal static class Program
     {
         public string Key = "";
         public List<ColorNode> Children = new();
-        public bool Fail;
     }
 
     private static void SmartColoring()
@@ -101,7 +100,7 @@ internal static class Program
             "smart color: generated color avoids extreme channels");
 
         var one = new ColorNode { Key = keyA };
-        var two = new ColorNode { Key = keyB, Fail = true };
+        var two = new ColorNode { Key = keyB };
         var three = new ColorNode { Key = keyA };
         var missing = new ColorNode();
         var assembly = new ColorNode { Children = { one, two } };
@@ -110,27 +109,6 @@ internal static class Program
             new[] { root }, node => node.Children);
         Check(leaves.SequenceEqual(new[] { one, two, three, missing }),
             "smart color: nested assemblies traverse to leaf occurrences");
-
-        var painted = new List<(ColorNode Node, AkilliRenk Color)>();
-        AkilliRenklendirmeSonucu result = AkilliRenklendirmeMantigi.Isle(
-            leaves,
-            node => node.Key.Length == 0 ? null : node.Key,
-            (node, color) =>
-            {
-                if (node.Fail) throw new InvalidOperationException("simulated occurrence failure");
-                painted.Add((node, color));
-            });
-        Check(result.BenzersizReferansSayisi == 2 && result.BoyananOccurrenceSayisi == 2 &&
-              result.AtlananSayisi == 1 && result.HataSayisi == 1,
-            "smart color: counts unique, painted, skipped and failed occurrences");
-        Check(painted.Count == 2 && ReferenceEquals(painted[0].Node, one) && ReferenceEquals(painted[1].Node, three),
-            "smart color: one occurrence failure does not stop later occurrences");
-
-        var reversed = AkilliRenklendirmeMantigi.Isle(
-            new[] { three, one }, node => node.Key, (node, color) => painted.Add((node, color)));
-        Check(reversed.BenzersizReferansSayisi == 1 &&
-              AkilliRenklendirmeMantigi.RenkOlustur(three.Key).Kirmizi == colorA.Kirmizi,
-            "smart color: traversal order does not change reference color");
 
         var gate = new AkilliRenklendirmeKilidi();
         Check(gate.Baslat() && gate.Calisiyor && !gate.Baslat(),

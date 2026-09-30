@@ -13,3 +13,7 @@ Assertions cover source-record identity, LINE/CIRCLE/ARC deletion, exact untouch
 One failure test temporarily denies file creation inside its own generated fixture subdirectory to verify that failed backup creation cannot overwrite the original. The original subdirectory ACL is restored in `finally`. Some Windows sandboxes deny the metadata access required by atomic `File.Replace`; in that environment, this runner needs execution permission outside the sandbox to test successful overwrite. A permission failure is not a passing save test.
 
 This is not an interactive UI test. Edit Mode controls, keyboard handling, prompts, dirty title, selection, snap and pan/zoom must also be tested in the running application.
+
+## Bilinen sorunlar
+
+- **DxfEdit.UiTests, silme adımı (arada bir düşüyor):** 2026-09-30'da `DxfEdit.UiTests` bir çalıştırmada `Program.cs` satır 87 civarındaki LINE/CIRCLE/ARC silme döngüsünde istisnayla düştü; hemen ardından üç çalıştırmada 892 kontrolün hepsi geçti. O sırada DXF Edit koduna dokunulmamıştı. Nedeni bulunmadı (zamanlama ya da OneDrive dosya kilidi olabilir). Tekrar düşerse tam istisna metni saklanmalı; tek bir geçen çalıştırma yeterli kanıt sayılmamalı.
