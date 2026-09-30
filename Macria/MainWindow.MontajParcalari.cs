@@ -64,10 +64,19 @@ public partial class MainWindow
         bool loaded = e.State == OcctViewportState.Loaded;
         if (btnKontrolIsometric != null) btnKontrolIsometric.IsEnabled = loaded;
         if (btnKontrolFitAll != null) btnKontrolFitAll.IsEnabled = loaded;
-        if (txtKontrolViewportStatus != null)
-            txtKontrolViewportStatus.Text = loaded
-                ? "Seçili parça montaj içinde vurgulanır; diğer parçalar soluk görünür."
-                : e.Message;
+        List<MontajParcaSatiri> selected = SeciliKontrolSatirlari();
+        ParcaGorunumuDugmesiniGuncelle(btnKontrolParcaGorunumu, selected.Count == 1 ? selected[0].PartName : null,
+            kontrolStepViewport, gizle: false);
+        if (loaded) KontrolDurumYazisiniGuncelle();
+        else if (txtKontrolViewportStatus != null) txtKontrolViewportStatus.Text = e.Message;
+    }
+
+    private void KontrolDurumYazisiniGuncelle()
+    {
+        if (txtKontrolViewportStatus == null || kontrolStepViewport?.State != OcctViewportState.Loaded) return;
+        txtKontrolViewportStatus.Text = _montajParcaGorunumu == OcctPartView.Isolated
+            ? "Yalnız seçili parça gösteriliyor; montajın kalanı gizli."
+            : "Seçili parça montaj içinde vurgulanır; diğer parçalar soluk görünür.";
     }
 
     private void KontrolViewport_Diagnostic(object? sender, OcctViewportDiagnosticEventArgs e) => ViewportTeshisiniYaz(e);
@@ -262,6 +271,8 @@ public partial class MainWindow
         MontajKomutlariniGuncelle();
         List<MontajParcaSatiri> selected = SeciliKontrolSatirlari();
         if (kontrolStepViewport == null) return;
+        ParcaGorunumuDugmesiniGuncelle(btnKontrolParcaGorunumu, selected.Count == 1 ? selected[0].PartName : null,
+            kontrolStepViewport, gizle: false);
         if (selected.Count != 1 || !File.Exists(selected[0].SourceStepPath))
         {
             kontrolStepViewport.ClearModel();
@@ -271,9 +282,10 @@ public partial class MainWindow
                     : "Önizlemek için listeden bir parça seçin.";
             return;
         }
-        // The whole assembly with the selected part highlighted, the rest faded.
+        // The selected part alone, or highlighted in the faded assembly.
         kontrolStepViewport.LoadStep(selected[0].SourceStepPath);
-        kontrolStepViewport.HighlightPart(selected[0].PartName);
+        kontrolStepViewport.ShowPart(selected[0].PartName, _montajParcaGorunumu);
+        KontrolDurumYazisiniGuncelle();
     }
 
     private void btnSacOnayla_Click(object sender, RoutedEventArgs e) => MontajKarariUygula(SeciliSacSatirlari(), row => row.ApproveAsSheet());

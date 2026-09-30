@@ -7,6 +7,11 @@ namespace Macria;
 public partial class OcctPreviewWindow : Window
 {
     internal event EventHandler<OcctViewportDiagnosticEventArgs>? Diagnostic;
+    // The part view is shared with the main window, which owns the choice.
+    internal event EventHandler? PartViewToggleRequested;
+
+    private string? _partName;
+    private OcctPartView _partView = OcctPartView.Isolated;
 
     public OcctPreviewWindow()
     {
@@ -17,8 +22,15 @@ public partial class OcctPreviewWindow : Window
         UpdateControls(viewport.State, viewport.StatusMessage);
     }
 
-    internal void ShowStep(string? path)
+    /// <summary>
+    /// Shows a STEP file; for an assembly part row, <paramref name="partName"/>
+    /// is shown the way <paramref name="partView"/> says, like the embedded view.
+    /// </summary>
+    internal void ShowStep(string? path, string? partName = null, OcctPartView partView = OcctPartView.Isolated)
     {
+        _partName = string.IsNullOrWhiteSpace(partName) ? null : partName;
+        _partView = partView;
+        UpdatePartViewButton();
         if (string.IsNullOrWhiteSpace(path))
         {
             txtStepName.Text = "Listeden Bir STEP Seçin";
@@ -28,7 +40,7 @@ public partial class OcctPreviewWindow : Window
             return;
         }
 
-        txtStepName.Text = Path.GetFileName(path);
+        txtStepName.Text = _partName == null ? Path.GetFileName(path) : _partName + " — " + Path.GetFileName(path);
         txtStepPath.Text = path;
         txtStepPath.ToolTip = path;
 
@@ -40,7 +52,25 @@ public partial class OcctPreviewWindow : Window
         }
 
         viewport.LoadStep(path);
+        viewport.ShowPart(_partName, _partView);
     }
+
+    internal void SetPartView(OcctPartView partView)
+    {
+        _partView = partView;
+        UpdatePartViewButton();
+        if (_partName != null) viewport.ShowPart(_partName, _partView);
+    }
+
+    private void UpdatePartViewButton()
+    {
+        btnPartView.Visibility = _partName == null ? Visibility.Collapsed : Visibility.Visible;
+        btnPartView.Content = _partView == OcctPartView.Isolated ? "Montaj içinde göster" : "Yalnız parçayı göster";
+        btnPartView.IsEnabled = _partName != null && viewport.State == OcctViewportState.Loaded;
+    }
+
+    private void btnPartView_Click(object sender, RoutedEventArgs e) =>
+        PartViewToggleRequested?.Invoke(this, EventArgs.Empty);
 
     protected override void OnClosed(EventArgs e)
     {
@@ -68,6 +98,7 @@ public partial class OcctPreviewWindow : Window
         btnRight.IsEnabled = loaded;
         btnTop.IsEnabled = loaded;
         btnBottom.IsEnabled = loaded;
+        btnPartView.IsEnabled = loaded && _partName != null;
     }
 
     private void btnFitAll_Click(object sender, RoutedEventArgs e) => viewport.FitAll();

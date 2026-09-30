@@ -62,8 +62,11 @@ public sealed class OcctViewportHost : HwndHost
     private OcctViewerNative? _native;
     private string? _pendingPath;
     private string? _loadedPath;
-    // Assembly part to highlight once the model is loaded; "" = none.
+    // Assembly part to show once the model is loaded; "" = none.
     private string _pendingHighlight = "";
+    private OcctPartView _pendingPartView = OcctPartView.InAssembly;
+    // What the native viewer shows now; "" = the plain model.
+    private string _appliedPart = "";
     private bool _shuttingDown;
     private IntPtr _parentWindow;
     private IntPtr _childWindow;
@@ -116,6 +119,7 @@ public sealed class OcctViewportHost : HwndHost
 
         // A different file starts without the previous part highlighted.
         _pendingHighlight = "";
+        _appliedPart = "";
         _pendingPath = fullPath;
         if (_viewerHandle == IntPtr.Zero)
         {
@@ -131,24 +135,56 @@ public sealed class OcctViewportHost : HwndHost
     /// Highlights every instance of the named assembly part in the loaded (or
     /// next loaded) model and fades the rest; null or "" shows the plain model.
     /// </summary>
-    public void HighlightPart(string? partName)
+    public void HighlightPart(string? partName) => ShowPart(partName, OcctPartView.InAssembly);
+
+    /// <summary>
+    /// Shows the named assembly part alone (<see cref="OcctPartView.Isolated"/>)
+    /// or highlighted in the faded assembly, in the loaded (or next loaded)
+    /// model; null or "" shows the plain model.
+    /// </summary>
+    public void ShowPart(string? partName, OcctPartView view)
     {
         _pendingHighlight = partName ?? "";
+        _pendingPartView = view;
         ApplyPendingHighlight();
     }
 
     private void ApplyPendingHighlight()
     {
         if (_shuttingDown || _native == null || _viewerHandle == IntPtr.Zero || !HasLoadedModel) return;
-        if (!_native.SupportsHighlight)
+        // Nothing shown and nothing asked: leave the camera alone.
+        if (_pendingHighlight.Length == 0 && _appliedPart.Length == 0) return;
+
+        bool ok;
+        string error;
+        if (_native.SupportsShowPart)
+        {
+            ok = _native.ShowPart(_viewerHandle, _pendingHighlight, _pendingPartView, out error);
+        }
+        else if (_native.SupportsHighlight)
+        {
+            // Older DLL: only the faded assembly view exists.
+            ok = _native.HighlightPart(_viewerHandle, _pendingHighlight, out error);
+            if (ok && _pendingPartView == OcctPartView.Isolated && _pendingHighlight.Length > 0)
+                Diagnostic?.Invoke(this, new OcctViewportDiagnosticEventArgs(
+                    DiagnosticName + ": yalnız parça görünümü bu DLL'de yok; parça montaj içinde gösteriliyor."));
+        }
+        else
         {
             if (_pendingHighlight.Length > 0)
                 Diagnostic?.Invoke(this, new OcctViewportDiagnosticEventArgs(DiagnosticName + ": parça vurgulama bu DLL'de yok."));
             return;
         }
-        if (!_native.HighlightPart(_viewerHandle, _pendingHighlight, out string error))
-            Diagnostic?.Invoke(this, new OcctViewportDiagnosticEventArgs(
-                DiagnosticName + ": \"" + _pendingHighlight + "\" vurgulanamadı: " + error));
+
+        if (ok)
+        {
+            _appliedPart = _pendingHighlight;
+            return;
+        }
+        // The native side drops the previous highlight before it fails.
+        _appliedPart = "";
+        Diagnostic?.Invoke(this, new OcctViewportDiagnosticEventArgs(
+            DiagnosticName + ": \"" + _pendingHighlight + "\" gösterilemedi: " + error));
     }
 
     public void ClearModel()
@@ -156,6 +192,7 @@ public sealed class OcctViewportHost : HwndHost
         _pendingPath = null;
         _loadedPath = null;
         _pendingHighlight = "";
+        _appliedPart = "";
         if (_native != null && _viewerHandle != IntPtr.Zero && !_native.Clear(_viewerHandle, out string error))
         {
             SetStatus(OcctViewportState.Error, "3B önizleme temizlenemedi: " + error);

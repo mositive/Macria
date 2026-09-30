@@ -2290,6 +2290,9 @@
                                             <TextBlock Text="3B Önizleme" FontWeight="SemiBold" FontSize="14"/>
                                             <WrapPanel Margin="0,7,0,7">
                                                 <Button x:Name="btnExternalStepBuyukAc" Style="{StaticResource SecondaryButton}" Content="Büyük Aç" Padding="9,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepBuyukAc_Click"/>
+                                                <Button x:Name="btnExternalStepParcaGorunumu" Style="{StaticResource SecondaryButton}" Content="Montaj içinde göster" Padding="7,0" Height="25" Margin="0,0,4,4"
+                                                        Visibility="Collapsed" IsEnabled="False" Click="btnMontajParcaGorunumu_Click"
+                                                        ToolTip="Seçili montaj parçasını tek başına ya da montajın içinde (diğerleri soluk) gösterir"/>
                                                 <Button x:Name="btnExternalStepIsometric" Style="{StaticResource SecondaryButton}" Content="İzometrik" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepIsometric_Click"/>
                                                 <Button x:Name="btnExternalStepFront" Style="{StaticResource SecondaryButton}" Content="Ön" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepFront_Click"/>
                                                 <Button x:Name="btnExternalStepBack" Style="{StaticResource SecondaryButton}" Content="Arka" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepBack_Click"/>
@@ -2456,6 +2459,9 @@
                                             <StackPanel Grid.Row="0">
                                                 <TextBlock Text="3B Önizleme" FontWeight="SemiBold" FontSize="14"/>
                                                 <WrapPanel Margin="0,7,0,7">
+                                                    <Button x:Name="btnKontrolParcaGorunumu" Style="{StaticResource SecondaryButton}" Content="Montaj içinde göster" Padding="7,0" Height="25" Margin="0,0,4,4"
+                                                            IsEnabled="False" Click="btnMontajParcaGorunumu_Click"
+                                                            ToolTip="Seçili parçayı tek başına ya da montajın içinde (diğerleri soluk) gösterir"/>
                                                     <Button x:Name="btnKontrolIsometric" Style="{StaticResource SecondaryButton}" Content="İzometrik" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnKontrolIsometric_Click"/>
                                                     <Button x:Name="btnKontrolFitAll" Style="{StaticResource SecondaryButton}" Content="Sığdır" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnKontrolFitAll_Click"/>
                                                 </WrapPanel>
@@ -2463,7 +2469,7 @@
                                             <Border Grid.Row="1" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Background="#1B2028">
                                                 <local:OcctViewportHost x:Name="kontrolStepViewport" DiagnosticName="Kontrol 3B"/>
                                             </Border>
-                                            <TextBlock Grid.Row="2" x:Name="txtKontrolViewportStatus" Margin="0,7,0,0" TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Text="Seçili parça montaj içinde vurgulanır; diğer parçalar soluk görünür."/>
+                                            <TextBlock Grid.Row="2" x:Name="txtKontrolViewportStatus" Margin="0,7,0,0" TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Text="Önizlemek için listeden bir parça seçin."/>
                                         </Grid>
                                     </Border>
                                 </Grid>

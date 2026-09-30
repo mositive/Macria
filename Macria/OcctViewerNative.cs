@@ -37,6 +37,14 @@ internal sealed class OcctViewerNative : IDisposable
         int errorLength);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
+    private delegate int ShowPartDelegate(
+        IntPtr viewerHandle,
+        [MarshalAs(UnmanagedType.LPWStr)] string partName,
+        int partView,
+        [Out] StringBuilder error,
+        int errorLength);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
     private delegate int SetViewDelegate(IntPtr viewerHandle, int view, [Out] StringBuilder error, int errorLength);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -65,6 +73,7 @@ internal sealed class OcctViewerNative : IDisposable
     private readonly GetDiagnosticsDelegate _getDiagnostics;
     // Optional: an older viewer DLL without it still previews, only without highlighting.
     private readonly HighlightPartDelegate? _highlightPart;
+    private readonly ShowPartDelegate? _showPart;
 
     private OcctViewerNative(IntPtr module)
     {
@@ -82,9 +91,15 @@ internal sealed class OcctViewerNative : IDisposable
         _highlightPart = highlight == IntPtr.Zero
             ? null
             : Marshal.GetDelegateForFunctionPointer<HighlightPartDelegate>(highlight);
+        // Newer DLLs only; older ones fall back to HighlightPart (faded view).
+        IntPtr showPart = GetProcAddress(_module, "MacriaGeometryViewer_ShowPart");
+        _showPart = showPart == IntPtr.Zero
+            ? null
+            : Marshal.GetDelegateForFunctionPointer<ShowPartDelegate>(showPart);
     }
 
     public bool SupportsHighlight => _highlightPart != null;
+    public bool SupportsShowPart => _showPart != null;
 
     public static bool TryLoad(out OcctViewerNative? native, out string error)
     {
@@ -147,6 +162,16 @@ internal sealed class OcctViewerNative : IDisposable
         Invoke(buffer => _fitAll(viewerHandle, buffer, buffer.Capacity), out error);
 
     /// <summary>Highlights every instance of the named assembly part; "" restores the model.</summary>
+    public bool ShowPart(IntPtr viewerHandle, string partName, OcctPartView view, out string error)
+    {
+        if (_showPart == null)
+        {
+            error = "3B önizleme DLL'i yalnız parça görünümünü desteklemiyor.";
+            return false;
+        }
+        return Invoke(buffer => _showPart(viewerHandle, partName, (int)view, buffer, buffer.Capacity), out error);
+    }
+
     public bool HighlightPart(IntPtr viewerHandle, string partName, out string error)
     {
         if (_highlightPart == null)
@@ -204,6 +229,15 @@ internal sealed class OcctViewerNative : IDisposable
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool FreeLibrary(IntPtr module);
+}
+
+/// <summary>How a selected assembly part is shown (MacriaGeometryPartView).</summary>
+public enum OcctPartView
+{
+    /// <summary>Only the selected part; the rest of the assembly is hidden.</summary>
+    Isolated = 0,
+    /// <summary>The selected part highlighted, the rest of the assembly faded.</summary>
+    InAssembly = 1
 }
 
 public enum OcctStandardView

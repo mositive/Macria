@@ -90,6 +90,9 @@
                                TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
                 <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button x:Name="btnPartView" Style="{StaticResource SecondaryButton}" Content="Montaj içinde göster" Height="30" Padding="10,0" Margin="0,0,12,5"
+                            Visibility="Collapsed" IsEnabled="False" Click="btnPartView_Click"
+                            ToolTip="Seçili parçayı tek başına ya da montajın içinde (diğerleri soluk) gösterir"/>
                     <Button x:Name="btnIsometric" Style="{StaticResource SecondaryButton}" Content="İzometrik" Height="30" Padding="10,0" Margin="0,0,5,5" IsEnabled="False" Click="btnIsometric_Click"/>
                     <Button x:Name="btnFront" Style="{StaticResource SecondaryButton}" Content="Ön" Height="30" Padding="10,0" Margin="0,0,5,5" IsEnabled="False" Click="btnFront_Click"/>
                     <Button x:Name="btnBack" Style="{StaticResource SecondaryButton}" Content="Arka" Height="30" Padding="10,0" Margin="0,0,5,5" IsEnabled="False" Click="btnBack_Click"/>
