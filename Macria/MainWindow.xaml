@@ -2345,14 +2345,24 @@
                                     <Border Grid.Column="2" Margin="8,0,0,0" Padding="12" CornerRadius="4" Background="{StaticResource BgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
                                         <Grid>
                                             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                                            <TextBlock Text="Motor DXF Önizleme" FontWeight="SemiBold"/>
-                                            <Border Grid.Row="1" Margin="0,10,0,10" Padding="10" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4">
+                                            <!-- Acinim (2B) | 3B gecisi; 3B paneli ilk 3B seciminde koddan olusturulur -->
+                                            <DockPanel Grid.Row="0">
+                                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                    <Button x:Name="btnSacOnizleme2B" Style="{StaticResource PrimaryButton}" Content="Açınım (2B)" Height="25" Padding="9,0" Margin="0,0,4,0"
+                                                            Click="btnSacOnizleme2B_Click" ToolTip="Motorun ürettiği DXF açınımını gösterir"/>
+                                                    <Button x:Name="btnSacOnizleme3B" Style="{StaticResource SecondaryButton}" Content="3B" Height="25" Padding="12,0"
+                                                            Click="btnSacOnizleme3B_Click" ToolTip="Seçili sac parçayı STEP'ten 3B gösterir"/>
+                                                </StackPanel>
+                                                <TextBlock x:Name="txtSacOnizlemeBaslik" Text="Motor DXF Önizleme" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                            </DockPanel>
+                                            <Border x:Name="sacOnizleme3BYeri" Grid.Row="1" Margin="0,10,0,0" Visibility="Collapsed"/>
+                                            <Border x:Name="sacOnizleme2B" Grid.Row="1" Margin="0,10,0,10" Padding="10" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4">
                                                 <Grid>
                                                     <Path x:Name="sacOnizlemeCizim" Stretch="Uniform" Stroke="{StaticResource TextPrimaryBrush}" StrokeThickness="1" StrokeLineJoin="Round" Visibility="Collapsed"/>
                                                     <TextBlock x:Name="txtSacOnizlemeMesaj" Text="Önizlemek için listeden bir sac parça seçin." TextWrapping="Wrap" TextAlignment="Center" Foreground="{StaticResource TextDisabledBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Grid>
                                             </Border>
-                                            <StackPanel Grid.Row="2">
+                                            <StackPanel x:Name="pnlSacOnizlemeAlt" Grid.Row="2">
                                                 <TextBlock x:Name="txtSacOnizlemeDosya" FontSize="11" TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextDisabledBrush}"/>
                                                 <TextBlock x:Name="txtSacOnizlemeOlcu" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,3,0,0"/>
                                                 <TextBlock FontSize="11" TextWrapping="Wrap" Foreground="{StaticResource TextDisabledBrush}" Margin="0,6,0,0"

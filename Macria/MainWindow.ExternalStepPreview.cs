@@ -16,6 +16,8 @@ public partial class MainWindow
     {
         if (profilOnizleme != null) yield return profilOnizleme;
         if (kontrolOnizleme != null) yield return kontrolOnizleme;
+        // Created on the first 3D choice in Saclar.
+        if (_sacOnizleme3B != null) yield return _sacOnizleme3B;
     }
 
     private void ExternalStepOnizlemesiniKur()

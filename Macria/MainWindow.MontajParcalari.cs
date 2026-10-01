@@ -317,8 +317,54 @@ public partial class MainWindow
         MontajSekmeleriniGuncelle();
     }
 
+    // Saclar: "Açınım (2B) | 3B". The 3D panel is created on the first 3D choice, so
+    // a session that never uses it opens no extra native viewer; back in 2D its
+    // model is cleared to give the memory back, the panel itself stays.
+    private Step3BPaneli? _sacOnizleme3B;
+    private bool _sac3BModu;
+    private MontajParcaSatiri? _sacOnizlemeSatiri;
+    private bool _sacOnizlemeCoklu;
+
+    private void btnSacOnizleme2B_Click(object sender, RoutedEventArgs e) => SacOnizlemeModunuAyarla(false);
+
+    private void btnSacOnizleme3B_Click(object sender, RoutedEventArgs e) => SacOnizlemeModunuAyarla(true);
+
+    private void SacOnizlemeModunuAyarla(bool ucB)
+    {
+        _sac3BModu = ucB;
+        if (ucB && _sacOnizleme3B == null)
+        {
+            _sacOnizleme3B = new Step3BPaneli { DiagnosticName = "Sac 3B" };
+            sacOnizleme3BYeri.Child = _sacOnizleme3B;
+            Step3BPaneliniBagla(_sacOnizleme3B);
+        }
+
+        btnSacOnizleme2B.Style = (Style)FindResource(ucB ? "SecondaryButton" : "PrimaryButton");
+        btnSacOnizleme3B.Style = (Style)FindResource(ucB ? "PrimaryButton" : "SecondaryButton");
+        txtSacOnizlemeBaslik.Text = ucB ? "3B Önizleme" : "Motor DXF Önizleme";
+        sacOnizleme2B.Visibility = ucB ? Visibility.Collapsed : Visibility.Visible;
+        pnlSacOnizlemeAlt.Visibility = ucB ? Visibility.Collapsed : Visibility.Visible;
+        sacOnizleme3BYeri.Visibility = ucB ? Visibility.Visible : Visibility.Collapsed;
+        Sac3BOnizlemesiniGuncelle();
+    }
+
+    private void Sac3BOnizlemesiniGuncelle()
+    {
+        if (_sacOnizleme3B == null) return;
+        if (!_sac3BModu || _sacOnizlemeSatiri == null)
+        {
+            _sacOnizleme3B.Temizle(_sacOnizlemeCoklu ? "Birden fazla parça seçildi." : "Önizlemek için listeden bir sac parça seçin.");
+            return;
+        }
+        _sacOnizleme3B.Goster(_sacOnizlemeSatiri.SourceStepPath, _sacOnizlemeSatiri.PartName, _montajParcaGorunumu);
+    }
+
     private void SacOnizlemesiniGoster(MontajParcaSatiri? row, bool coklu)
     {
+        _sacOnizlemeSatiri = row;
+        _sacOnizlemeCoklu = coklu;
+        Sac3BOnizlemesiniGuncelle();
+
         string? dxf = row?.DxfFor(Ayarlar.BukumBilgisiDxf);
         if (row == null || dxf == null)
         {
