@@ -364,6 +364,7 @@ public partial class MainWindow
         _sacOnizlemeSatiri = row;
         _sacOnizlemeCoklu = coklu;
         Sac3BOnizlemesiniGuncelle();
+        if (_buyukOnizlemeKaynagi == BuyukOnizlemeSekmesi.Saclar) BuyukOnizlemeyiKaynakla();
 
         string? dxf = row?.DxfFor(Ayarlar.BukumBilgisiDxf);
         if (row == null || dxf == null)

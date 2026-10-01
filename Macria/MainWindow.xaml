@@ -2125,7 +2125,7 @@
                 <Border x:Name="fileAnalysisStepResults" Grid.Row="2" Visibility="Collapsed" Margin="24,0,24,20" Background="{StaticResource CardBrush}"
                         BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" ClipToBounds="True">
                     <!-- Montaj STEP'i: Profiller (mevcut ekran) / Saclar / Kontrol gerekli -->
-                    <TabControl x:Name="tabExternalStepSonuc" Margin="8,8,8,0"
+                    <TabControl x:Name="tabExternalStepSonuc" Margin="8,8,8,0" SelectionChanged="tabExternalStepSonuc_SelectionChanged"
                                 Background="Transparent" BorderThickness="0" Padding="0"
                                 HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
                         <TabControl.Resources>

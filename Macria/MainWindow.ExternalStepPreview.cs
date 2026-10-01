@@ -102,14 +102,24 @@ public partial class MainWindow
         else LogInfo(e.Message);
     }
 
-    // One "Büyük Aç" window for every panel; it follows the panel that opened
-    // it last, including when that panel is cleared.
-    private Step3BPaneli? _buyukOnizlemeKaynagi;
+    // One "Büyük Aç" window for every tab. It shows the selection of the tab
+    // that is open now: opening it from a tab, or switching tabs while it is
+    // open, makes that tab the source; it then follows that tab's selection.
+    private enum BuyukOnizlemeSekmesi { Yok, Profiller, Saclar, Kontrol }
+
+    private BuyukOnizlemeSekmesi _buyukOnizlemeKaynagi;
+
+    private BuyukOnizlemeSekmesi Step3BSekmesi(object? panel) =>
+        panel == null ? BuyukOnizlemeSekmesi.Yok
+        : ReferenceEquals(panel, profilOnizleme) ? BuyukOnizlemeSekmesi.Profiller
+        : ReferenceEquals(panel, kontrolOnizleme) ? BuyukOnizlemeSekmesi.Kontrol
+        : ReferenceEquals(panel, _sacOnizleme3B) ? BuyukOnizlemeSekmesi.Saclar
+        : BuyukOnizlemeSekmesi.Yok;
 
     private void Onizleme_BuyukAcIstendi(object? sender, System.EventArgs e)
     {
         if (sender is not Step3BPaneli kaynak || kaynak.StepYolu == null || !File.Exists(kaynak.StepYolu)) return;
-        _buyukOnizlemeKaynagi = kaynak;
+        _buyukOnizlemeKaynagi = Step3BSekmesi(kaynak);
         if (_externalStepPreviewWindow != null)
         {
             BuyukOnizlemeyiKaynakla();
@@ -130,26 +140,50 @@ public partial class MainWindow
             if (ReferenceEquals(_externalStepPreviewWindow, previewWindow))
             {
                 _externalStepPreviewWindow = null;
-                _buyukOnizlemeKaynagi = null;
+                _buyukOnizlemeKaynagi = BuyukOnizlemeSekmesi.Yok;
             }
         };
         BuyukOnizlemeyiKaynakla();
         previewWindow.Show();
     }
 
+    // Saclar is not followed through its 3D panel, which is emptied in 2D mode
+    // or may not exist yet; SacOnizlemesiniGoster updates the window directly.
     private void Onizleme_GosterimDegisti(object? sender, System.EventArgs e)
     {
-        if (ReferenceEquals(sender, _buyukOnizlemeKaynagi)) BuyukOnizlemeyiKaynakla();
+        BuyukOnizlemeSekmesi sekme = Step3BSekmesi(sender);
+        if (sekme != BuyukOnizlemeSekmesi.Saclar && sekme == _buyukOnizlemeKaynagi) BuyukOnizlemeyiKaynakla();
+    }
+
+    private void tabExternalStepSonuc_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        // SelectionChanged also bubbles up from the grids and the Lazer/Şalama tabs.
+        if (!ReferenceEquals(e.OriginalSource, tabExternalStepSonuc) || _externalStepPreviewWindow == null) return;
+        object secili = tabExternalStepSonuc.SelectedItem;
+        BuyukOnizlemeSekmesi sekme =
+            ReferenceEquals(secili, tabExternalStepProfiller) ? BuyukOnizlemeSekmesi.Profiller
+            : ReferenceEquals(secili, tabExternalStepSaclar) ? BuyukOnizlemeSekmesi.Saclar
+            : ReferenceEquals(secili, tabExternalStepKontrol) ? BuyukOnizlemeSekmesi.Kontrol
+            : BuyukOnizlemeSekmesi.Yok;
+        if (sekme == BuyukOnizlemeSekmesi.Yok || sekme == _buyukOnizlemeKaynagi) return;
+        _buyukOnizlemeKaynagi = sekme;
+        BuyukOnizlemeyiKaynakla();
     }
 
     private void BuyukOnizlemeyiKaynakla()
     {
-        if (_externalStepPreviewWindow == null || _buyukOnizlemeKaynagi == null) return;
-        // Saclar's 3D panel is emptied in 2D mode; the window keeps following the
-        // selected sheet row instead, so switching to 2D leaves it as it is.
-        if (ReferenceEquals(_buyukOnizlemeKaynagi, _sacOnizleme3B))
-            _externalStepPreviewWindow.ShowStep(_sacOnizlemeSatiri?.SourceStepPath, _sacOnizlemeSatiri?.PartName, _montajParcaGorunumu);
-        else
-            _externalStepPreviewWindow.ShowStep(_buyukOnizlemeKaynagi.StepYolu, _buyukOnizlemeKaynagi.ParcaAdi, _montajParcaGorunumu);
+        if (_externalStepPreviewWindow == null) return;
+        switch (_buyukOnizlemeKaynagi)
+        {
+            case BuyukOnizlemeSekmesi.Profiller:
+                _externalStepPreviewWindow.ShowStep(profilOnizleme.StepYolu, profilOnizleme.ParcaAdi, _montajParcaGorunumu);
+                break;
+            case BuyukOnizlemeSekmesi.Kontrol:
+                _externalStepPreviewWindow.ShowStep(kontrolOnizleme.StepYolu, kontrolOnizleme.ParcaAdi, _montajParcaGorunumu);
+                break;
+            case BuyukOnizlemeSekmesi.Saclar:
+                _externalStepPreviewWindow.ShowStep(_sacOnizlemeSatiri?.SourceStepPath, _sacOnizlemeSatiri?.PartName, _montajParcaGorunumu);
+                break;
+        }
     }
 }
