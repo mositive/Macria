@@ -14,11 +14,10 @@ public partial class MainWindow
     {
         OcctViewportHost.InputTraceEnabled = Ayarlar.GomuluTeshisKaydi;
         // Notification cards stay above the embedded 3D view.
-        externalStepViewport.AddOverlay(bildirimKatmani);
-        externalStepViewport.StatusChanged += ExternalStepViewport_StatusChanged;
-        externalStepViewport.Diagnostic += ExternalStepViewport_Diagnostic;
-        ExternalStepViewportDurumunuGuncelle(
-            new OcctViewportStatusChangedEventArgs(externalStepViewport.State, externalStepViewport.StatusMessage));
+        profilOnizleme.AddOverlay(bildirimKatmani);
+        profilOnizleme.Diagnostic += ExternalStepViewport_Diagnostic;
+        profilOnizleme.BuyukAcIstendi += ProfilOnizleme_BuyukAcIstendi;
+        profilOnizleme.ParcaGorunumuDegistirIstendi += Onizleme_ParcaGorunumuDegistirIstendi;
     }
 
     private void ExternalStepOnizlemeyiKapat()
@@ -27,35 +26,24 @@ public partial class MainWindow
         _externalStepPreviewWindow = null;
         previewWindow?.Close();
 
-        externalStepViewport.StatusChanged -= ExternalStepViewport_StatusChanged;
-        externalStepViewport.Diagnostic -= ExternalStepViewport_Diagnostic;
-        externalStepViewport.Shutdown();
+        profilOnizleme.Diagnostic -= ExternalStepViewport_Diagnostic;
+        profilOnizleme.BuyukAcIstendi -= ProfilOnizleme_BuyukAcIstendi;
+        profilOnizleme.ParcaGorunumuDegistirIstendi -= Onizleme_ParcaGorunumuDegistirIstendi;
+        profilOnizleme.Shutdown();
     }
 
     private void ExternalStepOnizlemesiniGuncelle(GeometryLabStepProfileListItem? item)
     {
-        ParcaGorunumuDugmesiniGuncelle(btnExternalStepParcaGorunumu, item?.PartName, externalStepViewport, gizle: true);
         if (item == null)
         {
-            btnExternalStepBuyukAc.IsEnabled = false;
-            externalStepViewport.ClearModel();
+            profilOnizleme.Temizle(null);
             if (!_buyukOnizlemeKontrolden) _externalStepPreviewWindow?.ShowStep(null);
             return;
         }
 
-        if (!File.Exists(item.SourceStepPath))
-        {
-            btnExternalStepBuyukAc.IsEnabled = false;
-            externalStepViewport.ClearModel();
-            txtExternalStepViewportStatus.Text = "STEP dosyası artık belirtilen konumda bulunmuyor.";
-            if (!_buyukOnizlemeKontrolden) _externalStepPreviewWindow?.ShowStep(item.SourceStepPath);
-            return;
-        }
-
-        btnExternalStepBuyukAc.IsEnabled = true;
-        externalStepViewport.LoadStep(item.SourceStepPath);
-        // An assembly part row: the part alone or inside the faded assembly.
-        externalStepViewport.ShowPart(item.PartName, _montajParcaGorunumu);
+        // An assembly part row: the part alone or inside the faded assembly; a
+        // missing file is reported by the panel.
+        profilOnizleme.Goster(item.SourceStepPath, item.PartName, _montajParcaGorunumu);
         if (!_buyukOnizlemeKontrolden) _externalStepPreviewWindow?.ShowStep(item.SourceStepPath, item.PartName, _montajParcaGorunumu);
     }
 
@@ -65,7 +53,7 @@ public partial class MainWindow
         return selected.Count == 1 ? selected[0] : null;
     }
 
-    private void btnMontajParcaGorunumu_Click(object sender, RoutedEventArgs e) => MontajParcaGorunumunuDegistir();
+    private void Onizleme_ParcaGorunumuDegistirIstendi(object? sender, System.EventArgs e) => MontajParcaGorunumunuDegistir();
 
     private void BuyukOnizleme_PartViewToggleRequested(object? sender, System.EventArgs e) => MontajParcaGorunumunuDegistir();
 
@@ -79,28 +67,10 @@ public partial class MainWindow
 
     private void MontajParcaGorunumunuUygula()
     {
-        GeometryLabStepProfileListItem? profil = ExternalStepOnizlemeSatiri();
-        if (!string.IsNullOrEmpty(profil?.PartName))
-            externalStepViewport.ShowPart(profil.PartName, _montajParcaGorunumu);
-        ParcaGorunumuDugmesiniGuncelle(btnExternalStepParcaGorunumu, profil?.PartName, externalStepViewport, gizle: true);
-
+        profilOnizleme.SetPartView(_montajParcaGorunumu);
         kontrolOnizleme.SetPartView(_montajParcaGorunumu);
-
         _externalStepPreviewWindow?.SetPartView(_montajParcaGorunumu);
     }
-
-    // The button names the other view; it only applies to assembly part rows.
-    private void ParcaGorunumuDugmesiniGuncelle(System.Windows.Controls.Button? button, string? partName, OcctViewportHost viewport, bool gizle)
-    {
-        if (button == null) return;
-        bool part = !string.IsNullOrEmpty(partName);
-        button.Content = _montajParcaGorunumu == OcctPartView.Isolated ? "Montaj içinde göster" : "Yalnız parçayı göster";
-        button.IsEnabled = part && viewport.State == OcctViewportState.Loaded;
-        if (gizle) button.Visibility = part ? Visibility.Visible : Visibility.Collapsed;
-    }
-
-    private void ExternalStepViewport_StatusChanged(object? sender, OcctViewportStatusChangedEventArgs e) =>
-        ExternalStepViewportDurumunuGuncelle(e);
 
     private void ExternalStepViewport_Diagnostic(object? sender, OcctViewportDiagnosticEventArgs e) =>
         ViewportTeshisiniYaz(e);
@@ -113,35 +83,11 @@ public partial class MainWindow
         else LogInfo(e.Message);
     }
 
-    private void ExternalStepViewportDurumunuGuncelle(OcctViewportStatusChangedEventArgs e)
+    private void ProfilOnizleme_BuyukAcIstendi(object? sender, System.EventArgs e)
     {
-        txtExternalStepViewportStatus.Text = e.Message;
-        bool loaded = e.State == OcctViewportState.Loaded;
-        btnExternalStepFitAll.IsEnabled = loaded;
-        btnExternalStepIsometric.IsEnabled = loaded;
-        btnExternalStepFront.IsEnabled = loaded;
-        btnExternalStepBack.IsEnabled = loaded;
-        btnExternalStepLeft.IsEnabled = loaded;
-        btnExternalStepRight.IsEnabled = loaded;
-        btnExternalStepTop.IsEnabled = loaded;
-        btnExternalStepBottom.IsEnabled = loaded;
-        ParcaGorunumuDugmesiniGuncelle(btnExternalStepParcaGorunumu, ExternalStepOnizlemeSatiri()?.PartName, externalStepViewport, gizle: true);
-    }
-
-    private void btnExternalStepFitAll_Click(object sender, RoutedEventArgs e) => externalStepViewport.FitAll();
-    private void btnExternalStepIsometric_Click(object sender, RoutedEventArgs e) => externalStepViewport.SetView(OcctStandardView.Isometric);
-    private void btnExternalStepFront_Click(object sender, RoutedEventArgs e) => externalStepViewport.SetView(OcctStandardView.Front);
-    private void btnExternalStepBack_Click(object sender, RoutedEventArgs e) => externalStepViewport.SetView(OcctStandardView.Back);
-    private void btnExternalStepLeft_Click(object sender, RoutedEventArgs e) => externalStepViewport.SetView(OcctStandardView.Left);
-    private void btnExternalStepRight_Click(object sender, RoutedEventArgs e) => externalStepViewport.SetView(OcctStandardView.Right);
-    private void btnExternalStepTop_Click(object sender, RoutedEventArgs e) => externalStepViewport.SetView(OcctStandardView.Top);
-    private void btnExternalStepBottom_Click(object sender, RoutedEventArgs e) => externalStepViewport.SetView(OcctStandardView.Bottom);
-
-    private void btnExternalStepBuyukAc_Click(object sender, RoutedEventArgs e)
-    {
-        GeometryLabStepProfileListItem? item = GorunenSeciliExternalStepSatirlari().SingleOrDefault();
-        if (item == null || !File.Exists(item.SourceStepPath)) return;
-        BuyukOnizlemeyiAc(item.SourceStepPath, item.PartName, fromKontrol: false);
+        string? path = profilOnizleme.StepYolu;
+        if (path == null || !File.Exists(path)) return;
+        BuyukOnizlemeyiAc(path, profilOnizleme.ParcaAdi, fromKontrol: false);
     }
 
     // One "Büyük Aç" window for both tabs; it follows the selection of the tab

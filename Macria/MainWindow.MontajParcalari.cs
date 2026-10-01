@@ -48,7 +48,7 @@ public partial class MainWindow
         {
             kontrolOnizleme.Diagnostic += KontrolOnizleme_Diagnostic;
             kontrolOnizleme.BuyukAcIstendi += KontrolOnizleme_BuyukAcIstendi;
-            kontrolOnizleme.ParcaGorunumuDegistirIstendi += KontrolOnizleme_ParcaGorunumuDegistirIstendi;
+            kontrolOnizleme.ParcaGorunumuDegistirIstendi += Onizleme_ParcaGorunumuDegistirIstendi;
             kontrolOnizleme.AddOverlay(bildirimKatmani);
             kontrolOnizleme.Temizle(KontrolBosMesaji);
         }
@@ -62,13 +62,11 @@ public partial class MainWindow
         if (kontrolOnizleme == null) return;
         kontrolOnizleme.Diagnostic -= KontrolOnizleme_Diagnostic;
         kontrolOnizleme.BuyukAcIstendi -= KontrolOnizleme_BuyukAcIstendi;
-        kontrolOnizleme.ParcaGorunumuDegistirIstendi -= KontrolOnizleme_ParcaGorunumuDegistirIstendi;
+        kontrolOnizleme.ParcaGorunumuDegistirIstendi -= Onizleme_ParcaGorunumuDegistirIstendi;
         kontrolOnizleme.Shutdown();
     }
 
     private void KontrolOnizleme_Diagnostic(object? sender, OcctViewportDiagnosticEventArgs e) => ViewportTeshisiniYaz(e);
-
-    private void KontrolOnizleme_ParcaGorunumuDegistirIstendi(object? sender, EventArgs e) => MontajParcaGorunumunuDegistir();
 
     private void KontrolOnizleme_BuyukAcIstendi(object? sender, EventArgs e)
     {

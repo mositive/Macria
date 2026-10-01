@@ -2247,32 +2247,12 @@
                                     <Grid>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="3*" MinHeight="180"/>
-                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="3*" MinHeight="240"/>
                                             <RowDefinition Height="2*" MinHeight="90"/>
                                         </Grid.RowDefinitions>
-                                        <StackPanel Grid.Row="0">
-                                            <TextBlock Text="3B Önizleme" FontWeight="SemiBold" FontSize="14"/>
-                                            <WrapPanel Margin="0,7,0,7">
-                                                <Button x:Name="btnExternalStepBuyukAc" Style="{StaticResource SecondaryButton}" Content="Büyük Aç" Padding="9,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepBuyukAc_Click"/>
-                                                <Button x:Name="btnExternalStepParcaGorunumu" Style="{StaticResource SecondaryButton}" Content="Montaj içinde göster" Padding="7,0" Height="25" Margin="0,0,4,4"
-                                                        Visibility="Collapsed" IsEnabled="False" Click="btnMontajParcaGorunumu_Click"
-                                                        ToolTip="Seçili montaj parçasını tek başına ya da montajın içinde (diğerleri soluk) gösterir"/>
-                                                <Button x:Name="btnExternalStepIsometric" Style="{StaticResource SecondaryButton}" Content="İzometrik" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepIsometric_Click"/>
-                                                <Button x:Name="btnExternalStepFront" Style="{StaticResource SecondaryButton}" Content="Ön" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepFront_Click"/>
-                                                <Button x:Name="btnExternalStepBack" Style="{StaticResource SecondaryButton}" Content="Arka" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepBack_Click"/>
-                                                <Button x:Name="btnExternalStepLeft" Style="{StaticResource SecondaryButton}" Content="Sol" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepLeft_Click"/>
-                                                <Button x:Name="btnExternalStepRight" Style="{StaticResource SecondaryButton}" Content="Sağ" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepRight_Click"/>
-                                                <Button x:Name="btnExternalStepTop" Style="{StaticResource SecondaryButton}" Content="Üst" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepTop_Click"/>
-                                                <Button x:Name="btnExternalStepBottom" Style="{StaticResource SecondaryButton}" Content="Alt" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepBottom_Click"/>
-                                                <Button x:Name="btnExternalStepFitAll" Style="{StaticResource SecondaryButton}" Content="Sığdır" Padding="7,0" Height="25" Margin="0,0,4,4" IsEnabled="False" Click="btnExternalStepFitAll_Click"/>
-                                            </WrapPanel>
-                                        </StackPanel>
-                                        <Border Grid.Row="1" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Background="#1B2028">
-                                            <local:OcctViewportHost x:Name="externalStepViewport" DiagnosticName="Gömülü 3B"/>
-                                        </Border>
-                                        <TextBlock Grid.Row="2" x:Name="txtExternalStepViewportStatus" Margin="0,7,0,9" TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Text="3B önizleme hazırlanıyor..."/>
-                                        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+                                        <TextBlock Grid.Row="0" Text="3B Önizleme" FontWeight="SemiBold" FontSize="14" Margin="0,0,0,7"/>
+                                        <local:Step3BPaneli Grid.Row="1" x:Name="profilOnizleme" DiagnosticName="Gömülü 3B" Margin="0,0,0,9"/>
+                                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                                             <StackPanel>
                                                 <TextBlock Text="Seçili Parça" FontWeight="SemiBold" FontSize="14"/>
                                                 <TextBlock x:Name="txtExternalStepDetailMessage" Margin="0,12,0,0" TextWrapping="Wrap" Foreground="{StaticResource TextDisabledBrush}" Text="Ayrıntıları görmek için listeden bir STEP seçin."/>
