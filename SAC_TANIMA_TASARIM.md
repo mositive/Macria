@@ -13,7 +13,7 @@
 
 1. **Motor kaynağı bulundu:** `C:\Users\enesy\OneDrive\Belgeler\Macria\Macria.GeometryLab\` (C++ / OCCT 8.0.1, CMake). Git deposu değil; GeometryLab'ın kendi `AGENTS.md`'si manifest ve SHA-256 tabanlı checkpoint istiyor.
 2. **Mevcut motor bu sac parçaları tanımıyor:** İki test STEP'inde profil sonucu "Unknown / InsufficientEvidence". Ancak sac tanıma için gereken altyapı büyük ölçüde hazır: yüz ve kenar kimlikleri, AAG komşuluğu, Convex/Concave/Smooth dihedral sınıflaması, katı içi nokta testi, OCCT kesit alma.
-3. **Kritik uyumluluk engeli:** Macria 1.11.2 JSON'daki `schemaVersion`'ı **tam "1.0"** ile karşılaştırıyor (`GeometryLabProcessAdapter.cs:52, 207`; `GeometryLabStepProfileListItem.cs:185`). Motor "1.1" yazarsa bugünkü Macria **her analizi reddeder**. Sıralı geçiş gerekiyor (§5.1).
+3. **Şema uyumluluğu (2026-10-01 güncellemesi):** Macria artık `schemaVersion` olarak "1.0", "1.1" ve "1.2"yi kabul ediyor (`GeometryLabProcessAdapter.cs:74`, `SupportedSchemaVersions`). Runtime'daki motor "1.2" yazıyor ve montaj-1 analizi kabul ediliyor. *Önceki davranış:* Macria 1.11.2 yalnızca tam "1.0" kabul ediyordu; §5.1'deki sıralı geçiş planı o duruma göre yazıldı.
 4. **Prototip havşa ve imbus örneklerinde doğru sonuç veriyor** (§8). Ancak 22 dosyalık gerçek derlemde dört türde hata üretiyor ve bu hatalar tasarım kurallarını doğrudan belirliyor:
    - Dış köşe yuvarlatması "delik" sanılıyor.
    - Kıvrılmış (rolled) sac "imbus" sanılıyor.
@@ -289,15 +289,15 @@ Bir adım kabul görmeden sonrakine geçilmez. Her adım GeometryLab `AGENTS.md`
 
 ### 5.1 Sürüm geçişi (zorunlu sıra)
 
-**Bugünkü durum:**
+**Bugünkü durum (2026-10-01):**
 
-- **Macria** yalnızca `"1.0"` kabul ediyor:
-  - `GeometryLabProcessAdapter.SupportedSchemaVersion` + `:207`
-  - `GeometryLabStepProfileListItem.Apply` `:185`
-  - Testler: `GeometryLabAdapter.Tests\Program.cs:129, 345, 362, 1114`
-- **GeometryLab .NET testi** de `"1.0"` bekliyor (`tests\Macria.GeometryLab.Tests\Program.cs:317`).
+- **Macria** `"1.0"`, `"1.1"` ve `"1.2"`yi kabul ediyor (`GeometryLabProcessAdapter.cs:74`, `SupportedSchemaVersions`). Bu, aşağıdaki S1 seçeneğinin kodda uygulanmış hâlidir.
+- Runtime'daki motor `"1.2"` yazıyor; montaj-1 analizi Macria tarafından kabul ediliyor.
+- ⚠️ **GeometryLab .NET testinin** (`tests\Macria.GeometryLab.Tests\Program.cs:317`) hâlâ yalnızca `"1.0"` bekleyip beklemediği doğrulanmalı.
 
-**Seçenekler (Karar Bekliyor):**
+*Önceki davranış:* Macria 1.11.2 yalnızca tam `"1.0"` kabul ediyordu (`GeometryLabProcessAdapter.SupportedSchemaVersion`, `GeometryLabStepProfileListItem.Apply`). Aşağıdaki seçenekler o duruma göre yazıldı.
+
+**Seçenekler (tarihsel; S1 uygulandı):**
 
 | Seçenek | Açıklama | Risk |
 |---|---|---|
