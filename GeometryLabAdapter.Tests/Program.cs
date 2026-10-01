@@ -53,6 +53,7 @@ internal static class Program
             PreviewInventoryTests();
             PreviewContentCheckTests();
             OcctStepPreviewAdapterTests();
+            Step3BAracDurumuTests();
             ExternalStepExcelWriter();
             await TemporaryStepWorkspaceAsync();
             await TemporaryStepFailureAndCancellationAsync();
@@ -1424,6 +1425,40 @@ internal static class Program
               PreviewContentCheckResult.Rejected(PreviewContentCheckReason.BinaryDxf, "x"), "content check results compare by value");
         Check(PreviewContentCheckResult.Rejected(PreviewContentCheckReason.BinaryDxf) !=
               PreviewContentCheckResult.Rejected(PreviewContentCheckReason.InvalidContent), "different reasons are different results");
+    }
+
+    // Shared 3D preview toolbar rules (Step3BPaneli): the same for every tab and the "Büyük Aç" window.
+    private static void Step3BAracDurumuTests()
+    {
+        Step3BAracGorunumu bos = Step3BAracDurumu.Hesapla(StepViewportLoadState.Empty, false, null, OcctPartView.Isolated, "Seçin.");
+        Check(!bos.GorunumDugmeleriAcik && !bos.BuyukAcAcik && !bos.ParcaDugmesiGorunur && !bos.ParcaDugmesiAcik,
+            "empty viewport: every command off, part button hidden");
+        Check(bos.DurumMetni == "Seçin.", "empty viewport: status is the viewport message");
+
+        Step3BAracGorunumu yukleniyor = Step3BAracDurumu.Hesapla(StepViewportLoadState.Pending, true, "P-1", OcctPartView.Isolated, "Yükleniyor");
+        Check(!yukleniyor.GorunumDugmeleriAcik && yukleniyor.BuyukAcAcik, "pending: views off, Büyük Aç on once the file exists");
+        Check(yukleniyor.ParcaDugmesiGorunur && !yukleniyor.ParcaDugmesiAcik, "pending part row: part button shown but off");
+        Check(yukleniyor.DurumMetni == "Yükleniyor", "pending: no part-view explanation before the model is loaded");
+
+        Step3BAracGorunumu dosya = Step3BAracDurumu.Hesapla(StepViewportLoadState.Loaded, true, null, OcctPartView.Isolated, "Hazır");
+        Check(dosya.GorunumDugmeleriAcik && dosya.BuyukAcAcik && !dosya.ParcaDugmesiGorunur, "loaded single STEP: views on, no part button");
+        Check(dosya.DurumMetni == "Hazır", "loaded single STEP: status is the viewport message");
+
+        Step3BAracGorunumu yalniz = Step3BAracDurumu.Hesapla(StepViewportLoadState.Loaded, true, "P-1", OcctPartView.Isolated, "Hazır");
+        Check(yalniz.ParcaDugmesiGorunur && yalniz.ParcaDugmesiAcik, "loaded part row: part button on");
+        Check(yalniz.ParcaDugmesiMetni == Step3BAracDurumu.MontajIcindeGoster, "isolated: button offers the assembly view");
+        Check(yalniz.DurumMetni == "Hazır\n" + Step3BAracDurumu.YalnizParcaAciklamasi, "isolated: status explains the view");
+
+        Step3BAracGorunumu montaj = Step3BAracDurumu.Hesapla(StepViewportLoadState.Loaded, true, "P-1", OcctPartView.InAssembly, null);
+        Check(montaj.ParcaDugmesiMetni == Step3BAracDurumu.YalnizParcayiGoster, "in assembly: button offers the part alone");
+        Check(montaj.DurumMetni == Step3BAracDurumu.MontajIcindeAciklamasi, "in assembly, no viewport message: explanation only");
+
+        Step3BAracGorunumu hata = Step3BAracDurumu.Hesapla(StepViewportLoadState.Failed, true, "P-1", OcctPartView.Isolated, "DLL yok");
+        Check(!hata.GorunumDugmeleriAcik && !hata.ParcaDugmesiAcik && hata.DurumMetni == "DLL yok",
+            "failed viewport: views and part button off, error message kept");
+
+        Step3BAracGorunumu eksik = Step3BAracDurumu.Hesapla(StepViewportLoadState.Failed, false, "P-1", OcctPartView.Isolated, "Yok");
+        Check(!eksik.BuyukAcAcik, "missing file: Büyük Aç off");
     }
 
     // Stage 3: STEP 3D adapter over a fake viewport port; no HwndHost, native DLL or OCCT session.
