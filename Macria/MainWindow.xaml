@@ -2289,8 +2289,11 @@
                                     <TabItem x:Name="tabSacSalama" Header="Şalama/Kütük (0)" FontSize="13" Padding="20,7" MinWidth="130" Margin="0,0,8,6"
                                              ToolTip="Ayarlardaki lazer azami kalınlığından kalın saclar"/>
                                 </TabControl>
+                                <!-- Ozet kendi satirinda: dar pencerede dugmelerle yarisip harf harf kirilmasin -->
                                 <DockPanel Grid.Row="1" Margin="0,0,0,6">
-                                    <WrapPanel DockPanel.Dock="Right">
+                                    <TextBlock x:Name="txtSacOzet" DockPanel.Dock="Top" Margin="0,0,0,6" TextWrapping="Wrap"
+                                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <WrapPanel HorizontalAlignment="Right">
                                         <Button x:Name="btnSacDxfUret" Style="{StaticResource PrimaryButton}"
                                                 Content="DXF Üret" Height="28" Padding="12,0" Margin="0,0,10,0"
                                                 ToolTip="Açık alt sekmedeki (Lazer ya da Şalama/Kütük) onaylı sac satırlarının motor DXF'ini hedef klasörün altındaki Motor-DXF klasörüne yazar"
@@ -2307,8 +2310,6 @@
                                         <Button x:Name="btnSacOtomatik" Style="{StaticResource SecondaryButton}" Content="Otomatik Karara Dön"
                                                 Height="28" Padding="10,0" IsEnabled="False" Click="btnSacOtomatik_Click"/>
                                     </WrapPanel>
-                                    <TextBlock x:Name="txtSacOzet" VerticalAlignment="Center" TextWrapping="Wrap"
-                                               Foreground="{StaticResource TextSecondaryBrush}"/>
                                 </DockPanel>
                                 <WrapPanel Grid.Row="2" Margin="0,0,0,6">
                                     <Button x:Name="btnSacTumFiltreler" Style="{StaticResource SecondaryButton}"
@@ -2378,7 +2379,9 @@
                             <Grid>
                                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                                 <DockPanel Grid.Row="0" Margin="0,0,0,6">
-                                    <WrapPanel DockPanel.Dock="Right">
+                                    <TextBlock DockPanel.Dock="Top" Margin="0,0,0,6" TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}"
+                                               Text="Motorun karar veremediği veya sac/profil olmayan (Diğer) montaj parçaları."/>
+                                    <WrapPanel HorizontalAlignment="Right">
                                         <Button Style="{StaticResource SecondaryButton}" Content="Aktif 3B Tarama Verileriyle Karşılaştır"
                                                 Height="28" Padding="10,0" Margin="0,0,10,0" Click="btnExternalStepCatiaKarsilastir_Click"/>
                                         <Button x:Name="btnKontrolSacOnayla" Style="{StaticResource SecondaryButton}" Content="Sac Olarak Onayla"
@@ -2387,8 +2390,6 @@
                                         <Button x:Name="btnKontrolOtomatik" Style="{StaticResource SecondaryButton}" Content="Otomatik Karara Dön"
                                                 Height="28" Padding="10,0" IsEnabled="False" Click="btnKontrolOtomatik_Click"/>
                                     </WrapPanel>
-                                    <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}"
-                                               Text="Motorun karar veremediği veya sac/profil olmayan (Diğer) montaj parçaları."/>
                                 </DockPanel>
                                 <WrapPanel Grid.Row="1" Margin="0,0,0,6">
                                     <Button x:Name="btnKontrolTumFiltreler" Style="{StaticResource SecondaryButton}"

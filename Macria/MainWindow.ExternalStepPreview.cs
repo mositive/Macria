@@ -145,6 +145,11 @@ public partial class MainWindow
     private void BuyukOnizlemeyiKaynakla()
     {
         if (_externalStepPreviewWindow == null || _buyukOnizlemeKaynagi == null) return;
-        _externalStepPreviewWindow.ShowStep(_buyukOnizlemeKaynagi.StepYolu, _buyukOnizlemeKaynagi.ParcaAdi, _montajParcaGorunumu);
+        // Saclar's 3D panel is emptied in 2D mode; the window keeps following the
+        // selected sheet row instead, so switching to 2D leaves it as it is.
+        if (ReferenceEquals(_buyukOnizlemeKaynagi, _sacOnizleme3B))
+            _externalStepPreviewWindow.ShowStep(_sacOnizlemeSatiri?.SourceStepPath, _sacOnizlemeSatiri?.PartName, _montajParcaGorunumu);
+        else
+            _externalStepPreviewWindow.ShowStep(_buyukOnizlemeKaynagi.StepYolu, _buyukOnizlemeKaynagi.ParcaAdi, _montajParcaGorunumu);
     }
 }
