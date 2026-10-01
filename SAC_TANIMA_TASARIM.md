@@ -11,7 +11,7 @@
 
 ## 0. Özet
 
-1. **Motor kaynağı bulundu:** `C:\Users\enesy\OneDrive\Belgeler\marcia_calismalar\Macria.GeometryLab\` (C++ / OCCT 8.0.1, CMake). Git deposu değil; GeometryLab'ın kendi `AGENTS.md`'si manifest ve SHA-256 tabanlı checkpoint istiyor.
+1. **Motor kaynağı bulundu:** `C:\Users\enesy\OneDrive\Belgeler\Macria\Macria.GeometryLab\` (C++ / OCCT 8.0.1, CMake). Git deposu değil; GeometryLab'ın kendi `AGENTS.md`'si manifest ve SHA-256 tabanlı checkpoint istiyor.
 2. **Mevcut motor bu sac parçaları tanımıyor:** İki test STEP'inde profil sonucu "Unknown / InsufficientEvidence". Ancak sac tanıma için gereken altyapı büyük ölçüde hazır: yüz ve kenar kimlikleri, AAG komşuluğu, Convex/Concave/Smooth dihedral sınıflaması, katı içi nokta testi, OCCT kesit alma.
 3. **Kritik uyumluluk engeli:** Macria 1.11.2 JSON'daki `schemaVersion`'ı **tam "1.0"** ile karşılaştırıyor (`GeometryLabProcessAdapter.cs:52, 207`; `GeometryLabStepProfileListItem.cs:185`). Motor "1.1" yazarsa bugünkü Macria **her analizi reddeder**. Sıralı geçiş gerekiyor (§5.1).
 4. **Prototip havşa ve imbus örneklerinde doğru sonuç veriyor** (§8). Ancak 22 dosyalık gerçek derlemde dört türde hata üretiyor ve bu hatalar tasarım kurallarını doğrudan belirliyor:
@@ -36,7 +36,7 @@
 
 | Öğe | Değer |
 |---|---|
-| Kök | `…\marcia_calismalar\Macria.GeometryLab\` |
+| Kök | `…\Belgeler\Macria\Macria.GeometryLab\` |
 | Native motor | `src\Macria.GeometryEngine\` (CMake 3.25, `project(MacriaGeometryEngine VERSION 0.1.0)`) |
 | OCCT | `find_package(OpenCASCADE 8.0.1 REQUIRED …)`, third-party kökü `MACRIA_OCCT_THIRDPARTY_ROOT` |
 | Hedefler | `MacriaGeometryEngineCore` (static lib), `MacriaGeometryEngine` (exe), `MacriaGeometryViewer` (dll), `MacriaGeometryFixtureGenerator`, 4 test exe'si (`Aag`, `Dihedral`, `Profile`, `ViewerInput`) |

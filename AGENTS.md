@@ -3,7 +3,7 @@
 ## Kaynakların Rolü
 
 - Gerçek davranış için birincil kaynak mevcut Macria kaynak kodudur.
-- `MacriaObsidian/Macria` klasörü teknik hafıza ve dokümantasyon kaynağıdır.
+- `Belgeler\Macria\Obsidian\Macria` klasörü teknik hafıza ve dokümantasyon kaynağıdır.
 - Kaynak kod ile Obsidian çelişirse çelişki açıkça belirtilir; gizlenmez.
 
 ## Kod ve Tasarım Ayrımı
