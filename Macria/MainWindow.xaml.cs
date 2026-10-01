@@ -303,7 +303,6 @@ namespace Macria
                 }
                 _stopRequested = true;
                 ExternalStepOnizlemeyiKapat();
-                MontajOnizlemesiniKapat();
                 HideKahveMola();
             };
 
@@ -1204,7 +1203,7 @@ namespace Macria
             if (pencere.ShowDialog() == true)
             {
                 MontajLazerEsiginiUygula();
-                OcctViewportHost.InputTraceEnabled = Ayarlar.GomuluTeshisKaydi;
+                TeshisAyariniUygula();
                 LogInfo("Ayarlar Kaydedildi — Bekleme: " + Ayarlar.PanelBekleme + " ms" +
                         (Ayarlar.KonumVar ? ", Save As Konumu Öğretilmiş." : "."));
             }

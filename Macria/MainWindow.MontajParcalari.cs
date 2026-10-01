@@ -44,31 +44,12 @@ public partial class MainWindow
         };
         if (gridSacParcalar != null) gridSacParcalar.ItemsSource = _sacParcaView;
         if (gridKontrolParcalar != null) gridKontrolParcalar.ItemsSource = _kontrolParcaView;
-        if (kontrolOnizleme != null)
-        {
-            kontrolOnizleme.Diagnostic += KontrolOnizleme_Diagnostic;
-            kontrolOnizleme.BuyukAcIstendi += Onizleme_BuyukAcIstendi;
-            kontrolOnizleme.GosterimDegisti += Onizleme_GosterimDegisti;
-            kontrolOnizleme.ParcaGorunumuDegistirIstendi += Onizleme_ParcaGorunumuDegistirIstendi;
-            kontrolOnizleme.AddOverlay(bildirimKatmani);
-            kontrolOnizleme.Temizle(KontrolBosMesaji);
-        }
+        // The 3D panel is wired with the others in ExternalStepOnizlemesiniKur.
+        kontrolOnizleme?.Temizle(KontrolBosMesaji);
         MontajSekmeleriniGuncelle();
     }
 
     private const string KontrolBosMesaji = "Önizlemek için listeden bir parça seçin.";
-
-    private void MontajOnizlemesiniKapat()
-    {
-        if (kontrolOnizleme == null) return;
-        kontrolOnizleme.Diagnostic -= KontrolOnizleme_Diagnostic;
-        kontrolOnizleme.BuyukAcIstendi -= Onizleme_BuyukAcIstendi;
-        kontrolOnizleme.GosterimDegisti -= Onizleme_GosterimDegisti;
-        kontrolOnizleme.ParcaGorunumuDegistirIstendi -= Onizleme_ParcaGorunumuDegistirIstendi;
-        kontrolOnizleme.Shutdown();
-    }
-
-    private void KontrolOnizleme_Diagnostic(object? sender, OcctViewportDiagnosticEventArgs e) => ViewportTeshisiniYaz(e);
 
     private void chkMontajFiltre_Click(object sender, RoutedEventArgs e)
     {

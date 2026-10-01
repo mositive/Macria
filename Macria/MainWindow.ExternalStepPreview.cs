@@ -10,15 +10,19 @@ public partial class MainWindow
     // the "Büyük Aç" window: alone by default, or inside the faded assembly.
     private OcctPartView _montajParcaGorunumu = OcctPartView.Isolated;
 
+    // Every embedded 3D panel of Dosya Analiz Merkezi; wiring, the shared part
+    // view and shutdown all go through this list.
+    private IEnumerable<Step3BPaneli> TumStep3BPanelleri()
+    {
+        if (profilOnizleme != null) yield return profilOnizleme;
+        if (kontrolOnizleme != null) yield return kontrolOnizleme;
+    }
+
     private void ExternalStepOnizlemesiniKur()
     {
-        OcctViewportHost.InputTraceEnabled = Ayarlar.GomuluTeshisKaydi;
-        // Notification cards stay above the embedded 3D view.
-        profilOnizleme.AddOverlay(bildirimKatmani);
-        profilOnizleme.Diagnostic += ExternalStepViewport_Diagnostic;
-        profilOnizleme.BuyukAcIstendi += Onizleme_BuyukAcIstendi;
-        profilOnizleme.GosterimDegisti += Onizleme_GosterimDegisti;
-        profilOnizleme.ParcaGorunumuDegistirIstendi += Onizleme_ParcaGorunumuDegistirIstendi;
+        TeshisAyariniUygula();
+        foreach (Step3BPaneli panel in TumStep3BPanelleri())
+            Step3BPaneliniBagla(panel);
     }
 
     private void ExternalStepOnizlemeyiKapat()
@@ -27,11 +31,30 @@ public partial class MainWindow
         _externalStepPreviewWindow = null;
         previewWindow?.Close();
 
-        profilOnizleme.Diagnostic -= ExternalStepViewport_Diagnostic;
-        profilOnizleme.BuyukAcIstendi -= Onizleme_BuyukAcIstendi;
-        profilOnizleme.GosterimDegisti -= Onizleme_GosterimDegisti;
-        profilOnizleme.ParcaGorunumuDegistirIstendi -= Onizleme_ParcaGorunumuDegistirIstendi;
-        profilOnizleme.Shutdown();
+        foreach (Step3BPaneli panel in TumStep3BPanelleri())
+            Step3BPaneliniCoz(panel);
+    }
+
+    /// <summary>Ayarlar → Teşhis: WM_* input traces of every 3D view, embedded or large.</summary>
+    private static void TeshisAyariniUygula() => OcctViewportHost.InputTraceEnabled = Ayarlar.GomuluTeshisKaydi;
+
+    private void Step3BPaneliniBagla(Step3BPaneli panel)
+    {
+        // Notification cards stay above the embedded 3D view.
+        panel.AddOverlay(bildirimKatmani);
+        panel.Diagnostic += Onizleme_Diagnostic;
+        panel.BuyukAcIstendi += Onizleme_BuyukAcIstendi;
+        panel.GosterimDegisti += Onizleme_GosterimDegisti;
+        panel.ParcaGorunumuDegistirIstendi += Onizleme_ParcaGorunumuDegistirIstendi;
+    }
+
+    private void Step3BPaneliniCoz(Step3BPaneli panel)
+    {
+        panel.Diagnostic -= Onizleme_Diagnostic;
+        panel.BuyukAcIstendi -= Onizleme_BuyukAcIstendi;
+        panel.GosterimDegisti -= Onizleme_GosterimDegisti;
+        panel.ParcaGorunumuDegistirIstendi -= Onizleme_ParcaGorunumuDegistirIstendi;
+        panel.Shutdown();
     }
 
     private void ExternalStepOnizlemesiniGuncelle(GeometryLabStepProfileListItem? item)
@@ -61,12 +84,12 @@ public partial class MainWindow
 
     private void MontajParcaGorunumunuUygula()
     {
-        profilOnizleme.SetPartView(_montajParcaGorunumu);
-        kontrolOnizleme.SetPartView(_montajParcaGorunumu);
+        foreach (Step3BPaneli panel in TumStep3BPanelleri())
+            panel.SetPartView(_montajParcaGorunumu);
         _externalStepPreviewWindow?.SetPartView(_montajParcaGorunumu);
     }
 
-    private void ExternalStepViewport_Diagnostic(object? sender, OcctViewportDiagnosticEventArgs e) =>
+    private void Onizleme_Diagnostic(object? sender, OcctViewportDiagnosticEventArgs e) =>
         ViewportTeshisiniYaz(e);
 
     // WM_* traces go to the console only; real problems (e.g. a failed
@@ -95,12 +118,12 @@ public partial class MainWindow
         }
 
         OcctPreviewWindow previewWindow = new() { Owner = this };
-        previewWindow.Diagnostic += ExternalStepViewport_Diagnostic;
+        previewWindow.Diagnostic += Onizleme_Diagnostic;
         previewWindow.PartViewToggleRequested += BuyukOnizleme_PartViewToggleRequested;
         _externalStepPreviewWindow = previewWindow;
         previewWindow.Closed += (_, _) =>
         {
-            previewWindow.Diagnostic -= ExternalStepViewport_Diagnostic;
+            previewWindow.Diagnostic -= Onizleme_Diagnostic;
             previewWindow.PartViewToggleRequested -= BuyukOnizleme_PartViewToggleRequested;
             if (ReferenceEquals(_externalStepPreviewWindow, previewWindow))
             {
