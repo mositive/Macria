@@ -100,6 +100,7 @@ Most real behaviour needs a running CATIA and cannot be verified on a dev machin
 - `Macria.csproj` copies it to `GeometryEngine\` in the build and publish output.
 - The analysis engine (`Macria.GeometryEngine.exe`) always runs as a separate child process.
 - The 3D STEP viewer is different: `OcctViewerNative` loads `Macria.GeometryViewer.dll` (OCCT) from the same folder into the Macria process with `LoadLibraryEx`, and `OcctViewportHost` hosts it. A native crash in the viewer therefore takes Macria down with it.
+- Every 3D preview (the Profiller, Saclar and Kontrol gerekli tabs, and the "Büyük Aç" window) uses the shared `Step3BPaneli` UserControl. It holds the toolbar, the viewport and the status line. Its toolbar rules are in `Step3BAracDurumu` and are tested in `GeometryLabAdapter.Tests`. `MainWindow.ExternalStepPreview.cs` wires every panel through `TumStep3BPanelleri()`. Add a new 3D feature to the panel, not to a single tab.
 - The csproj comment and `GeometryEngineRuntime/README.md` still say nothing is loaded in-process. That is outdated.
 - `GeometryLabProcessAdapter` starts it with `--input <step> --output <json>` and deserializes the result with `GeometryLabTransportDtos`. `GeometryLabEngineLocator` resolves the exe path.
 - Only verified GeometryLab x64 Release outputs go into `GeometryEngineRuntime/` (see its README).
