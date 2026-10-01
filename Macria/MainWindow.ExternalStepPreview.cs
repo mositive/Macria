@@ -84,12 +84,7 @@ public partial class MainWindow
             externalStepViewport.ShowPart(profil.PartName, _montajParcaGorunumu);
         ParcaGorunumuDugmesiniGuncelle(btnExternalStepParcaGorunumu, profil?.PartName, externalStepViewport, gizle: true);
 
-        List<MontajParcaSatiri> kontrol = SeciliKontrolSatirlari();
-        string? kontrolParca = kontrol.Count == 1 ? kontrol[0].PartName : null;
-        if (!string.IsNullOrEmpty(kontrolParca))
-            kontrolStepViewport.ShowPart(kontrolParca, _montajParcaGorunumu);
-        ParcaGorunumuDugmesiniGuncelle(btnKontrolParcaGorunumu, kontrolParca, kontrolStepViewport, gizle: false);
-        KontrolDurumYazisiniGuncelle();
+        kontrolOnizleme.SetPartView(_montajParcaGorunumu);
 
         _externalStepPreviewWindow?.SetPartView(_montajParcaGorunumu);
     }

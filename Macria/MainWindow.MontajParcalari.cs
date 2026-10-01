@@ -44,55 +44,37 @@ public partial class MainWindow
         };
         if (gridSacParcalar != null) gridSacParcalar.ItemsSource = _sacParcaView;
         if (gridKontrolParcalar != null) gridKontrolParcalar.ItemsSource = _kontrolParcaView;
-        if (kontrolStepViewport != null)
+        if (kontrolOnizleme != null)
         {
-            kontrolStepViewport.StatusChanged += KontrolViewport_StatusChanged;
-            kontrolStepViewport.Diagnostic += KontrolViewport_Diagnostic;
-            kontrolStepViewport.AddOverlay(bildirimKatmani);
+            kontrolOnizleme.Diagnostic += KontrolOnizleme_Diagnostic;
+            kontrolOnizleme.BuyukAcIstendi += KontrolOnizleme_BuyukAcIstendi;
+            kontrolOnizleme.ParcaGorunumuDegistirIstendi += KontrolOnizleme_ParcaGorunumuDegistirIstendi;
+            kontrolOnizleme.AddOverlay(bildirimKatmani);
+            kontrolOnizleme.Temizle(KontrolBosMesaji);
         }
         MontajSekmeleriniGuncelle();
     }
 
+    private const string KontrolBosMesaji = "Önizlemek için listeden bir parça seçin.";
+
     private void MontajOnizlemesiniKapat()
     {
-        if (kontrolStepViewport == null) return;
-        kontrolStepViewport.StatusChanged -= KontrolViewport_StatusChanged;
-        kontrolStepViewport.Diagnostic -= KontrolViewport_Diagnostic;
-        kontrolStepViewport.Shutdown();
+        if (kontrolOnizleme == null) return;
+        kontrolOnizleme.Diagnostic -= KontrolOnizleme_Diagnostic;
+        kontrolOnizleme.BuyukAcIstendi -= KontrolOnizleme_BuyukAcIstendi;
+        kontrolOnizleme.ParcaGorunumuDegistirIstendi -= KontrolOnizleme_ParcaGorunumuDegistirIstendi;
+        kontrolOnizleme.Shutdown();
     }
 
-    private void KontrolViewport_StatusChanged(object? sender, OcctViewportStatusChangedEventArgs e)
+    private void KontrolOnizleme_Diagnostic(object? sender, OcctViewportDiagnosticEventArgs e) => ViewportTeshisiniYaz(e);
+
+    private void KontrolOnizleme_ParcaGorunumuDegistirIstendi(object? sender, EventArgs e) => MontajParcaGorunumunuDegistir();
+
+    private void KontrolOnizleme_BuyukAcIstendi(object? sender, EventArgs e)
     {
-        bool loaded = e.State == OcctViewportState.Loaded;
-        if (btnKontrolIsometric != null) btnKontrolIsometric.IsEnabled = loaded;
-        if (btnKontrolFitAll != null) btnKontrolFitAll.IsEnabled = loaded;
-        if (btnKontrolBuyukAc != null) btnKontrolBuyukAc.IsEnabled = loaded;
-        List<MontajParcaSatiri> selected = SeciliKontrolSatirlari();
-        ParcaGorunumuDugmesiniGuncelle(btnKontrolParcaGorunumu, selected.Count == 1 ? selected[0].PartName : null,
-            kontrolStepViewport, gizle: false);
-        if (loaded) KontrolDurumYazisiniGuncelle();
-        else if (txtKontrolViewportStatus != null) txtKontrolViewportStatus.Text = e.Message;
-    }
-
-    private void KontrolDurumYazisiniGuncelle()
-    {
-        if (txtKontrolViewportStatus == null || kontrolStepViewport?.State != OcctViewportState.Loaded) return;
-        txtKontrolViewportStatus.Text = _montajParcaGorunumu == OcctPartView.Isolated
-            ? "Yalnız seçili parça gösteriliyor; montajın kalanı gizli."
-            : "Seçili parça montaj içinde vurgulanır; diğer parçalar soluk görünür.";
-    }
-
-    private void KontrolViewport_Diagnostic(object? sender, OcctViewportDiagnosticEventArgs e) => ViewportTeshisiniYaz(e);
-
-    private void btnKontrolIsometric_Click(object sender, RoutedEventArgs e) => kontrolStepViewport.SetView(OcctStandardView.Isometric);
-
-    private void btnKontrolFitAll_Click(object sender, RoutedEventArgs e) => kontrolStepViewport.FitAll();
-
-    private void btnKontrolBuyukAc_Click(object sender, RoutedEventArgs e)
-    {
-        List<MontajParcaSatiri> selected = SeciliKontrolSatirlari();
-        if (selected.Count != 1 || !File.Exists(selected[0].SourceStepPath)) return;
-        BuyukOnizlemeyiAc(selected[0].SourceStepPath, selected[0].PartName);
+        string? path = kontrolOnizleme.StepYolu;
+        if (path == null || !File.Exists(path)) return;
+        BuyukOnizlemeyiAc(path, kontrolOnizleme.ParcaAdi);
     }
 
     private void chkMontajFiltre_Click(object sender, RoutedEventArgs e)
@@ -323,23 +305,16 @@ public partial class MainWindow
     {
         MontajKomutlariniGuncelle();
         List<MontajParcaSatiri> selected = SeciliKontrolSatirlari();
-        if (kontrolStepViewport == null) return;
-        ParcaGorunumuDugmesiniGuncelle(btnKontrolParcaGorunumu, selected.Count == 1 ? selected[0].PartName : null,
-            kontrolStepViewport, gizle: false);
-        if (selected.Count != 1 || !File.Exists(selected[0].SourceStepPath))
+        if (kontrolOnizleme == null) return;
+        if (selected.Count != 1)
         {
-            kontrolStepViewport.ClearModel();
-            if (txtKontrolViewportStatus != null)
-                txtKontrolViewportStatus.Text = selected.Count > 1
-                    ? "Birden fazla parça seçildi."
-                    : "Önizlemek için listeden bir parça seçin.";
+            kontrolOnizleme.Temizle(selected.Count > 1 ? "Birden fazla parça seçildi." : KontrolBosMesaji);
             return;
         }
-        // The selected part alone, or highlighted in the faded assembly.
-        kontrolStepViewport.LoadStep(selected[0].SourceStepPath);
-        kontrolStepViewport.ShowPart(selected[0].PartName, _montajParcaGorunumu);
-        KontrolDurumYazisiniGuncelle();
-        if (_buyukOnizlemeKontrolden)
+        // The selected part alone, or highlighted in the faded assembly; a missing file is
+        // reported by the panel.
+        kontrolOnizleme.Goster(selected[0].SourceStepPath, selected[0].PartName, _montajParcaGorunumu);
+        if (_buyukOnizlemeKontrolden && File.Exists(selected[0].SourceStepPath))
             _externalStepPreviewWindow?.ShowStep(selected[0].SourceStepPath, selected[0].PartName, _montajParcaGorunumu);
     }
 
