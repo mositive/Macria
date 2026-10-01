@@ -36,6 +36,12 @@ public partial class Step3BPaneli : UserControl
 
     public event EventHandler<OcctViewportDiagnosticEventArgs>? Diagnostic;
 
+    /// <summary>
+    /// Raised after <see cref="Goster"/> or <see cref="Temizle"/>, so a "Büyük Aç" window opened
+    /// from this panel can follow <see cref="StepYolu"/> and <see cref="ParcaAdi"/>.
+    /// </summary>
+    public event EventHandler? GosterimDegisti;
+
     public Step3BPaneli()
     {
         InitializeComponent();
@@ -121,6 +127,7 @@ public partial class Step3BPaneli : UserControl
             _bosMesaj = result.Status == PreviewResultStatus.MissingFile ? EksikDosyaMesaji : result.Message;
         }
         Guncelle();
+        GosterimDegisti?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>Empties the panel; <paramref name="mesaj"/> replaces the viewport's empty-state text.</summary>
@@ -133,6 +140,7 @@ public partial class Step3BPaneli : UserControl
         BasligiGuncelle();
         _adapter.Clear();
         Guncelle();
+        GosterimDegisti?.Invoke(this, EventArgs.Empty);
     }
 
     public void SetPartView(OcctPartView gorunum)

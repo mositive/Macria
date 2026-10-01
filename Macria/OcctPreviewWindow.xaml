@@ -38,9 +38,7 @@
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="38"/>
-                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <Grid Grid.Row="0">
@@ -76,43 +74,9 @@
                 </StackPanel>
             </Grid>
 
-            <Grid Grid.Row="1" Margin="16,4,16,10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <StackPanel VerticalAlignment="Center" Margin="0,0,14,0">
-                    <TextBlock x:Name="txtStepName" Text="Listeden Bir STEP Seçin"
-                               FontSize="15" FontWeight="SemiBold"
-                               TextTrimming="CharacterEllipsis"/>
-                    <TextBlock x:Name="txtStepPath" Margin="0,3,0,0"
-                               FontSize="11.5" Foreground="{StaticResource TextDisabledBrush}"
-                               TextTrimming="CharacterEllipsis"/>
-                </StackPanel>
-                <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button x:Name="btnPartView" Style="{StaticResource SecondaryButton}" Content="Montaj içinde göster" Height="30" Padding="10,0" Margin="0,0,12,5"
-                            Visibility="Collapsed" IsEnabled="False" Click="btnPartView_Click"
-                            ToolTip="Seçili parçayı tek başına ya da montajın içinde (diğerleri soluk) gösterir"/>
-                    <Button x:Name="btnIsometric" Style="{StaticResource SecondaryButton}" Content="İzometrik" Height="30" Padding="10,0" Margin="0,0,5,5" IsEnabled="False" Click="btnIsometric_Click"/>
-                    <Button x:Name="btnFront" Style="{StaticResource SecondaryButton}" Content="Ön" Height="30" Padding="10,0" Margin="0,0,5,5" IsEnabled="False" Click="btnFront_Click"/>
-                    <Button x:Name="btnBack" Style="{StaticResource SecondaryButton}" Content="Arka" Height="30" Padding="10,0" Margin="0,0,5,5" IsEnabled="False" Click="btnBack_Click"/>
-                    <Button x:Name="btnLeft" Style="{StaticResource SecondaryButton}" Content="Sol" Height="30" Padding="10,0" Margin="0,0,5,5" IsEnabled="False" Click="btnLeft_Click"/>
-                    <Button x:Name="btnRight" Style="{StaticResource SecondaryButton}" Content="Sağ" Height="30" Padding="10,0" Margin="0,0,5,5" IsEnabled="False" Click="btnRight_Click"/>
-                    <Button x:Name="btnTop" Style="{StaticResource SecondaryButton}" Content="Üst" Height="30" Padding="10,0" Margin="0,0,5,5" IsEnabled="False" Click="btnTop_Click"/>
-                    <Button x:Name="btnBottom" Style="{StaticResource SecondaryButton}" Content="Alt" Height="30" Padding="10,0" Margin="0,0,5,5" IsEnabled="False" Click="btnBottom_Click"/>
-                    <Button x:Name="btnFitAll" Style="{StaticResource SecondaryButton}" Content="Sığdır" Height="30" Padding="10,0" Margin="0,0,0,5" IsEnabled="False" Click="btnFitAll_Click"/>
-                </WrapPanel>
-            </Grid>
-
-            <Border Grid.Row="2" Margin="16,0" BorderBrush="{StaticResource BorderBrush}"
-                    BorderThickness="1" Background="#1B2028">
-                <local:OcctViewportHost x:Name="viewport" DiagnosticName="Büyük 3B"/>
-            </Border>
-
-            <TextBlock Grid.Row="3" x:Name="txtStatus" Margin="16,8,16,12"
-                       TextWrapping="Wrap" FontSize="11"
-                       Foreground="{StaticResource TextSecondaryBrush}"
-                       Text="3B önizleme hazırlanıyor..."/>
+            <!-- Ortak 3B paneli: baslik, arac cubugu (Buyuk Ac yok), gorunum, durum satiri -->
+            <local:Step3BPaneli Grid.Row="1" x:Name="panel" Margin="16,4,16,12"
+                                DiagnosticName="Büyük 3B" BuyukAcGorunur="False" BaslikGorunur="True" Boyut="Normal"/>
         </Grid>
     </Border>
 </Window>

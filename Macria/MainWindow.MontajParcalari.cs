@@ -47,7 +47,8 @@ public partial class MainWindow
         if (kontrolOnizleme != null)
         {
             kontrolOnizleme.Diagnostic += KontrolOnizleme_Diagnostic;
-            kontrolOnizleme.BuyukAcIstendi += KontrolOnizleme_BuyukAcIstendi;
+            kontrolOnizleme.BuyukAcIstendi += Onizleme_BuyukAcIstendi;
+            kontrolOnizleme.GosterimDegisti += Onizleme_GosterimDegisti;
             kontrolOnizleme.ParcaGorunumuDegistirIstendi += Onizleme_ParcaGorunumuDegistirIstendi;
             kontrolOnizleme.AddOverlay(bildirimKatmani);
             kontrolOnizleme.Temizle(KontrolBosMesaji);
@@ -61,19 +62,13 @@ public partial class MainWindow
     {
         if (kontrolOnizleme == null) return;
         kontrolOnizleme.Diagnostic -= KontrolOnizleme_Diagnostic;
-        kontrolOnizleme.BuyukAcIstendi -= KontrolOnizleme_BuyukAcIstendi;
+        kontrolOnizleme.BuyukAcIstendi -= Onizleme_BuyukAcIstendi;
+        kontrolOnizleme.GosterimDegisti -= Onizleme_GosterimDegisti;
         kontrolOnizleme.ParcaGorunumuDegistirIstendi -= Onizleme_ParcaGorunumuDegistirIstendi;
         kontrolOnizleme.Shutdown();
     }
 
     private void KontrolOnizleme_Diagnostic(object? sender, OcctViewportDiagnosticEventArgs e) => ViewportTeshisiniYaz(e);
-
-    private void KontrolOnizleme_BuyukAcIstendi(object? sender, EventArgs e)
-    {
-        string? path = kontrolOnizleme.StepYolu;
-        if (path == null || !File.Exists(path)) return;
-        BuyukOnizlemeyiAc(path, kontrolOnizleme.ParcaAdi);
-    }
 
     private void chkMontajFiltre_Click(object sender, RoutedEventArgs e)
     {
@@ -312,8 +307,6 @@ public partial class MainWindow
         // The selected part alone, or highlighted in the faded assembly; a missing file is
         // reported by the panel.
         kontrolOnizleme.Goster(selected[0].SourceStepPath, selected[0].PartName, _montajParcaGorunumu);
-        if (_buyukOnizlemeKontrolden && File.Exists(selected[0].SourceStepPath))
-            _externalStepPreviewWindow?.ShowStep(selected[0].SourceStepPath, selected[0].PartName, _montajParcaGorunumu);
     }
 
     private void btnSacOnayla_Click(object sender, RoutedEventArgs e) => MontajKarariUygula(SeciliSacSatirlari(), row => row.ApproveAsSheet());

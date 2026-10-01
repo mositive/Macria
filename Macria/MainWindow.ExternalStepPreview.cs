@@ -16,7 +16,8 @@ public partial class MainWindow
         // Notification cards stay above the embedded 3D view.
         profilOnizleme.AddOverlay(bildirimKatmani);
         profilOnizleme.Diagnostic += ExternalStepViewport_Diagnostic;
-        profilOnizleme.BuyukAcIstendi += ProfilOnizleme_BuyukAcIstendi;
+        profilOnizleme.BuyukAcIstendi += Onizleme_BuyukAcIstendi;
+        profilOnizleme.GosterimDegisti += Onizleme_GosterimDegisti;
         profilOnizleme.ParcaGorunumuDegistirIstendi += Onizleme_ParcaGorunumuDegistirIstendi;
     }
 
@@ -27,24 +28,17 @@ public partial class MainWindow
         previewWindow?.Close();
 
         profilOnizleme.Diagnostic -= ExternalStepViewport_Diagnostic;
-        profilOnizleme.BuyukAcIstendi -= ProfilOnizleme_BuyukAcIstendi;
+        profilOnizleme.BuyukAcIstendi -= Onizleme_BuyukAcIstendi;
+        profilOnizleme.GosterimDegisti -= Onizleme_GosterimDegisti;
         profilOnizleme.ParcaGorunumuDegistirIstendi -= Onizleme_ParcaGorunumuDegistirIstendi;
         profilOnizleme.Shutdown();
     }
 
     private void ExternalStepOnizlemesiniGuncelle(GeometryLabStepProfileListItem? item)
     {
-        if (item == null)
-        {
-            profilOnizleme.Temizle(null);
-            if (!_buyukOnizlemeKontrolden) _externalStepPreviewWindow?.ShowStep(null);
-            return;
-        }
-
         // An assembly part row: the part alone or inside the faded assembly; a
-        // missing file is reported by the panel.
-        profilOnizleme.Goster(item.SourceStepPath, item.PartName, _montajParcaGorunumu);
-        if (!_buyukOnizlemeKontrolden) _externalStepPreviewWindow?.ShowStep(item.SourceStepPath, item.PartName, _montajParcaGorunumu);
+        // missing file is reported by the panel. A null row clears it.
+        profilOnizleme.Goster(item?.SourceStepPath, item?.PartName, _montajParcaGorunumu);
     }
 
     private GeometryLabStepProfileListItem? ExternalStepOnizlemeSatiri()
@@ -83,23 +77,17 @@ public partial class MainWindow
         else LogInfo(e.Message);
     }
 
-    private void ProfilOnizleme_BuyukAcIstendi(object? sender, System.EventArgs e)
-    {
-        string? path = profilOnizleme.StepYolu;
-        if (path == null || !File.Exists(path)) return;
-        BuyukOnizlemeyiAc(path, profilOnizleme.ParcaAdi, fromKontrol: false);
-    }
+    // One "Büyük Aç" window for every panel; it follows the panel that opened
+    // it last, including when that panel is cleared.
+    private Step3BPaneli? _buyukOnizlemeKaynagi;
 
-    // One "Büyük Aç" window for both tabs; it follows the selection of the tab
-    // that opened it last.
-    private bool _buyukOnizlemeKontrolden;
-
-    private void BuyukOnizlemeyiAc(string stepPath, string? partName, bool fromKontrol = true)
+    private void Onizleme_BuyukAcIstendi(object? sender, System.EventArgs e)
     {
-        _buyukOnizlemeKontrolden = fromKontrol;
+        if (sender is not Step3BPaneli kaynak || kaynak.StepYolu == null || !File.Exists(kaynak.StepYolu)) return;
+        _buyukOnizlemeKaynagi = kaynak;
         if (_externalStepPreviewWindow != null)
         {
-            _externalStepPreviewWindow.ShowStep(stepPath, partName, _montajParcaGorunumu);
+            BuyukOnizlemeyiKaynakla();
             if (_externalStepPreviewWindow.WindowState == WindowState.Minimized)
                 _externalStepPreviewWindow.WindowState = WindowState.Normal;
             _externalStepPreviewWindow.Activate();
@@ -115,9 +103,23 @@ public partial class MainWindow
             previewWindow.Diagnostic -= ExternalStepViewport_Diagnostic;
             previewWindow.PartViewToggleRequested -= BuyukOnizleme_PartViewToggleRequested;
             if (ReferenceEquals(_externalStepPreviewWindow, previewWindow))
+            {
                 _externalStepPreviewWindow = null;
+                _buyukOnizlemeKaynagi = null;
+            }
         };
-        previewWindow.ShowStep(stepPath, partName, _montajParcaGorunumu);
+        BuyukOnizlemeyiKaynakla();
         previewWindow.Show();
+    }
+
+    private void Onizleme_GosterimDegisti(object? sender, System.EventArgs e)
+    {
+        if (ReferenceEquals(sender, _buyukOnizlemeKaynagi)) BuyukOnizlemeyiKaynakla();
+    }
+
+    private void BuyukOnizlemeyiKaynakla()
+    {
+        if (_externalStepPreviewWindow == null || _buyukOnizlemeKaynagi == null) return;
+        _externalStepPreviewWindow.ShowStep(_buyukOnizlemeKaynagi.StepYolu, _buyukOnizlemeKaynagi.ParcaAdi, _montajParcaGorunumu);
     }
 }
