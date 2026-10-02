@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace Macria
@@ -32,6 +33,7 @@ namespace Macria
 
             KonumYaz();
             BukumYaz();
+            lstKategori.SelectedIndex = 0;
             Closed += (s, e) => OgretmeyiDurdur();
 
             if (ogretmeyeBasla)
@@ -316,9 +318,44 @@ namespace Macria
                 if ((c < '0' || c > '9') && c != ',' && c != '.') { e.Handled = true; return; }
         }
 
-        private void Baslik_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        // ================= KATEGORI LISTESI =================
+
+        // True while the scroll position moves the selection, so that the
+        // selection change does not scroll back.
+        private bool _kategoriKaydirmadan;
+
+        private FrameworkElement? Bolum(int index) =>
+            lstKategori.Items[index] is ListBoxItem { Tag: string ad } ? FindName(ad) as FrameworkElement : null;
+
+        // Top of a section heading in the scroll viewer's content coordinates.
+        private double BolumKonumu(FrameworkElement bolum) =>
+            bolum.TransformToAncestor(pnlAyarlar).Transform(new Point(0, 0)).Y + pnlAyarlar.Margin.Top;
+
+        private void lstKategori_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (e.ButtonState == MouseButtonState.Pressed) DragMove();
+            if (_kategoriKaydirmadan || lstKategori.SelectedIndex < 0 || !IsLoaded) return;
+            if (Bolum(lstKategori.SelectedIndex) is FrameworkElement bolum)
+                ayarKaydirici.ScrollToVerticalOffset(Math.Max(0, BolumKonumu(bolum) - pnlAyarlar.Margin.Top));
+        }
+
+        // The list follows the scrolling: the last section whose heading is at
+        // or above the top. At the bottom, short sections cannot reach the top,
+        // so a selected section that is visible stays selected.
+        private void ayarKaydirici_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            if (!IsLoaded || lstKategori.Items.Count == 0) return;
+            double ust = ayarKaydirici.VerticalOffset + pnlAyarlar.Margin.Top + 8;
+            int secili = 0;
+            for (int index = 0; index < lstKategori.Items.Count; ++index)
+                if (Bolum(index) is FrameworkElement bolum && BolumKonumu(bolum) <= ust)
+                    secili = index;
+            if (ayarKaydirici.VerticalOffset >= ayarKaydirici.ScrollableHeight - 1 && lstKategori.SelectedIndex > secili &&
+                Bolum(lstKategori.SelectedIndex) is FrameworkElement gorunen &&
+                BolumKonumu(gorunen) < ayarKaydirici.VerticalOffset + ayarKaydirici.ViewportHeight)
+                return;
+            _kategoriKaydirmadan = true;
+            lstKategori.SelectedIndex = secili;
+            _kategoriKaydirmadan = false;
         }
 
         private void btnClose_Click(object sender, RoutedEventArgs e)

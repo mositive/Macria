@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Ayarlar"
         Icon="Assets/macria-logo.png"
-        Width="500" SizeToContent="Height"
-        WindowStyle="None" ResizeMode="NoResize"
+        Width="820" Height="640" MinWidth="620" MinHeight="420"
+        WindowStyle="None" ResizeMode="CanResize"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource BgBrush}"
@@ -12,31 +12,87 @@
         FontFamily="{StaticResource AppFont}"
         UseLayoutRounding="True">
 
+    <!-- Boyutlandirilabilir cercevesiz pencere: bastan tasinir, kenarlardan boyutlanir -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="38" ResizeBorderThickness="6" GlassFrameThickness="0"
+                      CornerRadius="0" UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <!-- Soldaki kategori listesi -->
+        <Style x:Key="KategoriItem" TargetType="ListBoxItem">
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="kart" Background="Transparent" CornerRadius="4" Padding="12,8" Margin="0,0,0,2">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="kart" Property="Background" Value="{StaticResource SurfaceHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="kart" Property="Background" Value="{StaticResource CardBrush}"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
     <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
             CornerRadius="4">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="38"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <!-- ======== BASLIK CUBUGU ======== -->
-            <Grid Grid.Row="0" Background="Transparent"
-                  MouseLeftButtonDown="Baslik_MouseLeftButtonDown">
+            <Grid Grid.Row="0" Background="Transparent">
                 <TextBlock Text="Ayarlar" FontSize="12" FontWeight="SemiBold"
                            Foreground="{StaticResource TextSecondaryBrush}"
                            VerticalAlignment="Center" Margin="16,0,0,0"/>
                 <Button Style="{StaticResource WindowCloseButton}" Content="&#xE8BB;"
                         HorizontalAlignment="Right" VerticalAlignment="Top"
+                        WindowChrome.IsHitTestVisibleInChrome="True"
                         Click="btnClose_Click"/>
             </Grid>
 
-            <!-- ======== ICERIK ======== -->
-            <StackPanel Grid.Row="1" Margin="24,4,24,0">
+            <!-- ======== ICERIK: solda kategoriler, sagda kaydirilabilir ayarlar ======== -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="190"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <ListBox x:Name="lstKategori" Grid.Column="0" Margin="12,4,8,12"
+                         Background="Transparent" BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         ItemContainerStyle="{StaticResource KategoriItem}"
+                         SelectionChanged="lstKategori_SelectionChanged">
+                    <ListBoxItem Content="Save As Konumu" Tag="bolumSaveAs"/>
+                    <ListBoxItem Content="Büküm Bilgisi" Tag="bolumBukum"/>
+                    <ListBoxItem Content="Zamanlama" Tag="bolumZamanlama"/>
+                    <ListBoxItem Content="Sac Üretim Grubu" Tag="bolumSac"/>
+                    <ListBoxItem Content="Dosya Analizi" Tag="bolumDosyaAnalizi"/>
+                    <ListBoxItem Content="Teşhis" Tag="bolumTeshis"/>
+                    <ListBoxItem Content="Uyarılar" Tag="bolumUyarilar"/>
+                </ListBox>
+
+                <ScrollViewer x:Name="ayarKaydirici" Grid.Column="1" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled" ScrollChanged="ayarKaydirici_ScrollChanged">
+            <StackPanel x:Name="pnlAyarlar" Margin="12,4,24,16">
 
                 <!-- Save As Konumu -->
-                <TextBlock Text="Save As Konumu" FontSize="12" FontWeight="SemiBold"
+                <TextBlock x:Name="bolumSaveAs" Text="Save As Konumu" FontSize="12" FontWeight="SemiBold"
                            Foreground="{StaticResource TextSecondaryBrush}"/>
 
                 <Border Background="{StaticResource CardBrush}"
@@ -63,7 +119,7 @@
                 </Border>
 
                 <!-- Bukum Bilgisi -->
-                <TextBlock Text="Büküm Bilgisi (Bend Information)" FontSize="12"
+                <TextBlock x:Name="bolumBukum" Text="Büküm Bilgisi (Bend Information)" FontSize="12"
                            FontWeight="SemiBold"
                            Foreground="{StaticResource TextSecondaryBrush}"
                            Margin="0,20,0,0"/>
@@ -96,7 +152,7 @@
                 </Border>
 
                 <!-- Zamanlama -->
-                <TextBlock Text="Zamanlama" FontSize="12" FontWeight="SemiBold"
+                <TextBlock x:Name="bolumZamanlama" Text="Zamanlama" FontSize="12" FontWeight="SemiBold"
                            Foreground="{StaticResource TextSecondaryBrush}"
                            Margin="0,20,0,0"/>
 
@@ -118,7 +174,7 @@
                 </Border>
 
                 <!-- Sac uretim grubu -->
-                <TextBlock Text="Sac Üretim Grubu" FontSize="12" FontWeight="SemiBold"
+                <TextBlock x:Name="bolumSac" Text="Sac Üretim Grubu" FontSize="12" FontWeight="SemiBold"
                            Foreground="{StaticResource TextSecondaryBrush}"
                            Margin="0,20,0,0"/>
 
@@ -146,7 +202,7 @@
                 </Border>
 
                 <!-- Dosya analizi (geometri motoru) -->
-                <TextBlock Text="Dosya Analizi" FontSize="12" FontWeight="SemiBold"
+                <TextBlock x:Name="bolumDosyaAnalizi" Text="Dosya Analizi" FontSize="12" FontWeight="SemiBold"
                            Foreground="{StaticResource TextSecondaryBrush}"
                            Margin="0,20,0,0"/>
 
@@ -178,7 +234,7 @@
                 </Border>
 
                 <!-- Teshis -->
-                <TextBlock Text="Teşhis" FontSize="12" FontWeight="SemiBold"
+                <TextBlock x:Name="bolumTeshis" Text="Teşhis" FontSize="12" FontWeight="SemiBold"
                            Foreground="{StaticResource TextSecondaryBrush}"
                            Margin="0,20,0,0"/>
 
@@ -196,7 +252,7 @@
                 </Border>
 
                 <!-- Uyarilar -->
-                <TextBlock Text="Uyarılar" FontSize="12" FontWeight="SemiBold"
+                <TextBlock x:Name="bolumUyarilar" Text="Uyarılar" FontSize="12" FontWeight="SemiBold"
                            Foreground="{StaticResource TextSecondaryBrush}"
                            Margin="0,20,0,0"/>
 
@@ -213,9 +269,11 @@
                     </StackPanel>
                 </Border>
             </StackPanel>
+                </ScrollViewer>
+            </Grid>
 
-            <!-- ======== ALT SERIT ======== -->
-            <Border Grid.Row="2" Margin="0,22,0,0" Padding="24,14"
+            <!-- ======== ALT SERIT: her zaman gorunur ======== -->
+            <Border Grid.Row="2" Padding="24,14"
                     Background="{StaticResource CardBrush}"
                     CornerRadius="0,0,3,3">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
