@@ -11,7 +11,13 @@ namespace Macria;
 public sealed record GeometryLabProcessAdapterOptions
 {
     public required string EngineExecutablePath { get; init; }
+    // Whole-run limit; zero or negative means no limit (the engine has its
+    // own per-part limit, PartTimeLimitSeconds).
     public TimeSpan Timeout { get; init; } = TimeSpan.FromMinutes(2);
+
+    // Engine progress (--ilerleme), called on a background thread as the
+    // engine reports stages and parts; null: no progress lines are requested.
+    public Action<GeometryLabProgress>? ProgressChanged { get; init; }
     public string? TemporaryRootDirectory { get; init; }
 
     // When set, the engine writes one DXF per sheet part (--dxf-klasor) into a
@@ -25,6 +31,37 @@ public sealed record GeometryLabProcessAdapterOptions
 
     // Engine --is-parcacigi: worker threads, 0 = cores - 1; null = engine default.
     public int? ThreadCount { get; init; }
+}
+
+/// <summary>
+/// One engine progress line "MACRIA-ILERLEME &lt;stage&gt; &lt;done&gt; &lt;total&gt;":
+/// "okuma" (reading the STEP), "topoloji", then "parca" and "sac" per solid.
+/// </summary>
+public sealed record GeometryLabProgress(string Stage, int Done, int Total)
+{
+    public const string LinePrefix = "MACRIA-ILERLEME ";
+
+    public static GeometryLabProgress? TryParse(string? line)
+    {
+        if (line is null || !line.StartsWith(LinePrefix, StringComparison.Ordinal))
+            return null;
+        string[] fields = line.Substring(LinePrefix.Length).Trim().Split(' ');
+        if (fields.Length != 3 || fields[0].Length == 0 ||
+            !int.TryParse(fields[1], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int done) ||
+            !int.TryParse(fields[2], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int total))
+            return null;
+        return new GeometryLabProgress(fields[0], done, total);
+    }
+
+    // "STEP okunuyor", "Parçalar analiz ediliyor: 142 / 195", ...
+    public string Display => Stage switch
+    {
+        "okuma" => "STEP okunuyor",
+        "topoloji" => "Topoloji çıkarılıyor (" + Total + " parça)",
+        "parca" => "Parçalar analiz ediliyor: " + Done + " / " + Total,
+        "sac" => "Sac tanıma: " + Done + " / " + Total,
+        _ => Stage + ": " + Done + " / " + Total
+    };
 }
 
 public enum GeometryLabProcessAdapterStatus
@@ -108,9 +145,9 @@ public sealed class GeometryLabProcessAdapter
     {
         if (cancellationToken.IsCancellationRequested)
             return Result(GeometryLabProcessAdapterStatus.Cancelled, "Analysis was cancelled before the engine started.");
-        if (string.IsNullOrWhiteSpace(_options.EngineExecutablePath) || _options.Timeout <= TimeSpan.Zero)
+        if (string.IsNullOrWhiteSpace(_options.EngineExecutablePath))
             return Result(GeometryLabProcessAdapterStatus.InvalidConfiguration,
-                "EngineExecutablePath and a positive timeout are required.");
+                "EngineExecutablePath is required.");
 
         string enginePath;
         string inputPath;
@@ -225,6 +262,9 @@ public sealed class GeometryLabProcessAdapter
             startInfo.ArgumentList.Add("--is-parcacigi");
             startInfo.ArgumentList.Add(Math.Max(0, threadCount).ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
+        Action<GeometryLabProgress>? progress = _options.ProgressChanged;
+        if (progress is not null)
+            startInfo.ArgumentList.Add("--ilerleme");
 
         using var process = new Process { StartInfo = startInfo };
         try
@@ -237,10 +277,13 @@ public sealed class GeometryLabProcessAdapter
             return Result(GeometryLabProcessAdapterStatus.StartFailed, exception.Message);
         }
 
-        Task<string> stdoutTask = process.StandardOutput.ReadToEndAsync();
+        Task<string> stdoutTask = progress is null
+            ? process.StandardOutput.ReadToEndAsync()
+            : ReadLinesAsync(process.StandardOutput, progress);
         Task<string> stderrTask = process.StandardError.ReadToEndAsync();
         using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeoutCancellation.CancelAfter(_options.Timeout);
+        if (_options.Timeout > TimeSpan.Zero)
+            timeoutCancellation.CancelAfter(_options.Timeout);
         try
         {
             await process.WaitForExitAsync(timeoutCancellation.Token).ConfigureAwait(false);
@@ -317,6 +360,25 @@ public sealed class GeometryLabProcessAdapter
             StandardOutput = stdout,
             StandardError = stderr
         };
+
+    // Reads stdout line by line, reports each progress line and returns the
+    // whole text (as ReadToEndAsync would). A failing callback does not stop
+    // the reading.
+    private static async Task<string> ReadLinesAsync(StreamReader reader, Action<GeometryLabProgress> progress)
+    {
+        var text = new StringBuilder();
+        string? line;
+        while ((line = await reader.ReadLineAsync().ConfigureAwait(false)) is not null)
+        {
+            text.AppendLine(line);
+            if (GeometryLabProgress.TryParse(line) is GeometryLabProgress report)
+            {
+                try { progress(report); }
+                catch (Exception) { }
+            }
+        }
+        return text.ToString();
+    }
 
     private static void TryKillProcessTree(Process process)
     {

@@ -52,9 +52,12 @@ namespace Macria
         public static DateTime KurTarihi;
         public static string KurKaynagi = "";
 
-        // GeometryLab motoru icin sure siniri (saniye). Buyuk bir montaj STEP'i
-        // tek cagrida iki dakikadan uzun surebilir; ayarla uzatilir.
-        public static int GeometryLabZamanAsimiSaniye = 120;
+        // GeometryLab motoru icin toplam sure siniri (saniye); 0 = kapali
+        // (varsayilan). Uzun analizde ilerleme gosterilir ve kullanici Iptal
+        // eder; parca basina sinir ParcaSureSiniriSaniye'dedir. Ayar dosyasinda
+        // "GeometryLabToplamZamanAsimiSaniye" anahtariyla tutulur: eski
+        // "GeometryLabZamanAsimiSaniye" (her kayitta 120 yazilan) artik okunmaz.
+        public static int GeometryLabZamanAsimiSaniye = 0;
 
         // Motor: parca basina analiz suresi siniri (saniye, 0 = sinirsiz).
         // Asan parca "Kontrol gerekli – analiz suresi asildi" olur, montajin
@@ -76,9 +79,10 @@ namespace Macria
         // hic uretilmez; acikken yalniz konsola yazilir (kart olarak cikmaz).
         public static bool GomuluTeshisKaydi;
 
+        // TimeSpan.Zero: no whole-run limit.
         public static TimeSpan GeometryLabZamanAsimi()
         {
-            return TimeSpan.FromSeconds(GeometryLabZamanAsimiSaniye > 0 ? GeometryLabZamanAsimiSaniye : 120);
+            return GeometryLabZamanAsimiSaniye > 0 ? TimeSpan.FromSeconds(GeometryLabZamanAsimiSaniye) : TimeSpan.Zero;
         }
 
         private static string Klasor()
@@ -141,8 +145,8 @@ namespace Macria
                         case "KurUsdTry": KurUsdTry = Ondalik(deger, KurUsdTry); break;
                         case "KurTarihi": KurTarihi = Gun(deger, KurTarihi); break;
                         case "KurKaynagi": KurKaynagi = deger; break;
-                        case "GeometryLabZamanAsimiSaniye":
-                            GeometryLabZamanAsimiSaniye = Sayi(deger, GeometryLabZamanAsimiSaniye); break;
+                        case "GeometryLabToplamZamanAsimiSaniye":
+                            GeometryLabZamanAsimiSaniye = Math.Max(0, Sayi(deger, GeometryLabZamanAsimiSaniye)); break;
                         case "ParcaSureSiniriSaniye":
                             ParcaSureSiniriSaniye = Math.Max(0, Sayi(deger, ParcaSureSiniriSaniye)); break;
                         case "MotorIsParcacigi":
@@ -198,7 +202,7 @@ namespace Macria
                     "KurUsdTry=" + KurUsdTry.ToString(CultureInfo.InvariantCulture),
                     "KurTarihi=" + KurTarihi.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
                     "KurKaynagi=" + KurKaynagi,
-                    "GeometryLabZamanAsimiSaniye=" + GeometryLabZamanAsimiSaniye,
+                    "GeometryLabToplamZamanAsimiSaniye=" + GeometryLabZamanAsimiSaniye,
                     "ParcaSureSiniriSaniye=" + ParcaSureSiniriSaniye,
                     "MotorIsParcacigi=" + MotorIsParcacigi,
                     "LazerAzamiKalinlikMm=" + LazerAzamiKalinlikMm.ToString(CultureInfo.InvariantCulture),

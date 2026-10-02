@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -348,31 +349,60 @@ public partial class MainWindow
         ProfilButonlariniGuncelle();
         LogInfo("External STEP profil analizi başladı: " + stepPaths.Length + " dosya. Önceki oturum listesi temizlendi.");
 
+        using var iptal = new CancellationTokenSource();
+        _externalStepAnalizIptal = iptal;
+        // A snapshot: an assembly STEP replaces its own row with part rows.
+        List<GeometryLabStepProfileListItem> dosyalar = _externalStepProfileRows.ToList();
+        string dosyaOn = "";
+        ExternalStepIlerlemesiniGoster(true);
         try
         {
             var adapter = new GeometryLabProcessAdapter(new GeometryLabProcessAdapterOptions
             {
                 EngineExecutablePath = engine.ExecutablePath!,
+                // No whole-run limit by default: progress is shown and the
+                // user cancels; the engine limits each part on its own.
                 Timeout = Ayarlar.GeometryLabZamanAsimi(),
                 PartDxfRootDirectory = motorDxfKlasoru,
                 PartTimeLimitSeconds = Ayarlar.ParcaSureSiniriSaniye,
-                ThreadCount = Ayarlar.MotorIsParcacigi
+                ThreadCount = Ayarlar.MotorIsParcacigi,
+                ProgressChanged = progress => Dispatcher.BeginInvoke(() => ExternalStepIlerlemesiniYaz(dosyaOn, progress))
             });
 
-            // A snapshot: an assembly STEP replaces its own row with part rows.
-            foreach (GeometryLabStepProfileListItem item in _externalStepProfileRows.ToList())
+            for (int index = 0; index < dosyalar.Count; ++index)
             {
+                GeometryLabStepProfileListItem item = dosyalar[index];
+                if (iptal.IsCancellationRequested)
+                {
+                    item.Apply(new GeometryLabProcessAdapterResult
+                    {
+                        Status = GeometryLabProcessAdapterStatus.Cancelled,
+                        Message = "Analiz başlamadan iptal edildi."
+                    });
+                    continue;
+                }
+                dosyaOn = dosyalar.Count > 1 ? "Dosya " + (index + 1) + " / " + dosyalar.Count + " — " + item.SourceFileName + ": " : item.SourceFileName + ": ";
+                ExternalStepIlerlemesiniYaz(dosyaOn, null);
                 item.MarkAnalyzing();
                 LogInfo("External STEP analiz ediliyor: " + item.SourceFileName);
-                GeometryLabProcessAdapterResult result = await adapter.AnalyzeAsync(item.SourceStepPath);
+                var sure = System.Diagnostics.Stopwatch.StartNew();
+                GeometryLabProcessAdapterResult result = await adapter.AnalyzeAsync(item.SourceStepPath, iptal.Token);
+                sure.Stop();
                 item.Apply(result);
                 MontajSonucunuDagit(item, result);
                 ExternalStepProfilOzetiniGuncelle();
                 _externalStepProfileView?.Refresh();
+                string sureMetni = SureMetni(sure.Elapsed);
                 if (result.IsSuccess)
+                {
+                    int parcaSayisi = result.Analysis?.Parts.Count ?? 0;
                     LogSuccess("External STEP analiz tamamlandı: " + item.SourceFileName + " — " + item.AnalysisStatus);
+                    LogInfo(item.SourceFileName + ": " + (parcaSayisi > 0 ? parcaSayisi + " parça, " : "") + sureMetni);
+                }
+                else if (result.Status == GeometryLabProcessAdapterStatus.Cancelled)
+                    LogInfo("External STEP analizi iptal edildi: " + item.SourceFileName + " (" + sureMetni + ")");
                 else
-                    LogError("External STEP analiz başarısız: " + item.SourceFileName + " — " + item.FailureReason);
+                    LogError("External STEP analiz başarısız: " + item.SourceFileName + " — " + item.FailureReason + " (" + sureMetni + ")");
             }
         }
         catch (Exception exception)
@@ -382,6 +412,8 @@ public partial class MainWindow
         }
         finally
         {
+            _externalStepAnalizIptal = null;
+            ExternalStepIlerlemesiniGoster(false);
             _externalStepProfileAnalysisRunning = false;
             _profilIslemde = false;
             ExternalStepAnalizButonunuGuncelle();
@@ -389,5 +421,37 @@ public partial class MainWindow
             ExternalStepProfilOzetiniGuncelle();
             _externalStepProfileView?.Refresh();
         }
+    }
+
+    // Cancels the running Dosya Analiz Merkezi STEP analysis; the engine
+    // process is killed and the files already analysed stay in the list.
+    private CancellationTokenSource? _externalStepAnalizIptal;
+
+    private void btnExternalStepIptal_Click(object sender, RoutedEventArgs e)
+    {
+        if (_externalStepAnalizIptal is not { IsCancellationRequested: false } iptal) return;
+        iptal.Cancel();
+        btnExternalStepIptal.IsEnabled = false;
+        txtExternalStepIlerleme.Text = "İptal ediliyor...";
+        LogInfo("External STEP analizi için iptal istendi.");
+    }
+
+    private void ExternalStepIlerlemesiniGoster(bool gorunur)
+    {
+        pnlExternalStepIlerleme.Visibility = gorunur ? Visibility.Visible : Visibility.Collapsed;
+        btnExternalStepIptal.IsEnabled = gorunur;
+        barExternalStepIlerleme.IsIndeterminate = true;
+        txtExternalStepIlerleme.Text = "Hazırlanıyor...";
+    }
+
+    // Moving bar while the stage has no count (reading, topology), filling bar
+    // with "Parçalar analiz ediliyor: 142 / 195" once parts are counted.
+    private void ExternalStepIlerlemesiniYaz(string dosyaOn, GeometryLabProgress? progress)
+    {
+        if (_externalStepAnalizIptal is null || _externalStepAnalizIptal.IsCancellationRequested) return;
+        bool sayili = progress is { Total: > 0 } && (progress.Stage == "parca" || progress.Stage == "sac");
+        barExternalStepIlerleme.IsIndeterminate = !sayili;
+        if (sayili) barExternalStepIlerleme.Value = Math.Min(1.0, (double)progress!.Done / progress.Total);
+        txtExternalStepIlerleme.Text = dosyaOn + (progress?.Display ?? "başlatılıyor");
     }
 }

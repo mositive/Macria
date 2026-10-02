@@ -341,6 +341,30 @@ internal static class Program
         Check((await limited.AnalyzeAsync(_step)).Status == GeometryLabProcessAdapterStatus.Succeeded,
             "--parca-sure-siniri and --is-parcacigi are passed with their values");
 
+        // Progress: --ilerleme is passed, progress lines are reported in order
+        // while other stdout lines are ignored; zero timeout means no limit.
+        var reports = new System.Collections.Concurrent.ConcurrentQueue<GeometryLabProgress>();
+        var withProgress = new GeometryLabProcessAdapter(new GeometryLabProcessAdapterOptions
+        {
+            EngineExecutablePath = CreateEngine("parts-progress",
+                "if not \"%~5\"==\"--ilerleme\" exit /b 5\r\n" +
+                "echo MACRIA-ILERLEME okuma 0 0\r\necho MACRIA-ILERLEME topoloji 0 2\r\necho baska bir satir\r\n" +
+                "echo MACRIA-ILERLEME parca 1 2\r\necho MACRIA-ILERLEME parca 2 2\r\necho MACRIA-ILERLEME sac 2 2\r\n" +
+                "echo " + json + ">\"%~4\"\r\nexit /b 0"),
+            Timeout = TimeSpan.Zero,
+            TemporaryRootDirectory = Path.Combine(_root, "work"),
+            ProgressChanged = reports.Enqueue
+        });
+        GeometryLabProcessAdapterResult progressed = await withProgress.AnalyzeAsync(_step);
+        Check(progressed.Status == GeometryLabProcessAdapterStatus.Succeeded, "zero timeout runs without a limit and --ilerleme is passed");
+        Check(string.Join(",", reports.Select(r => r.Stage + " " + r.Done + "/" + r.Total)) ==
+              "okuma 0/0,topoloji 0/2,parca 1/2,parca 2/2,sac 2/2",
+            "progress lines are reported in order; other stdout lines are not");
+        Check(new GeometryLabProgress("parca", 142, 195).Display == "Parçalar analiz ediliyor: 142 / 195" &&
+              GeometryLabProgress.TryParse("MACRIA-ILERLEME parca x 2") is null &&
+              GeometryLabProgress.TryParse("parca 1 2") is null,
+            "progress display text and malformed lines");
+
         // With PartDxfRootDirectory: a new folder under the root is passed as --dxf-klasor.
         string dxfRoot = Path.Combine(_root, "part-dxf");
         var adapter = new GeometryLabProcessAdapter(new GeometryLabProcessAdapterOptions

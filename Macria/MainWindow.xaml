@@ -2063,6 +2063,16 @@
                                 Content="STEP / STP Dosyalarını Seç ve Analiz Et" Height="30" Padding="14,0"
                                 ToolTip="CATIA bağlantısı gerektirmez; seçilen STEP dosyalarını yalnız GeometryLab ile analiz eder"
                                 Click="btnExternalStepProfilAnaliz_Click"/>
+                        <!-- Analiz surerken: hareketli cubuk, asama / "142 / 195 parca", Iptal -->
+                        <StackPanel x:Name="pnlExternalStepIlerleme" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed">
+                            <ProgressBar x:Name="barExternalStepIlerleme" Width="180" Height="6" VerticalAlignment="Center"
+                                         IsIndeterminate="True" Minimum="0" Maximum="1"/>
+                            <TextBlock x:Name="txtExternalStepIlerleme" VerticalAlignment="Center" Margin="10,0,12,0"
+                                       Foreground="{StaticResource TextSecondaryBrush}" Text="Hazırlanıyor..."/>
+                            <Button x:Name="btnExternalStepIptal" Style="{StaticResource SecondaryButton}" Content="İptal"
+                                    Height="28" Padding="12,0" Click="btnExternalStepIptal_Click"
+                                    ToolTip="Süren analizi durdurur; motor süreci kapatılır, analiz edilmiş dosyalar listede kalır"/>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
