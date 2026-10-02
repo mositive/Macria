@@ -56,6 +56,14 @@ namespace Macria
         // tek cagrida iki dakikadan uzun surebilir; ayarla uzatilir.
         public static int GeometryLabZamanAsimiSaniye = 120;
 
+        // Motor: parca basina analiz suresi siniri (saniye, 0 = sinirsiz).
+        // Asan parca "Kontrol gerekli – analiz suresi asildi" olur, montajin
+        // gerisi analiz edilir.
+        public static int ParcaSureSiniriSaniye = 120;
+
+        // Motor: paralel is parcacigi sayisi (0 = cekirdek sayisi - 1).
+        public static int MotorIsParcacigi = 0;
+
         // Sac uretim grubu: bu kalinliga esit ve ince saclar "Lazer", daha
         // kalinlar "Salama/Kutuk" grubunda listelenir (ikisinin de DXF'i uretilir).
         public static double LazerAzamiKalinlikMm = 20;
@@ -135,6 +143,10 @@ namespace Macria
                         case "KurKaynagi": KurKaynagi = deger; break;
                         case "GeometryLabZamanAsimiSaniye":
                             GeometryLabZamanAsimiSaniye = Sayi(deger, GeometryLabZamanAsimiSaniye); break;
+                        case "ParcaSureSiniriSaniye":
+                            ParcaSureSiniriSaniye = Math.Max(0, Sayi(deger, ParcaSureSiniriSaniye)); break;
+                        case "MotorIsParcacigi":
+                            MotorIsParcacigi = Math.Max(0, Sayi(deger, MotorIsParcacigi)); break;
                         case "BukumBilgisiDxf": BukumBilgisiDxf = deger != "0"; break;
                         case "GomuluTeshisKaydi": GomuluTeshisKaydi = deger == "1"; break;
                         case "LazerAzamiKalinlikMm":
@@ -187,6 +199,8 @@ namespace Macria
                     "KurTarihi=" + KurTarihi.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
                     "KurKaynagi=" + KurKaynagi,
                     "GeometryLabZamanAsimiSaniye=" + GeometryLabZamanAsimiSaniye,
+                    "ParcaSureSiniriSaniye=" + ParcaSureSiniriSaniye,
+                    "MotorIsParcacigi=" + MotorIsParcacigi,
                     "LazerAzamiKalinlikMm=" + LazerAzamiKalinlikMm.ToString(CultureInfo.InvariantCulture),
                     "BukumBilgisiDxf=" + (BukumBilgisiDxf ? "1" : "0"),
                     "GomuluTeshisKaydi=" + (GomuluTeshisKaydi ? "1" : "0")

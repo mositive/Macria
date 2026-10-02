@@ -145,6 +145,38 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Dosya analizi (geometri motoru) -->
+                <TextBlock Text="Dosya Analizi" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="0,20,0,0"/>
+
+                <Border Background="{StaticResource CardBrush}"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                        CornerRadius="4" Padding="14" Margin="0,8,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Parça Başına Süre Sınırı (saniye)" FontSize="12"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="0,0,0,5"/>
+                        <TextBox x:Name="txtParcaSureSiniri" Style="{StaticResource FieldBox}"
+                                 Width="130" HorizontalAlignment="Left"
+                                 PreviewTextInput="SadeceSayi"/>
+                        <TextBlock TextWrapping="Wrap" FontSize="12.5" LineHeight="19"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="0,8,0,0"
+                                   Text="Bu süreyi aşan parça Kontrol gerekli sekmesine düşer (analiz süresi aşıldı); montajın geri kalanı analiz edilir. 0 = sınırsız."/>
+                        <TextBlock Text="İş Parçacığı Sayısı" FontSize="12"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="0,14,0,5"/>
+                        <TextBox x:Name="txtMotorIsParcacigi" Style="{StaticResource FieldBox}"
+                                 Width="130" HorizontalAlignment="Left"
+                                 PreviewTextInput="SadeceSayi"/>
+                        <TextBlock TextWrapping="Wrap" FontSize="12.5" LineHeight="19"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="0,8,0,0"
+                                   Text="Parçalar bu kadar iş parçacığında paralel analiz edilir; sonuç değişmez. 0 = otomatik (çekirdek sayısı − 1)."/>
+                    </StackPanel>
+                </Border>
+
                 <!-- Teshis -->
                 <TextBlock Text="Teşhis" FontSize="12" FontWeight="SemiBold"
                            Foreground="{StaticResource TextSecondaryBrush}"

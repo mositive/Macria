@@ -354,7 +354,9 @@ public partial class MainWindow
             {
                 EngineExecutablePath = engine.ExecutablePath!,
                 Timeout = Ayarlar.GeometryLabZamanAsimi(),
-                PartDxfRootDirectory = motorDxfKlasoru
+                PartDxfRootDirectory = motorDxfKlasoru,
+                PartTimeLimitSeconds = Ayarlar.ParcaSureSiniriSaniye,
+                ThreadCount = Ayarlar.MotorIsParcacigi
             });
 
             // A snapshot: an assembly STEP replaces its own row with part rows.

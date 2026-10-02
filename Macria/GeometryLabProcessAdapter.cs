@@ -18,6 +18,13 @@ public sealed record GeometryLabProcessAdapterOptions
     // new, unique folder under this root. The folder outlives the analysis;
     // naming, moving and cleaning the files is the caller's job.
     public string? PartDxfRootDirectory { get; init; }
+
+    // Engine --parca-sure-siniri: seconds per part, 0 = no limit; null leaves
+    // the engine default (120 s). A part over it comes back ReviewRequired.
+    public int? PartTimeLimitSeconds { get; init; }
+
+    // Engine --is-parcacigi: worker threads, 0 = cores - 1; null = engine default.
+    public int? ThreadCount { get; init; }
 }
 
 public enum GeometryLabProcessAdapterStatus
@@ -207,6 +214,16 @@ public sealed class GeometryLabProcessAdapter
         {
             startInfo.ArgumentList.Add("--dxf-klasor");
             startInfo.ArgumentList.Add(partDxfDirectory);
+        }
+        if (_options.PartTimeLimitSeconds is int partTimeLimit)
+        {
+            startInfo.ArgumentList.Add("--parca-sure-siniri");
+            startInfo.ArgumentList.Add(Math.Max(0, partTimeLimit).ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+        if (_options.ThreadCount is int threadCount)
+        {
+            startInfo.ArgumentList.Add("--is-parcacigi");
+            startInfo.ArgumentList.Add(Math.Max(0, threadCount).ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
 
         using var process = new Process { StartInfo = startInfo };

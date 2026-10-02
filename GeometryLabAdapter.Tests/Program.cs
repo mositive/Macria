@@ -326,6 +326,21 @@ internal static class Program
             "thread designation and warning are read");
         Check(plain.PartDxfPath(sheet!) is null, "no DXF path without a DXF folder");
 
+        // Part time limit and thread count are passed to the engine when set.
+        var limited = new GeometryLabProcessAdapter(new GeometryLabProcessAdapterOptions
+        {
+            EngineExecutablePath = CreateEngine("parts-limit",
+                "if not \"%~5\"==\"--parca-sure-siniri\" exit /b 5\r\nif not \"%~6\"==\"45\" exit /b 6\r\n" +
+                "if not \"%~7\"==\"--is-parcacigi\" exit /b 7\r\nif not \"%~8\"==\"3\" exit /b 8\r\n" +
+                "echo " + json + ">\"%~4\"\r\nexit /b 0"),
+            Timeout = TimeSpan.FromSeconds(10),
+            TemporaryRootDirectory = Path.Combine(_root, "work"),
+            PartTimeLimitSeconds = 45,
+            ThreadCount = 3
+        });
+        Check((await limited.AnalyzeAsync(_step)).Status == GeometryLabProcessAdapterStatus.Succeeded,
+            "--parca-sure-siniri and --is-parcacigi are passed with their values");
+
         // With PartDxfRootDirectory: a new folder under the root is passed as --dxf-klasor.
         string dxfRoot = Path.Combine(_root, "part-dxf");
         var adapter = new GeometryLabProcessAdapter(new GeometryLabProcessAdapterOptions

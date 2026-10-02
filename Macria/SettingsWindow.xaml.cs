@@ -25,6 +25,8 @@ namespace Macria
             txtLazerKalinlik.Text = Ayarlar.LazerAzamiKalinlikMm.ToString("0.##", CultureInfo.CurrentCulture);
             chkBukumBilgisiDxf.IsChecked = Ayarlar.BukumBilgisiDxf;
             chkGomuluTeshis.IsChecked = Ayarlar.GomuluTeshisKaydi;
+            txtParcaSureSiniri.Text = Ayarlar.ParcaSureSiniriSaniye.ToString(CultureInfo.InvariantCulture);
+            txtMotorIsParcacigi.Text = Ayarlar.MotorIsParcacigi.ToString(CultureInfo.InvariantCulture);
             chkFareUyarisi.IsChecked = !Ayarlar.FareUyarisiGizle;
             chkBukumKapat.IsChecked = Ayarlar.BukumKapat;
 
@@ -282,6 +284,8 @@ namespace Macria
                 Ayarlar.LazerAzamiKalinlikMm = lazer;
             Ayarlar.BukumBilgisiDxf = chkBukumBilgisiDxf.IsChecked == true;
             Ayarlar.GomuluTeshisKaydi = chkGomuluTeshis.IsChecked == true;
+            Ayarlar.ParcaSureSiniriSaniye = Sayi(txtParcaSureSiniri.Text, Ayarlar.ParcaSureSiniriSaniye, 0, 86400);
+            Ayarlar.MotorIsParcacigi = Sayi(txtMotorIsParcacigi.Text, Ayarlar.MotorIsParcacigi, 0, 256);
             Ayarlar.Kaydet();
 
             DialogResult = true;

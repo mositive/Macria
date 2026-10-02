@@ -251,7 +251,9 @@ public partial class MainWindow
                     var adapter = new GeometryLabProcessAdapter(new GeometryLabProcessAdapterOptions
                     {
                         EngineExecutablePath = engine.ExecutablePath!,
-                        Timeout = Ayarlar.GeometryLabZamanAsimi()
+                        Timeout = Ayarlar.GeometryLabZamanAsimi(),
+                        PartTimeLimitSeconds = Ayarlar.ParcaSureSiniriSaniye,
+                        ThreadCount = Ayarlar.MotorIsParcacigi
                     });
                     analysisResult = await adapter.AnalyzeAsync(workspace.StepFilePath, cancellationToken);
                     cancelled = analysisResult.Status == GeometryLabProcessAdapterStatus.Cancelled ||

@@ -43,7 +43,7 @@
 | Derleme klasörü | `src\Macria.GeometryEngine\build-vs18-x64\` (mevcut) |
 | .NET tarafı | `src\Macria.GeometryLab\` (WPF deneme uygulaması, `Contracts\GeometryDtos.cs`, `GeometryAnalysisValidator.cs`), `tests\Macria.GeometryLab.Tests\` |
 | Tarihler | Motor kaynağı 2026-09-19, viewer 2026-09-24 |
-| Git | **Yok** |
+| Git | Var (2026-10-01 doğrulandı): `origin` github.com/ilteber2102/Macria.GeometryLab, dal `main`. *Önceki bilgi:* "Yok". |
 | Yedek kopya | `Desktop\Macria-ChatGPT-Inceleme\Macria-GeometryLab-KaynakKod.zip` (19.09, viewer'sız) |
 
 **Kaynak ile ikili dosyanın uyumu:** Macria'nın `GeometryEngineRuntime\Macria.GeometryEngine.exe` dosyasının ürettiği JSON anahtarları, kaynaktaki `SerializeJson` ile birebir aynı. Buna `baseStockProfile` ve `modificationAnalysis` da dahil. Yani ikili dosya bu kaynaktan (ya da çok yakın bir sürümden) derlenmiş görünüyor. ⚠️ Birebir aynı olduğu SHA-256 veya yeniden derlemeyle doğrulanmadı.
