@@ -54,6 +54,7 @@ internal static class Program
             PreviewContentCheckTests();
             OcctStepPreviewAdapterTests();
             Step3BAracDurumuTests();
+            RealViewerDllPinned();
             ExternalStepExcelWriter();
             await TemporaryStepWorkspaceAsync();
             await TemporaryStepFailureAndCancellationAsync();
@@ -150,6 +151,48 @@ internal static class Program
                   (item.TopologyDisplay == "—" || item.TopologyDisplay.StartsWith("Kısa ", StringComparison.Ordinal)),
                 "real engine presentation separates physical axis length from topology summary");
         }
+    }
+
+    // Macria crashed on close (TKXSBase access violation) when the last 3D
+    // view freed the viewer DLL: OCCT's static destructors ran after TKDESTEP
+    // was unmapped. The DLL is now pinned; freeing it as the old per-view
+    // Dispose did must leave the DLL and OCCT loaded.
+    private static void RealViewerDllPinned()
+    {
+        string? engine = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_EXE");
+        string? folder = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_ASSEMBLY_DIR");
+        string? step = Directory.Exists(folder)
+            ? Directory.GetFiles(folder, "*.stp").Concat(Directory.GetFiles(folder, "*.step")).FirstOrDefault()
+            : null;
+        if (string.IsNullOrWhiteSpace(engine) || !File.Exists(engine) || step == null)
+        {
+            Console.WriteLine("REAL_VIEWER_PIN: SKIPPED - MACRIA_GEOMETRY_ENGINE_EXE / MACRIA_GEOMETRY_ENGINE_ASSEMBLY_DIR unavailable.");
+            return;
+        }
+
+        string directory = Path.GetDirectoryName(engine)!;
+        Check(OcctViewerNative.TryLoad(directory, out OcctViewerNative? native, out string error) && native != null,
+            "packaged viewer DLL loads: " + error);
+        Check(native!.SupportsPreload && native.PreloadStep(step, out error), "viewer reads a real STEP: " + error);
+        native.ReleaseModels();
+        native.Dispose();
+
+        IntPtr viewer = NativeModules.GetModuleHandle("Macria.GeometryViewer.dll");
+        for (int index = 0; index < 8 && viewer != IntPtr.Zero; ++index)
+            NativeModules.FreeLibrary(viewer);
+        Check(NativeModules.GetModuleHandle("Macria.GeometryViewer.dll") != IntPtr.Zero,
+            "viewer DLL stays loaded after Dispose and FreeLibrary (pinned)");
+        Check(NativeModules.GetModuleHandle("TKXSBase.dll") != IntPtr.Zero && NativeModules.GetModuleHandle("TKDESTEP.dll") != IntPtr.Zero,
+            "OCCT STEP modules stay loaded, so their static destructors run only at process exit");
+    }
+
+    private static class NativeModules
+    {
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        public static extern IntPtr GetModuleHandle(string moduleName);
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+        public static extern bool FreeLibrary(IntPtr module);
     }
 
     private static async Task RealBaseStockEngineAsync()

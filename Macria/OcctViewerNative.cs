@@ -10,6 +10,8 @@ internal sealed class OcctViewerNative : IDisposable
 {
     private const uint LoadLibrarySearchDllLoadDir = 0x00000100;
     private const uint LoadLibrarySearchDefaultDirs = 0x00001000;
+    private const uint GetModuleHandleExFlagPin = 0x00000001;
+    private const uint GetModuleHandleExFlagFromAddress = 0x00000004;
     private const int ErrorBufferLength = 1024;
     private const string ViewerFileName = "Macria.GeometryViewer.dll";
 
@@ -138,10 +140,13 @@ internal sealed class OcctViewerNative : IDisposable
     /// <summary>Drops the cached models; sessions keep the models they show.</summary>
     public void ReleaseModels() => _releaseModels?.Invoke();
 
-    public static bool TryLoad(out OcctViewerNative? native, out string error)
+    public static bool TryLoad(out OcctViewerNative? native, out string error) =>
+        TryLoad(Path.Combine(AppContext.BaseDirectory, "GeometryEngine"), out native, out error);
+
+    internal static bool TryLoad(string directory, out OcctViewerNative? native, out string error)
     {
         native = null;
-        string viewerPath = Path.Combine(AppContext.BaseDirectory, "GeometryEngine", ViewerFileName);
+        string viewerPath = Path.Combine(directory, ViewerFileName);
         if (!File.Exists(viewerPath))
         {
             error = "3B önizleme DLL'i bulunamadı: " + viewerPath;
@@ -159,6 +164,17 @@ internal sealed class OcctViewerNative : IDisposable
             return false;
         }
 
+        // Pinned: the DLL and OCCT stay loaded until the process ends. OCCT
+        // cannot be unloaded safely: on FreeLibrary TKXSBase's static
+        // destructors delete the STEP controller after TKDESTEP is already
+        // unmapped, an access violation that left Macria crashed on close.
+        if (!GetModuleHandleEx(GetModuleHandleExFlagPin | GetModuleHandleExFlagFromAddress, module, out _))
+        {
+            error = "3B önizleme DLL'i sabitlenemedi. " +
+                    new Win32Exception(Marshal.GetLastWin32Error()).Message;
+            return false;
+        }
+
         try
         {
             native = new OcctViewerNative(module);
@@ -167,7 +183,6 @@ internal sealed class OcctViewerNative : IDisposable
         }
         catch (Exception exception)
         {
-            FreeLibrary(module);
             error = "3B önizleme API'si doğrulanamadı: " + exception.Message;
             return false;
         }
@@ -233,12 +248,8 @@ internal sealed class OcctViewerNative : IDisposable
         return succeeded;
     }
 
-    public void Dispose()
-    {
-        if (_module == IntPtr.Zero) return;
-        FreeLibrary(_module);
-        _module = IntPtr.Zero;
-    }
+    // The module is pinned (see TryLoad) and is never freed.
+    public void Dispose() => _module = IntPtr.Zero;
 
     private bool Invoke(Func<StringBuilder, int> command, out string error)
     {
@@ -263,9 +274,9 @@ internal sealed class OcctViewerNative : IDisposable
     [DllImport("kernel32.dll", CharSet = CharSet.Ansi, ExactSpelling = true, SetLastError = true)]
     private static extern IntPtr GetProcAddress(IntPtr module, string procedureName);
 
-    [DllImport("kernel32.dll", SetLastError = true)]
+    [DllImport("kernel32.dll", EntryPoint = "GetModuleHandleExW", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool FreeLibrary(IntPtr module);
+    private static extern bool GetModuleHandleEx(uint flags, IntPtr moduleAddress, out IntPtr module);
 }
 
 /// <summary>How a selected assembly part is shown (MacriaGeometryPartView).</summary>

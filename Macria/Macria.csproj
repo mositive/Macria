@@ -22,10 +22,12 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<!-- The independently deployed native engine is copied, never loaded into Macria. -->
+		<!-- The native engine runs as a child process; Macria.GeometryViewer.dll
+		     (3D view) is loaded into Macria. The build output copy is made and
+		     verified by GeometryEngineRuntimeKopyala below, not by timestamps. -->
 		<Content Include="$(GeometryEngineRuntimeDirectory)\**\*">
 			<Link>GeometryEngine\%(RecursiveDir)%(Filename)%(Extension)</Link>
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
 			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
 			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
 		</Content>
@@ -53,5 +55,66 @@
 	<ItemGroup>
 	  <PackageReference Include="WPF-UI" Version="[4.3.0]" />
 	</ItemGroup>
+
+	<!-- Every build makes bin\...\GeometryEngine\ byte-identical to
+	     GeometryEngineRuntime\ (SHA-256), whatever the timestamps say. A file
+	     that cannot be copied (usually locked by a running Macria) fails the
+	     build instead of leaving an old DLL behind. -->
+	<UsingTask TaskName="GeometryEngineRuntimeEsitle" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+		<ParameterGroup>
+			<KaynakDizin ParameterType="System.String" Required="true" />
+			<HedefDizin ParameterType="System.String" Required="true" />
+			<Yazilanlar ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
+		</ParameterGroup>
+		<Task>
+			<Using Namespace="System.IO" />
+			<Using Namespace="System.Linq" />
+			<Using Namespace="System.Security.Cryptography" />
+			<Code Type="Fragment" Language="cs"><![CDATA[
+string kaynak = Path.GetFullPath(KaynakDizin).TrimEnd('\\') + "\\";
+string hedef = Path.GetFullPath(HedefDizin);
+byte[] Ozet(string yol) { using (var akis = File.OpenRead(yol)) using (var sha = SHA256.Create()) return sha.ComputeHash(akis); }
+bool Ayni(string a, string b) => File.Exists(b) && new FileInfo(a).Length == new FileInfo(b).Length && Ozet(a).SequenceEqual(Ozet(b));
+var yazilanlar = new List<ITaskItem>();
+int kopyalanan = 0;
+foreach (string dosya in Directory.GetFiles(kaynak, "*", SearchOption.AllDirectories))
+{
+    string goreli = dosya.Substring(kaynak.Length);
+    string hedefDosya = Path.Combine(hedef, goreli);
+    yazilanlar.Add(new TaskItem(hedefDosya));
+    if (Ayni(dosya, hedefDosya)) continue;
+    string hata = null;
+    for (int deneme = 1; deneme <= 5; ++deneme)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(hedefDosya));
+            File.Copy(dosya, hedefDosya, true);
+            File.SetLastWriteTimeUtc(hedefDosya, File.GetLastWriteTimeUtc(dosya));
+            hata = Ayni(dosya, hedefDosya) ? null : "kopya kaynakla aynı değil";
+        }
+        catch (Exception istisna) when (istisna is IOException || istisna is UnauthorizedAccessException)
+        {
+            hata = istisna.Message;
+        }
+        if (hata == null) break;
+        System.Threading.Thread.Sleep(1000);
+    }
+    if (hata != null)
+        Log.LogError("GeometryEngine dosyası kopyalanamadı: " + goreli + " (" + hata + "). Dosyayı çalışan bir Macria ya da arkada kalmış bir dotnet.exe kilitliyor olabilir.");
+    else
+        ++kopyalanan;
+}
+Yazilanlar = yazilanlar.ToArray();
+if (kopyalanan > 0) Log.LogMessage(MessageImportance.High, "GeometryEngine: " + kopyalanan + " dosya güncellendi.");
+]]></Code>
+		</Task>
+	</UsingTask>
+
+	<Target Name="GeometryEngineRuntimeKopyala" AfterTargets="CopyFilesToOutputDirectory">
+		<GeometryEngineRuntimeEsitle KaynakDizin="$(GeometryEngineRuntimeDirectory)" HedefDizin="$(OutDir)GeometryEngine">
+			<Output TaskParameter="Yazilanlar" ItemName="FileWrites" />
+		</GeometryEngineRuntimeEsitle>
+	</Target>
 
 </Project>

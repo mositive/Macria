@@ -97,11 +97,12 @@ Most real behaviour needs a running CATIA and cannot be verified on a dev machin
 **GeometryEngine:**
 
 - An out-of-process native engine (OCCT-based) that is shipped as prebuilt binaries in `GeometryEngineRuntime/`.
-- `Macria.csproj` copies it to `GeometryEngine\` in the build and publish output.
+- `Macria.csproj` copies it to `GeometryEngine\` in the build and publish output. For the build output, the `GeometryEngineRuntimeKopyala` target compares SHA-256 hashes rather than timestamps, and fails the build if a file cannot be copied (usually because a running Macria has it locked).
 - The analysis engine (`Macria.GeometryEngine.exe`) always runs as a separate child process.
 - The 3D STEP viewer is different: `OcctViewerNative` loads `Macria.GeometryViewer.dll` (OCCT) from the same folder into the Macria process with `LoadLibraryEx`, and `OcctViewportHost` hosts it. A native crash in the viewer therefore takes Macria down with it.
+- The viewer DLL is pinned and never freed. OCCT cannot be unloaded safely: on `FreeLibrary`, TKXSBase's static destructors run after TKDESTEP is already unmapped and crash. Before the pin, this crashed Macria on close and left WER `dotnet.exe` processes holding `Macria.dll` locked.
 - Every 3D preview (the Profiller, Saclar and Kontrol gerekli tabs, and the "Büyük Aç" window) uses the shared `Step3BPaneli` UserControl. It holds the toolbar, the viewport and the status line. Its toolbar rules are in `Step3BAracDurumu` and are tested in `GeometryLabAdapter.Tests`. `MainWindow.ExternalStepPreview.cs` wires every panel through `TumStep3BPanelleri()`. Add a new 3D feature to the panel, not to a single tab.
-- The csproj comment and `GeometryEngineRuntime/README.md` still say nothing is loaded in-process. That is outdated.
+- `GeometryEngineRuntime/README.md` still says nothing is loaded in-process. That is outdated.
 - `GeometryLabProcessAdapter` starts it with `--input <step> --output <json>` and deserializes the result with `GeometryLabTransportDtos`. `GeometryLabEngineLocator` resolves the exe path.
 - Only verified GeometryLab x64 Release outputs go into `GeometryEngineRuntime/` (see its README).
 
