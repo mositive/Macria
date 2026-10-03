@@ -2068,15 +2068,19 @@
                                 ToolTip="Profiller, Saclar ve Kontrol gerekli listelerini boşaltır (onay ister)"
                                 Click="btnExternalStepTemizle_Click"/>
                         <!-- Analiz surerken: hareketli cubuk, asama / "142 / 195 parca", Iptal -->
-                        <StackPanel x:Name="pnlExternalStepIlerleme" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed">
-                            <ProgressBar x:Name="barExternalStepIlerleme" Width="180" Height="6" VerticalAlignment="Center"
-                                         IsIndeterminate="True" Minimum="0" Maximum="1"/>
-                            <TextBlock x:Name="txtExternalStepIlerleme" VerticalAlignment="Center" Margin="10,0,12,0"
-                                       Foreground="{StaticResource TextSecondaryBrush}" Text="Hazırlanıyor..."/>
-                            <Button x:Name="btnExternalStepIptal" Style="{StaticResource SecondaryButton}" Content="İptal"
-                                    Height="28" Padding="12,0" Click="btnExternalStepIptal_Click"
-                                    ToolTip="Süren analizi durdurur; motor süreci kapatılır, analiz edilmiş dosyalar listede kalır"/>
-                        </StackPanel>
+                        <Border x:Name="pnlExternalStepIlerleme" Margin="16,0,0,0" Padding="14,4,4,4" CornerRadius="17"
+                                Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                VerticalAlignment="Center" Visibility="Collapsed">
+                            <StackPanel Orientation="Horizontal">
+                                <ProgressBar x:Name="barExternalStepIlerleme" Style="{StaticResource ModernIlerleme}" Width="200"
+                                             VerticalAlignment="Center" IsIndeterminate="True" Minimum="0" Maximum="1"/>
+                                <TextBlock x:Name="txtExternalStepIlerleme" VerticalAlignment="Center" Margin="12,0,12,0"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Text="Hazırlanıyor..."/>
+                                <Button x:Name="btnExternalStepIptal" Style="{StaticResource SecondaryButton}" Content="İptal"
+                                        Height="26" Padding="12,0" Click="btnExternalStepIptal_Click"
+                                        ToolTip="Süren analizi durdurur; motor süreci kapatılır, analiz edilmiş dosyalar listede kalır"/>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </Border>
 

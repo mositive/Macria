@@ -482,7 +482,25 @@ public partial class MainWindow
         pnlExternalStepIlerleme.Visibility = gorunur ? Visibility.Visible : Visibility.Collapsed;
         btnExternalStepIptal.IsEnabled = gorunur;
         barExternalStepIlerleme.IsIndeterminate = true;
+        IlerlemeDegeriniAyarla(0, animasyonlu: false);
         txtExternalStepIlerleme.Text = "Hazırlanıyor...";
+    }
+
+    // Forward steps glide (250 ms) instead of jumping; a new stage that starts
+    // again from a lower count is set at once.
+    private void IlerlemeDegeriniAyarla(double hedef, bool animasyonlu)
+    {
+        if (!animasyonlu || hedef < barExternalStepIlerleme.Value)
+        {
+            barExternalStepIlerleme.BeginAnimation(ProgressBar.ValueProperty, null);
+            barExternalStepIlerleme.Value = hedef;
+            return;
+        }
+        barExternalStepIlerleme.BeginAnimation(ProgressBar.ValueProperty,
+            new System.Windows.Media.Animation.DoubleAnimation(hedef, TimeSpan.FromMilliseconds(250))
+            {
+                EasingFunction = new System.Windows.Media.Animation.QuadraticEase()
+            });
     }
 
     // Moving bar while the stage has no count (reading, topology), filling bar
@@ -492,7 +510,7 @@ public partial class MainWindow
         if (_externalStepAnalizIptal is null || _externalStepAnalizIptal.IsCancellationRequested) return;
         bool sayili = progress is { Total: > 0 } && (progress.Stage == "parca" || progress.Stage == "sac");
         barExternalStepIlerleme.IsIndeterminate = !sayili;
-        if (sayili) barExternalStepIlerleme.Value = Math.Min(1.0, (double)progress!.Done / progress.Total);
+        if (sayili) IlerlemeDegeriniAyarla(Math.Min(1.0, (double)progress!.Done / progress.Total), animasyonlu: true);
         txtExternalStepIlerleme.Text = dosyaOn + (progress?.Display ?? "başlatılıyor");
     }
 }
