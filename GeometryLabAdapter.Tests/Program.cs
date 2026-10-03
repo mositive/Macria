@@ -57,6 +57,7 @@ internal static class Program
             RealViewerDllPinned();
             StoredJsonResultTests();
             MotorKimligiTests();
+            MacriaProjeTests();
             ExternalStepExcelWriter();
             await TemporaryStepWorkspaceAsync();
             await TemporaryStepFailureAndCancellationAsync();
@@ -226,6 +227,136 @@ internal static class Program
         Check(!yeni.OncekindenFarkli(yeni with { }), "the same engine does not ask");
         Check(yeni.OncekindenFarkli(yeni with { Sha256 = "BASKA" }), "the same version with a different exe asks");
         Check(yeni.OncekindenFarkli(null), "an analysis without engine identity asks");
+    }
+
+    private static void MacriaProjeTests()
+    {
+        string klasor = Path.Combine(_root, "proje");
+        Directory.CreateDirectory(klasor);
+        string step = Path.Combine(klasor, "Montaj A.stp");
+        File.WriteAllText(step, "ISO-10303-21; sahte");
+        string dxfKlasoru = Path.Combine(_root, "proje-dxf");
+        Directory.CreateDirectory(dxfKlasoru);
+        File.WriteAllText(Path.Combine(dxfKlasoru, "part-3.dxf"), "0\nSECTION\n");
+        File.WriteAllText(Path.Combine(dxfKlasoru, "part-3-kesim.dxf"), "0\nEOF\n");
+        const string json = "{\"schemaVersion\":\"1.2\",\"parts\":[{\"localId\":3,\"name\":\"P3\"}],\"çok\":\"ğüşıöç\"}";
+        var motor = new GeometryLabMotorKimligi { Surum = "2026.10.3.1", Commit = "abc", Sha256 = "AA" };
+
+        MacriaProjeVerisi Veri() => new()
+        {
+            Ayarlar = new MacriaProjeAyarlari { LazerAzamiKalinlikMm = 12.5, BukumBilgisiDxf = false },
+            Kaynaklar =
+            {
+                new MacriaProjeKaynagi
+                {
+                    Id = "k1", Yol = step, Sha256 = GeometryLabMotorKimligi.DosyaSha256(step), Boyut = new FileInfo(step).Length,
+                    Analiz = new MacriaProjeAnalizi
+                    {
+                        Durum = nameof(GeometryLabProcessAdapterStatus.Succeeded), MotorSemaSurumu = "1.2",
+                        Motor = MacriaProjeMotoru.Kimliktan(motor), Montaj = true
+                    }
+                }
+            },
+            Kararlar =
+            {
+                new MacriaProjeKarari { Kaynak = "k1", Hedef = MacriaProje.HedefMontaj, Karar = MacriaProje.KararSacOnayla,
+                    Parca = new MacriaParcaKimligi { LocalId = 3, Ad = "P3", ProductId = "U3" } },
+                new MacriaProjeKarari { Kaynak = "k1", Hedef = MacriaProje.HedefProfil, Karar = MacriaProje.KararListeDisi,
+                    Not = "kaynak parçası", Parca = new MacriaParcaKimligi { LocalId = 4, Ad = "P4" } }
+            }
+        };
+        var icerik = new Dictionary<string, MacriaProjeKaynakIcerigi> { ["k1"] = new(json, dxfKlasoru) };
+
+        string proje = MacriaProje.VarsayilanYol(step);
+        Check(proje == Path.Combine(klasor, "Montaj A.macria"), "default project path is next to the STEP with its name");
+        MacriaProje.Kaydet(proje, Veri(), icerik, "Macria test");
+        MacriaProje.Kaydet(proje, Veri(), icerik, "Macria test"); // over an existing file
+        MacriaProjeAcilisi acilis = MacriaProje.Ac(proje, Path.Combine(_root, "acilan-dxf"));
+        Check(acilis.SaltOkunurNedeni == null && acilis.Manifest.SchemaVersion == MacriaProje.SemaSurumu,
+            "a saved project opens writable with the current schema");
+        Check(acilis.AnalysisJson.TryGetValue("k1", out string? okunanJson) && okunanJson == json,
+            "the engine's analysis.json comes back byte for byte");
+        Check(acilis.DxfKlasoru.TryGetValue("k1", out string? acilanDxf) &&
+              File.ReadAllText(Path.Combine(acilanDxf, "part-3.dxf")) == "0\nSECTION\n" &&
+              File.Exists(Path.Combine(acilanDxf, "part-3-kesim.dxf")),
+            "part DXFs are extracted into the source's folder");
+        MacriaProjeVerisi okunan = acilis.Veri;
+        Check(okunan.Ayarlar.LazerAzamiKalinlikMm == 12.5 && !okunan.Ayarlar.BukumBilgisiDxf, "project settings round-trip");
+        Check(okunan.Kararlar.Count == 2 && okunan.Kararlar[1].Not == "kaynak parçası" &&
+              okunan.Kararlar[0].Parca?.ProductId == "U3", "decisions round-trip with note and part identity");
+        Check(okunan.Kaynaklar[0].GoreliYol == "Montaj A.stp", "the STEP path relative to the project is stored");
+        Check(!File.Exists(proje + ".tmp"), "no temporary file is left after saving");
+
+        // Source checks.
+        MacriaProjeKaynagi kaynak = okunan.Kaynaklar[0];
+        Check(MacriaProje.Denetle(kaynak, proje, true, motor).Durum == MacriaKaynakDurumu.Ayni,
+            "unchanged STEP and same engine need no analysis");
+        Check(MacriaProje.Denetle(kaynak, proje, true, motor with { Surum = "2026.10.4.1", Sha256 = "BB" }).Durum ==
+              MacriaKaynakDurumu.MotorYeni, "a newer installed engine is reported");
+        Check(MacriaProje.Denetle(kaynak, proje, false, motor).Durum == MacriaKaynakDurumu.Degismis,
+            "a successful source without stored output must be rescanned");
+        string tasinan = Path.Combine(_root, "tasinan");
+        Directory.CreateDirectory(tasinan);
+        File.Copy(step, Path.Combine(tasinan, "Montaj A.stp"));
+        File.Copy(proje, Path.Combine(tasinan, "Montaj A.macria"));
+        MacriaKaynakDenetimi goreli = MacriaProje.Denetle(new MacriaProjeKaynagi
+        {
+            Id = kaynak.Id, Yol = Path.Combine(klasor, "yok", "Montaj A.stp"), GoreliYol = kaynak.GoreliYol,
+            Sha256 = kaynak.Sha256, Analiz = kaynak.Analiz
+        }, Path.Combine(tasinan, "Montaj A.macria"), true, motor);
+        Check(goreli.Durum == MacriaKaynakDurumu.Ayni, "a moved folder is found through the relative path");
+        File.AppendAllText(step, " degisti");
+        Check(MacriaProje.Denetle(kaynak, proje, true, motor).Durum == MacriaKaynakDurumu.Degismis, "a changed STEP is detected by SHA-256");
+        kaynak.Yol = Path.Combine(klasor, "yok.stp");
+        kaynak.GoreliYol = "yok.stp";
+        Check(MacriaProje.Denetle(kaynak, proje, true, motor).Durum == MacriaKaynakDurumu.Bulunamadi, "a missing STEP is reported");
+
+        // Schema versions and unsafe archives.
+        Check(MacriaProje.SemaDenetle("1.9") != null, "a newer minor schema opens read-only");
+        Check(Throws(() => MacriaProje.SemaDenetle("2.0")), "a newer major schema is refused");
+        string kotu = Path.Combine(_root, "kotu.macria");
+        using (var zip = System.IO.Compression.ZipFile.Open(kotu, System.IO.Compression.ZipArchiveMode.Create))
+        {
+            using (var yazici = new StreamWriter(zip.CreateEntry("manifest.json").Open()))
+                yazici.Write("{\"format\":\"macria-proje\",\"schemaVersion\":\"1.0\"}");
+            using (var yazici = new StreamWriter(zip.CreateEntry("../disari.txt").Open()))
+                yazici.Write("x");
+        }
+        Check(Throws(() => MacriaProje.Ac(kotu, Path.Combine(_root, "kotu-dxf"))) &&
+              !File.Exists(Path.Combine(_root, "disari.txt")), "a ZIP entry escaping the folder is refused (zip slip)");
+        string projeDegil = Path.Combine(_root, "rastgele.macria");
+        File.WriteAllText(projeDegil, "zip değil");
+        Check(Throws(() => MacriaProje.Ac(projeDegil, _root)), "a file that is not a ZIP is refused");
+
+        // Decision mapping.
+        object satir3 = new(), satir4 = new(), satir5 = new();
+        var adaylar = new List<MacriaKararAdayi>
+        {
+            new("k1", MacriaProje.HedefMontaj, new MacriaParcaKimligi { LocalId = 3, Ad = "P3", ProductId = "U3" }, satir3),
+            new("k1", MacriaProje.HedefProfil, new MacriaParcaKimligi { LocalId = 4, Ad = "P4" }, satir4),
+            new("k1", MacriaProje.HedefProfil, new MacriaParcaKimligi { LocalId = 5, Ad = "P4" }, satir5)
+        };
+        var (eslenen, eslenemeyen) = MacriaProje.KararlariEsle(Veri().Kararlar, adaylar, _ => false);
+        Check(eslenen.Count == 2 && eslenen[0].Aday.Satir == satir3 && eslenen[1].Aday.Satir == satir4 && eslenemeyen.Count == 0,
+            "same engine output: decisions go to the rows with the same localId");
+        var yenidenAdaylar = new List<MacriaKararAdayi>
+        {
+            new("k1", MacriaProje.HedefMontaj, new MacriaParcaKimligi { LocalId = 30, Ad = "P3 yeni ad", ProductId = "U3" }, satir3),
+            adaylar[1] with { Parca = new MacriaParcaKimligi { LocalId = 40, Ad = "P4" } }, adaylar[2]
+        };
+        (eslenen, eslenemeyen) = MacriaProje.KararlariEsle(Veri().Kararlar, yenidenAdaylar, _ => true);
+        Check(eslenen.Count == 1 && eslenen[0].Aday.Satir == satir3 && eslenemeyen.Count == 1 &&
+              eslenemeyen[0].Karar == MacriaProje.KararListeDisi,
+            "after a rescan: productId matches, two parts with the same name stay unmatched");
+        var adiFarkli = new List<MacriaKararAdayi> { adaylar[0] with { Parca = adaylar[0].Parca! with { Ad = "Baska" } } };
+        Check(MacriaProje.KararlariEsle(Veri().Kararlar.Take(1), adiFarkli, _ => false).Eslenemeyen.Count == 1,
+            "same localId with a different name is not applied");
+    }
+
+    private static bool Throws(Action eylem)
+    {
+        try { eylem(); return false; }
+        catch (MacriaProjeHatasi) { return true; }
     }
 
     private static class NativeModules
