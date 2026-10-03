@@ -138,7 +138,7 @@ public partial class MainWindow
         if (index >= 0) _externalStepProfileRows.RemoveAt(index);
         else index = _externalStepProfileRows.Count;
 
-        var (profil, montaj) = MacriaProjeSatirlari.MontajSatirlari(fileRow.SourceStepPath, result, Ayarlar.LazerAzamiKalinlikMm);
+        var (profil, montaj) = MacriaProjeSatirlari.MontajSatirlari(fileRow.SourceStepPath, result, _projeLazerMm);
         foreach (GeometryLabStepProfileListItem profileRow in profil)
             _externalStepProfileRows.Insert(index++, profileRow);
         foreach (MontajParcaSatiri row in montaj)
@@ -221,6 +221,7 @@ public partial class MainWindow
     private void MontajLazerEsiginiUygula()
     {
         foreach (MontajParcaSatiri row in _montajParcaRows) row.SetLaserMaximum(Ayarlar.LazerAzamiKalinlikMm);
+        ProjeLazerSiniriniGuncelle(Ayarlar.LazerAzamiKalinlikMm);
         MontajSekmeleriniGuncelle();
         // The bend-information setting changes which engine DXF is shown.
         List<MontajParcaSatiri> selected = SeciliSacSatirlari();
@@ -298,7 +299,9 @@ public partial class MainWindow
 
     private void MontajKarariUygula(List<MontajParcaSatiri> rows, Action<MontajParcaSatiri> karar)
     {
+        if (rows.Count == 0 || ProjeSaltOkunurUyarisi()) return;
         foreach (MontajParcaSatiri row in rows) karar(row);
+        ProjeDegisti();
         MontajSekmeleriniGuncelle();
     }
 

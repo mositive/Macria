@@ -110,6 +110,7 @@ public partial class MainWindow
         if (btnExternalStepTemizle != null)
             btnExternalStepTemizle.IsEnabled = !_externalStepProfileAnalysisRunning &&
                 (_externalStepProfileRows.Count > 0 || _montajParcaRows.Count > 0);
+        if (btnProjeAc != null) ProjeDurumunuGoster();
     }
 
     // Empties Profiller, Saclar and Kontrol gerekli without starting a new
@@ -119,7 +120,11 @@ public partial class MainWindow
         if (_externalStepProfileAnalysisRunning) return;
         int satir = _externalStepProfileRows.Count + _montajParcaRows.Count;
         if (satir == 0) return;
-        if (!OnayWindow.Sor(this, "Tabloyu Temizle",
+        if (_projeKirli)
+        {
+            if (!ProjeDegisiklikleriniSor("Tabloyu temizleme")) return;
+        }
+        else if (!OnayWindow.Sor(this, "Tabloyu Temizle",
                 "STEP analiz sonuçları (Profiller, Saclar, Kontrol gerekli) ve bunlarda verdiğiniz kararlar " +
                 "(Liste dışı, sac onayları) silinecek. Geri almak için dosyaları yeniden analiz etmeniz gerekir.",
                 "Temizle"))
@@ -141,6 +146,7 @@ public partial class MainWindow
         ExternalStepProfilOzetiniGuncelle();
         _externalStepProfileView?.Refresh();
         tabExternalStepSonuc.SelectedItem = tabExternalStepProfiller;
+        ProjeyiSifirla();
         LogInfo("STEP analiz tablosu temizlendi: " + satir + " satır.");
     }
 
@@ -236,7 +242,7 @@ public partial class MainWindow
     private void btnExternalStepKesin_Click(object sender, RoutedEventArgs e)
     {
         List<GeometryLabStepProfileListItem> selected = GorunenSeciliExternalStepSatirlari();
-        if (selected.Count == 0) return;
+        if (selected.Count == 0 || ProjeSaltOkunurUyarisi()) return;
         if (selected.Any(x => !x.CanUserConfirmExistingHollowProfile))
         {
             if (selected.Count != 1)
@@ -246,30 +252,40 @@ public partial class MainWindow
             }
             var dialog = new ManualHollowProfileWindow { Owner = this };
             if (dialog.ShowDialog() == true)
+            {
                 selected[0].ConfirmManualHollowProfile(dialog.ProfileType, dialog.SectionDisplay);
+                ProjeDegisti();
+            }
             _externalStepProfileView?.Refresh(); ExternalStepProfilOzetiniGuncelle(); ExternalStepKomutlariniGuncelle();
             return;
         }
         if (MessageBox.Show(this, "Seçilen kayıtlar kesin profil olarak onaylansın mı?", "Kesin Profile Aktar", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
         foreach (GeometryLabStepProfileListItem item in selected) item.ConfirmAsProfile();
+        ProjeDegisti();
         _externalStepProfileView?.Refresh(); ExternalStepProfilOzetiniGuncelle(); ExternalStepKomutlariniGuncelle();
     }
 
     private void btnExternalStepIncele_Click(object sender, RoutedEventArgs e)
     {
+        if (ProjeSaltOkunurUyarisi()) return;
         foreach (GeometryLabStepProfileListItem item in GorunenSeciliExternalStepSatirlari()) item.MoveToReview();
+        ProjeDegisti();
         _externalStepProfileView?.Refresh(); ExternalStepProfilOzetiniGuncelle(); ExternalStepKomutlariniGuncelle();
     }
 
     private void btnExternalStepListeDisi_Click(object sender, RoutedEventArgs e)
     {
+        if (ProjeSaltOkunurUyarisi()) return;
         foreach (GeometryLabStepProfileListItem item in GorunenSeciliExternalStepSatirlari()) item.ExcludeFromList();
+        ProjeDegisti();
         _externalStepProfileView?.Refresh(); ExternalStepProfilOzetiniGuncelle(); ExternalStepKomutlariniGuncelle();
     }
 
     private void btnExternalStepOtomatik_Click(object sender, RoutedEventArgs e)
     {
+        if (ProjeSaltOkunurUyarisi()) return;
         foreach (GeometryLabStepProfileListItem item in GorunenSeciliExternalStepSatirlari().Where(x => x.HasUserDecision)) item.RestoreAutomaticDecision();
+        ProjeDegisti();
         _externalStepProfileView?.Refresh(); ExternalStepProfilOzetiniGuncelle(); ExternalStepKomutlariniGuncelle();
     }
 
@@ -370,32 +386,44 @@ public partial class MainWindow
             return;
         }
         LogInfo("GeometryEngine bulundu: " + engine.ExecutablePath + " (" + engine.Kind + ")");
+        // The new analysis replaces the list, and with it an open project.
+        if (!ProjeDegisiklikleriniSor("Yeni analiz")) return;
 
         // A successful new selection explicitly replaces only this session-only external list.
         _externalStepProfileRows.Clear();
         Step3BModelHazirlayici.Temizle();
         _montajParcaRows.Clear();
+        ProjeyiSifirla();
         string motorDxfKlasoru = MotorDxfOturumunuYenile();
         MontajSekmeleriniGuncelle();
         foreach (string path in stepPaths)
             _externalStepProfileRows.Add(new GeometryLabStepProfileListItem { SourceStepPath = path });
         ExternalStepProfilOzetiniGuncelle();
         _externalStepProfileView?.Refresh();
+        LogInfo("STEP analizi başladı: " + stepPaths.Length + " dosya. Önceki oturum listesi temizlendi.");
+        // A snapshot: an assembly STEP replaces its own row with part rows.
+        await ExternalStepDosyalariniAnalizEt(_externalStepProfileRows.ToList(), engine, motorDxfKlasoru);
+    }
 
+    /// <summary>
+    /// Analyses the given file rows one by one with progress and Cancel; each
+    /// result becomes rows and a source of the open (or new) project.
+    /// </summary>
+    private async Task ExternalStepDosyalariniAnalizEt(List<GeometryLabStepProfileListItem> dosyalar,
+        GeometryLabEngineLocation engine, string motorDxfKlasoru)
+    {
         _externalStepProfileAnalysisRunning = true;
         _profilIslemde = true;
         ExternalStepAnalizButonunuGuncelle();
         ProfilButonlariniGuncelle();
-        LogInfo("STEP analizi başladı: " + stepPaths.Length + " dosya. Önceki oturum listesi temizlendi.");
 
         using var iptal = new CancellationTokenSource();
         _externalStepAnalizIptal = iptal;
-        // A snapshot: an assembly STEP replaces its own row with part rows.
-        List<GeometryLabStepProfileListItem> dosyalar = _externalStepProfileRows.ToList();
         string dosyaOn = "";
         ExternalStepIlerlemesiniGoster(true);
         try
         {
+            GeometryLabMotorKimligi? motorKimligi = await Task.Run(() => MotorKimliginiOku(engine));
             var adapter = new GeometryLabProcessAdapter(new GeometryLabProcessAdapterOptions
             {
                 EngineExecutablePath = engine.ExecutablePath!,
@@ -429,6 +457,7 @@ public partial class MainWindow
                 sure.Stop();
                 item.Apply(result);
                 MontajSonucunuDagit(item, result);
+                await ProjeKaynaginiKaydetAsync(item.SourceStepPath, result, sure.Elapsed, motorKimligi);
                 ExternalStepProfilOzetiniGuncelle();
                 _externalStepProfileView?.Refresh();
                 string sureMetni = SureMetni(sure.Elapsed);

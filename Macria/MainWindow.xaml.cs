@@ -301,6 +301,12 @@ namespace Macria
                     e.Cancel = true;
                     return;
                 }
+                // An unsaved .macria project: Kaydet / Kaydetme / İptal.
+                if (!ProjeDegisiklikleriniSor("Macria'yı kapatma"))
+                {
+                    e.Cancel = true;
+                    return;
+                }
                 _stopRequested = true;
                 ExternalStepOnizlemeyiKapat();
                 HideKahveMola();
@@ -324,6 +330,7 @@ namespace Macria
                 ExternalStepProfilListesiniKur();
                 MontajParcaListesiniKur();
                 ExternalStepOnizlemesiniKur();
+                ProjeKur();
                 DxfDwgListesiniKur();
                 TabloSutunGenisligi.Uygula(gridExternalStepProfil, gridSacParcalar, gridKontrolParcalar, gridDxfDwgFiles);
 

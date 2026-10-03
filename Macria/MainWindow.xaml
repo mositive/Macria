@@ -2057,7 +2057,8 @@
 
                 <Border x:Name="fileAnalysisStepWorkspace" Grid.Row="1" Visibility="Collapsed" Margin="24,16,24,10" Padding="12,10" CornerRadius="6"
                         Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
-                    <StackPanel Orientation="Horizontal">
+                    <!-- Dar pencerede ogeler alt satira gecer -->
+                    <WrapPanel Orientation="Horizontal">
                         <Button Content="← Dosya Analiz Merkezi" Click="btnFileAnalysisHome_Click" Margin="0,0,14,0"/>
                         <TextBlock Text="STEP / STP Analizi" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,14,0"/>
                         <Button x:Name="btnExternalStepProfilAnaliz" Style="{StaticResource PrimaryButton}"
@@ -2068,6 +2069,19 @@
                                 Content="Tabloyu Temizle" Height="30" Padding="12,0" Margin="10,0,0,0" IsEnabled="False"
                                 ToolTip="Profiller, Saclar ve Kontrol gerekli listelerini boşaltır (onay ister)"
                                 Click="btnExternalStepTemizle_Click"/>
+                        <!-- .macria proje: Ac / Kaydet / Farkli Kaydet ve proje adi (* kaydedilmemis) -->
+                        <Border Width="1" Height="22" Margin="14,0" Background="{StaticResource BorderBrush}" VerticalAlignment="Center"/>
+                        <Button x:Name="btnProjeAc" Style="{StaticResource SecondaryButton}" Content="Proje Aç" Height="30" Padding="12,0"
+                                ToolTip="Kaydedilmiş bir .macria projesini açar (Ctrl+O); STEP değişmemişse motor çalışmaz"
+                                Click="btnProjeAc_Click"/>
+                        <Button x:Name="btnProjeKaydet" Style="{StaticResource SecondaryButton}" Content="Kaydet" Height="30" Padding="12,0" Margin="6,0,0,0"
+                                ToolTip="Analiz sonuçlarını, motor DXF'lerini ve kararlarınızı .macria projesine kaydeder (Ctrl+S)"
+                                IsEnabled="False" Click="btnProjeKaydet_Click"/>
+                        <Button x:Name="btnProjeFarkliKaydet" Style="{StaticResource SecondaryButton}" Content="Farklı Kaydet" Height="30" Padding="12,0" Margin="6,0,0,0"
+                                ToolTip="Projeyi başka bir ad ya da yere kaydeder (Ctrl+Shift+S)"
+                                IsEnabled="False" Click="btnProjeFarkliKaydet_Click"/>
+                        <TextBlock x:Name="txtProjeDurumu" VerticalAlignment="Center" Margin="10,0,0,0"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
                         <!-- Analiz surerken: hareketli cubuk, asama / "142 / 195 parca", Iptal -->
                         <Border x:Name="pnlExternalStepIlerleme" Margin="16,0,0,0" Padding="14,4,4,4" CornerRadius="17"
                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
@@ -2082,7 +2096,7 @@
                                         ToolTip="Süren analizi durdurur; motor süreci kapatılır, analiz edilmiş dosyalar listede kalır"/>
                             </StackPanel>
                         </Border>
-                    </StackPanel>
+                    </WrapPanel>
                 </Border>
 
                 <Border x:Name="fileAnalysisDxfDwgWorkspace" Grid.Row="1" Grid.RowSpan="2" Visibility="Collapsed" Margin="24,16,24,20" Padding="12,10" CornerRadius="6" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">

@@ -283,3 +283,21 @@ catia/tarama.json                     CATIA karşılaştırma anlık görüntüs
   - `.macria` dosya ilişkilendirmesi ve sürükle-bırak.
 - **Aşama 4:** Projede 3B model önbelleği (GeometryLab API'si gerekir); önbellek anahtarının SHA-256'ya geçmesi.
 - **Aşama 5:** Montaj Gezgini bölümü (şema 1.1); motor şemasında örnek ağacı gerekiyorsa önce GeometryLab işi.
+
+## 14. Aşama 1 uygulama notları (2026-10-03)
+
+- **Kod:**
+  - `MacriaProje.cs`: biçim, ZIP, şema, kaynak denetimi, karar eşleme.
+  - `MacriaProjeSatirlari.cs`: motor sonucundan satır kurma ve kararlar.
+  - `MainWindow.Proje.cs`: komutlar, kaydedilmemiş değişiklik, açılış.
+  - `GeometryLabMotorKimligi` + `GeometryEngineRuntime/motor-surumu.txt`: motor sürümü.
+  - `GeometryLabProcessAdapter.SonucuJsondanKur`: canlı analiz ve proje açılışı için ortak ayrıştırma.
+- **Tasarımdan farklar:**
+  - `goreliYol` ile bulma ve yeniden taramada `productId` / ad eşlemesi Aşama 1'e alındı. İkisi de küçük ve testli.
+  - Lazer sınırı: Satırlar projenin değeriyle kurulur; Ayarlar'da değiştirilirse proje bunu izler ve kaydedilmemiş olur. Büküm bilgisi yalnız kayıttır; DXF için Ayarlar kullanılır ve fark konsola yazılır.
+  - Eşlenemeyen kararlar şimdilik yalnız konsolda listelenir; rapor penceresi Aşama 2'de.
+  - `.bak` henüz yok; kaydetme geçici dosya + `File.Replace` ile yapılıyor.
+  - Komutlar yalnız STEP / STP Analizi ekranında: "Proje Aç / Kaydet / Farklı Kaydet" ve Ctrl+O / Ctrl+S / Ctrl+Shift+S. Ana sayfa kartı ve son açılanlar Aşama 2'de.
+- **Ölçüm** (`GeometryLabAdapter.Tests` → `RealProjectRoundTripAsync`): analiz → karar → kaydet → aç (hash + satır + karar, motor çalışmadan).
+  - montaj-1 (7 parça): analiz 1,0 s, kaydet 0,02 s, aç 0,06 s, dosya 169 KB.
+  - WGRV004423 A (195 parça): analiz 59,9 s, kaydet 0,66 s, aç 0,82 s, dosya 7,8 MB.
