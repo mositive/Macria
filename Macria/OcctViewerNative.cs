@@ -61,6 +61,15 @@ internal sealed class OcctViewerNative : IDisposable
         [Out] StringBuilder diagnostic,
         int diagnosticLength);
 
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
+    private delegate int PreloadStepDelegate(
+        [MarshalAs(UnmanagedType.LPWStr)] string stepPath,
+        [Out] StringBuilder error,
+        int errorLength);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate void ReleaseModelsDelegate();
+
     private IntPtr _module;
     private readonly CreateDelegate _create;
     private readonly DestroyDelegate _destroy;
@@ -74,6 +83,9 @@ internal sealed class OcctViewerNative : IDisposable
     // Optional: an older viewer DLL without it still previews, only without highlighting.
     private readonly HighlightPartDelegate? _highlightPart;
     private readonly ShowPartDelegate? _showPart;
+    // Newer DLLs only: shared model cache (read and tessellate a STEP once).
+    private readonly PreloadStepDelegate? _preloadStep;
+    private readonly ReleaseModelsDelegate? _releaseModels;
 
     private OcctViewerNative(IntPtr module)
     {
@@ -96,10 +108,35 @@ internal sealed class OcctViewerNative : IDisposable
         _showPart = showPart == IntPtr.Zero
             ? null
             : Marshal.GetDelegateForFunctionPointer<ShowPartDelegate>(showPart);
+        IntPtr preload = GetProcAddress(_module, "MacriaGeometryViewer_PreloadStep");
+        IntPtr release = GetProcAddress(_module, "MacriaGeometryViewer_ReleaseModels");
+        if (preload != IntPtr.Zero && release != IntPtr.Zero)
+        {
+            _preloadStep = Marshal.GetDelegateForFunctionPointer<PreloadStepDelegate>(preload);
+            _releaseModels = Marshal.GetDelegateForFunctionPointer<ReleaseModelsDelegate>(release);
+        }
     }
 
     public bool SupportsHighlight => _highlightPart != null;
     public bool SupportsShowPart => _showPart != null;
+    public bool SupportsPreload => _preloadStep != null;
+
+    /// <summary>
+    /// Reads and tessellates a STEP into the process-wide model cache that
+    /// every viewer session shares; blocks until done, callable from any thread.
+    /// </summary>
+    public bool PreloadStep(string path, out string error)
+    {
+        if (_preloadStep == null)
+        {
+            error = "3B önizleme DLL'i model önyüklemeyi desteklemiyor.";
+            return false;
+        }
+        return Invoke(buffer => _preloadStep(path, buffer, buffer.Capacity), out error);
+    }
+
+    /// <summary>Drops the cached models; sessions keep the models they show.</summary>
+    public void ReleaseModels() => _releaseModels?.Invoke();
 
     public static bool TryLoad(out OcctViewerNative? native, out string error)
     {

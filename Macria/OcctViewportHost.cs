@@ -159,7 +159,12 @@ public sealed class OcctViewportHost : HwndHost
         string error;
         if (_native.SupportsShowPart)
         {
+            var sure = System.Diagnostics.Stopwatch.StartNew();
             ok = _native.ShowPart(_viewerHandle, _pendingHighlight, _pendingPartView, out error);
+            if (ok && sure.Elapsed.TotalSeconds >= 1.0)
+                Diagnostic?.Invoke(this, new OcctViewportDiagnosticEventArgs(
+                    DiagnosticName + ": parça \"" + _pendingHighlight + "\" gösterildi (" + SureMetni(sure.Elapsed) + ")",
+                    isTrace: true));
         }
         else if (_native.SupportsHighlight)
         {
@@ -486,6 +491,10 @@ public sealed class OcctViewportHost : HwndHost
 
     private static string FormatHandle(IntPtr handle) => $"0x{handle.ToInt64():X}";
 
+    // "0,9 sn"
+    private static string SureMetni(TimeSpan sure) =>
+        sure.TotalSeconds.ToString("0.0", System.Globalization.CultureInfo.CurrentCulture) + " sn";
+
     private void LoadPendingStep()
     {
         if (_shuttingDown || _native == null || _viewerHandle == IntPtr.Zero || string.IsNullOrWhiteSpace(_pendingPath))
@@ -500,8 +509,12 @@ public sealed class OcctViewportHost : HwndHost
         }
 
         SetStatus(OcctViewportState.Loading, "3B önizleme yükleniyor: " + Path.GetFileName(path));
+        var sure = System.Diagnostics.Stopwatch.StartNew();
         if (_native.LoadStep(_viewerHandle, path, out string error))
         {
+            Diagnostic?.Invoke(this, new OcctViewportDiagnosticEventArgs(
+                DiagnosticName + ": " + Path.GetFileName(path) + " gösterildi (" + SureMetni(sure.Elapsed) + ")",
+                isTrace: true));
             _loadedPath = path;
             SetStatus(OcctViewportState.Loaded, "3B önizleme hazır: " + Path.GetFileName(path));
             ApplyPendingHighlight();

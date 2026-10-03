@@ -23,6 +23,11 @@ public partial class MainWindow
     private void ExternalStepOnizlemesiniKur()
     {
         TeshisAyariniUygula();
+        Step3BModelHazirlayici.Gunluk = (mesaj, basarili) => Dispatcher.BeginInvoke(() =>
+        {
+            if (basarili) LogTrace(mesaj);
+            else LogError(mesaj);
+        });
         foreach (Step3BPaneli panel in TumStep3BPanelleri())
             Step3BPaneliniBagla(panel);
     }

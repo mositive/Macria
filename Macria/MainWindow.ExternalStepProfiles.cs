@@ -335,6 +335,7 @@ public partial class MainWindow
 
         // A successful new selection explicitly replaces only this session-only external list.
         _externalStepProfileRows.Clear();
+        Step3BModelHazirlayici.Temizle();
         _montajParcaRows.Clear();
         string motorDxfKlasoru = MotorDxfOturumunuYenile();
         MontajSekmeleriniGuncelle();
@@ -395,6 +396,8 @@ public partial class MainWindow
                 string sureMetni = SureMetni(sure.Elapsed);
                 if (result.IsSuccess)
                 {
+                    // The 3D model is read once in the background and shared by every panel.
+                    Step3BModelHazirlayici.Hazirla(item.SourceStepPath);
                     int parcaSayisi = result.Analysis?.Parts.Count ?? 0;
                     LogSuccess("External STEP analiz tamamlandı: " + item.SourceFileName + " — " + item.AnalysisStatus);
                     LogInfo(item.SourceFileName + ": " + (parcaSayisi > 0 ? parcaSayisi + " parça, " : "") + sureMetni);

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -27,6 +28,10 @@ public partial class Step3BPaneli : UserControl
     // parça seçildi."); loading, errors and the loaded model always show the viewport's own text.
     private string? _bosMesaj;
     private Step3BPaneliBoyutu _boyut = Step3BPaneliBoyutu.Kompakt;
+    // Waiting for the background model preparation of _yol (Step3BModelHazirlayici);
+    // _istekNo drops a wait that a newer Goster/Temizle replaced.
+    private bool _hazirlaniyor;
+    private int _istekNo;
 
     /// <summary>The panel asks its owner to open the "Büyük Aç" window for <see cref="StepYolu"/>.</summary>
     public event EventHandler? BuyukAcIstendi;
@@ -103,6 +108,33 @@ public partial class Step3BPaneli : UserControl
         _dosyaVar = File.Exists(stepYolu);
         BasligiGuncelle();
 
+        // The model of an analysed STEP is prepared once in the background and
+        // shared by every panel; until it is ready the panel waits for it
+        // instead of reading the file on the UI thread.
+        int istek = ++_istekNo;
+        Task<string?>? hazirlik = Step3BModelHazirlayici.Gorev(stepYolu);
+        if (hazirlik is { IsCompleted: false })
+        {
+            _hazirlaniyor = true;
+            _bosMesaj = null;
+            _adapter.Clear();
+            Guncelle();
+            GosterimDegisti?.Invoke(this, EventArgs.Empty);
+            hazirlik.ContinueWith(_ => Dispatcher.BeginInvoke(() =>
+            {
+                if (istek != _istekNo) return; // another file or a clear came first
+                _hazirlaniyor = false;
+                Yukle();
+            }), TaskScheduler.Default);
+            return;
+        }
+        _hazirlaniyor = false;
+        Yukle();
+    }
+
+    private void Yukle()
+    {
+        string stepYolu = _yol!;
         PreviewResult result = _adapter.Load(new PreviewRequest
         {
             SourcePath = stepYolu,
@@ -133,6 +165,8 @@ public partial class Step3BPaneli : UserControl
     /// <summary>Empties the panel; <paramref name="mesaj"/> replaces the viewport's empty-state text.</summary>
     public void Temizle(string? mesaj)
     {
+        ++_istekNo;
+        _hazirlaniyor = false;
         _yol = null;
         _parcaAdi = null;
         _dosyaVar = false;
@@ -146,7 +180,7 @@ public partial class Step3BPaneli : UserControl
     public void SetPartView(OcctPartView gorunum)
     {
         _gorunum = gorunum;
-        if (_parcaAdi != null && _dosyaVar) viewport.ShowPart(_parcaAdi, _gorunum);
+        if (_parcaAdi != null && _dosyaVar && !_hazirlaniyor) viewport.ShowPart(_parcaAdi, _gorunum);
         Guncelle();
     }
 
@@ -166,8 +200,10 @@ public partial class Step3BPaneli : UserControl
 
     private void Guncelle()
     {
-        StepViewportLoadState durum = _port.LoadState;
-        string mesaj = durum == StepViewportLoadState.Empty && _bosMesaj != null ? _bosMesaj : _port.StatusMessage;
+        StepViewportLoadState durum = _hazirlaniyor ? StepViewportLoadState.Pending : _port.LoadState;
+        string mesaj = _hazirlaniyor
+            ? "3B hazırlanıyor… (" + Path.GetFileName(_yol) + ")"
+            : durum == StepViewportLoadState.Empty && _bosMesaj != null ? _bosMesaj : _port.StatusMessage;
         Step3BAracGorunumu g = Step3BAracDurumu.Hesapla(durum, _dosyaVar, _parcaAdi, _gorunum, mesaj);
 
         btnBuyukAc.IsEnabled = g.BuyukAcAcik;
