@@ -386,7 +386,7 @@ public partial class MainWindow
         _profilIslemde = true;
         ExternalStepAnalizButonunuGuncelle();
         ProfilButonlariniGuncelle();
-        LogInfo("External STEP profil analizi başladı: " + stepPaths.Length + " dosya. Önceki oturum listesi temizlendi.");
+        LogInfo("STEP analizi başladı: " + stepPaths.Length + " dosya. Önceki oturum listesi temizlendi.");
 
         using var iptal = new CancellationTokenSource();
         _externalStepAnalizIptal = iptal;

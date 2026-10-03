@@ -2034,12 +2034,13 @@
 
                 <ScrollViewer x:Name="fileAnalysisMenu" Grid.Row="1" Grid.RowSpan="2" Margin="24,16,24,20"
                               HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                    <WrapPanel HorizontalAlignment="Center" VerticalAlignment="Top">
+                    <!-- Kartlar sayfa basligiyla ayni sol hizada; ilk kartin kenar boslugu basliginkine esit -->
+                    <WrapPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-8,0,0,0">
                     <Button Style="{StaticResource MetroTile}" Width="360" Height="175" MaxWidth="380" MaxHeight="190"
                             Margin="8" Background="#385B8C" Click="btnFileAnalysisStep_Click">
                         <StackPanel>
-                            <TextBlock Text="STEP / STP Profil Analizi" FontSize="18" FontWeight="SemiBold"/>
-                            <TextBlock Text="STEP ve STP dosyalarını GeometryLab ile analiz edin; profil, kesit, boy ve kesim sonuçlarını listeleyin."
+                            <TextBlock Text="STEP / STP Analizi" FontSize="18" FontWeight="SemiBold"/>
+                            <TextBlock Text="Tek parça ya da montaj STEP dosyalarını analiz edin; profilleri, sacları ve kontrol gerektiren parçaları ayrı listelerde görün."
                                        Margin="0,8,0,0" TextWrapping="Wrap" FontSize="13"/>
                         </StackPanel>
                     </Button>
