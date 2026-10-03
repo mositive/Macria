@@ -138,26 +138,11 @@ public partial class MainWindow
         if (index >= 0) _externalStepProfileRows.RemoveAt(index);
         else index = _externalStepProfileRows.Count;
 
-        foreach (GeometryLabPartTransport part in analysis.Parts)
-        {
-            var row = MontajParcaSatiri.Olustur(fileRow.SourceStepPath, analysis, part, result.PartDxfPath(part),
-                Ayarlar.LazerAzamiKalinlikMm, result.PartDxfPath(part, cutOnly: true));
-            if (row.EffectiveCategory == MontajParcaKategorisi.Profil)
-            {
-                var profileRow = new GeometryLabStepProfileListItem
-                {
-                    SourceStepPath = fileRow.SourceStepPath,
-                    PartName = row.PartName,
-                    PartQuantity = part.Quantity
-                };
-                profileRow.Apply(MontajParcaSatiri.ResultForPart(result, part));
-                _externalStepProfileRows.Insert(index++, profileRow);
-            }
-            else
-            {
-                _montajParcaRows.Add(row);
-            }
-        }
+        var (profil, montaj) = MacriaProjeSatirlari.MontajSatirlari(fileRow.SourceStepPath, result, Ayarlar.LazerAzamiKalinlikMm);
+        foreach (GeometryLabStepProfileListItem profileRow in profil)
+            _externalStepProfileRows.Insert(index++, profileRow);
+        foreach (MontajParcaSatiri row in montaj)
+            _montajParcaRows.Add(row);
         LogSuccess("Montaj STEP'i: " + fileRow.SourceFileName + " — " + analysis.Parts.Count + " parça (" +
                    _montajParcaRows.Count(x => x.SourceStepPath == fileRow.SourceStepPath && x.IsInSheetTab) + " sac, " +
                    _montajParcaRows.Count(x => x.SourceStepPath == fileRow.SourceStepPath && x.IsInReviewTab) + " kontrol).");

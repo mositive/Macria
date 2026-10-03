@@ -71,6 +71,9 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged
     // Set for one part of an assembly STEP; the row then shows "file > part (xN)".
     public string? PartName { get; init; }
     public int PartQuantity { get; init; }
+    // Engine identity of that part (localId, productId), for .macria decisions.
+    public int? PartLocalId { get; init; }
+    public string? PartProductId { get; init; }
     public string SourceFileName => PartName is null
         ? System.IO.Path.GetFileName(SourceStepPath)
         : System.IO.Path.GetFileName(SourceStepPath) + " › " + PartName + " (" + PartQuantity + " adet)";
@@ -135,6 +138,8 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged
     public GeometryLabExternalStepResultGroup EffectiveCategory { get; private set; } = GeometryLabExternalStepResultGroup.Unclassified;
     public GeometryLabDecisionSource DecisionSource { get; private set; } = GeometryLabDecisionSource.Automatic;
     public string UserDecisionNote { get; private set; } = "";
+    /// <summary>Which user decision is in effect (MacriaProje.Karar*), or null.</summary>
+    public string? KullaniciKarari { get; private set; }
     public string OriginalAutomaticReason { get; private set; } = "";
     public bool HasUserDecision => DecisionSource == GeometryLabDecisionSource.User;
     public string CatiaQuantityDisplay { get; private set; } = "—";
@@ -269,7 +274,7 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged
     public void ConfirmAsProfile(string? note = null)
     {
         ApplyUserCategory(GeometryLabExternalStepResultGroup.DefiniteProfile,
-            "Kullanıcı tarafından kesin profil olarak onaylandı.", note, "Tanındı");
+            "Kullanıcı tarafından kesin profil olarak onaylandı.", note, "Tanındı", MacriaProje.KararProfilOnayla);
     }
 
     /// <summary>
@@ -281,14 +286,14 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged
         ProfileType = profileType;
         SectionDisplay = sectionDisplay;
         ApplyUserCategory(GeometryLabExternalStepResultGroup.DefiniteProfile,
-            "Profil türü ve kesit kullanıcı tarafından manuel olarak onaylandı.", note, "Tanındı");
+            "Profil türü ve kesit kullanıcı tarafından manuel olarak onaylandı.", note, "Tanındı", MacriaProje.KararElleProfil);
     }
 
     public void MoveToReview(string? note = null) => ApplyUserCategory(GeometryLabExternalStepResultGroup.ReviewRequired,
-        "Kullanıcı kararıyla incelemeye alındı.", note, "İnceleme gerekli");
+        "Kullanıcı kararıyla incelemeye alındı.", note, "İnceleme gerekli", MacriaProje.KararIncelemeye);
 
     public void ExcludeFromList(string? note = null) => ApplyUserCategory(GeometryLabExternalStepResultGroup.Excluded,
-        "Kullanıcı kararıyla profil listesinden çıkarıldı.", note, "Liste dışı");
+        "Kullanıcı kararıyla profil listesinden çıkarıldı.", note, "Liste dışı", MacriaProje.KararListeDisi);
 
     public void RestoreAutomaticDecision()
     {
@@ -310,6 +315,7 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged
             DecisionSource = GeometryLabDecisionSource.Automatic;
         }
         UserDecisionNote = "";
+        KullaniciKarari = null;
         RaiseDecisionProperties();
     }
 
@@ -332,11 +338,13 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged
         RaiseDecisionProperties();
     }
 
-    private void ApplyUserCategory(GeometryLabExternalStepResultGroup category, string explanation, string? note, string status)
+    private void ApplyUserCategory(GeometryLabExternalStepResultGroup category, string explanation, string? note, string status,
+        string kullaniciKarari)
     {
         if (_automaticPresentation == null) return;
         SetEffectiveCategory(category);
         DecisionSource = GeometryLabDecisionSource.User;
+        KullaniciKarari = kullaniciKarari;
         UserDecisionNote = note?.Trim() ?? "";
         AnalysisStatus = status;
         FailureReason = explanation;
@@ -594,6 +602,7 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged
         OriginalAutomaticReason = FailureReason;
         DecisionSource = GeometryLabDecisionSource.Automatic;
         UserDecisionNote = "";
+        KullaniciKarari = null;
         SetEffectiveCategory(NormalizeEffectiveCategory(value));
         _automaticPresentation = new AutomaticPresentation(AnalysisStatus, ProfileType, SectionDisplay,
             LengthDisplay, TopologyDisplay, CutDisplay, OperationDisplay, OperationToolTip, EvidenceStatus, FailureReason);

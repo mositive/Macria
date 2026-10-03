@@ -58,6 +58,7 @@ internal static class Program
             StoredJsonResultTests();
             MotorKimligiTests();
             MacriaProjeTests();
+            await RealProjectRoundTripAsync();
             ExternalStepExcelWriter();
             await TemporaryStepWorkspaceAsync();
             await TemporaryStepFailureAndCancellationAsync();
@@ -352,6 +353,101 @@ internal static class Program
         Check(MacriaProje.KararlariEsle(Veri().Kararlar.Take(1), adiFarkli, _ => false).Eslenemeyen.Count == 1,
             "same localId with a different name is not applied");
     }
+
+    // Real engine: analyse, decide, save, open again without the engine and
+    // compare every row. STEPs: the assembly folder's STEP, plus
+    // MACRIA_PROJE_STEPS (separated by ';'), e.g. WGRV004423.
+    private static async Task RealProjectRoundTripAsync()
+    {
+        string? engine = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_EXE");
+        string? folder = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_ASSEMBLY_DIR");
+        var steps = new List<string>();
+        if (Directory.Exists(folder)) steps.AddRange(Directory.GetFiles(folder, "*.stp"));
+        steps.AddRange((Environment.GetEnvironmentVariable("MACRIA_PROJE_STEPS") ?? "")
+            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        if (string.IsNullOrWhiteSpace(engine) || !File.Exists(engine) || steps.Count == 0)
+        {
+            Console.WriteLine("REAL_PROJECT: SKIPPED - MACRIA_GEOMETRY_ENGINE_EXE / MACRIA_GEOMETRY_ENGINE_ASSEMBLY_DIR unavailable.");
+            return;
+        }
+
+        GeometryLabMotorKimligi motor = GeometryLabMotorKimligi.Oku(engine);
+        foreach (string step in steps)
+        {
+            Check(File.Exists(step), "project round-trip STEP exists: " + step);
+            string dxfRoot = Path.Combine(_root, "proje-gercek-dxf", Guid.NewGuid().ToString("N"));
+            var sure = System.Diagnostics.Stopwatch.StartNew();
+            GeometryLabProcessAdapterResult result = await new GeometryLabProcessAdapter(new GeometryLabProcessAdapterOptions
+            {
+                EngineExecutablePath = engine,
+                Timeout = TimeSpan.Zero,
+                TemporaryRootDirectory = Path.Combine(_root, "work"),
+                PartDxfRootDirectory = dxfRoot
+            }).AnalyzeAsync(step);
+            double analizSn = sure.Elapsed.TotalSeconds;
+            Check(result.IsSuccess && result.AnalysisJson != null, "real analysis succeeds and keeps its JSON: " + Path.GetFileName(step));
+
+            var (profil, montaj) = MacriaProjeSatirlari.Kur(step, result, 20);
+            // Decisions of every kind the rows offer.
+            profil.FirstOrDefault()?.ExcludeFromList("proje testi");
+            profil.Skip(1).FirstOrDefault()?.MoveToReview();
+            montaj.FirstOrDefault(x => x.CanApproveAsSheet)?.ApproveAsSheet();
+            montaj.FirstOrDefault(x => !x.CanApproveAsSheet)?.MoveToReview();
+            Func<string, string?> kaynakId = path => path == step ? "k1" : null;
+            List<MacriaProjeKarari> kararlar = MacriaProjeSatirlari.KararlariTopla(profil, montaj, kaynakId);
+            Check(kararlar.Count >= 1, "decisions are collected from the rows");
+
+            var veri = new MacriaProjeVerisi
+            {
+                Kaynaklar =
+                {
+                    new MacriaProjeKaynagi
+                    {
+                        Id = "k1", Yol = step, Sha256 = GeometryLabMotorKimligi.DosyaSha256(step), Boyut = new FileInfo(step).Length,
+                        Analiz = new MacriaProjeAnalizi
+                        {
+                            Durum = result.Status.ToString(), MotorSemaSurumu = result.Analysis!.SchemaVersion,
+                            Motor = MacriaProjeMotoru.Kimliktan(motor), SureSn = analizSn, Montaj = montaj.Count > 0
+                        }
+                    }
+                },
+                Kararlar = kararlar
+            };
+            string proje = Path.Combine(_root, Path.GetFileNameWithoutExtension(step) + MacriaProje.Uzanti);
+            sure.Restart();
+            MacriaProje.Kaydet(proje, veri,
+                new Dictionary<string, MacriaProjeKaynakIcerigi> { ["k1"] = new(result.AnalysisJson, result.PartDxfDirectory) },
+                "Macria test");
+            double kaydetSn = sure.Elapsed.TotalSeconds;
+
+            // "Close": nothing of the session is used below except the file.
+            sure.Restart();
+            MacriaProjeAcilisi acilis = MacriaProje.Ac(proje, Path.Combine(_root, "proje-acilis-dxf", Guid.NewGuid().ToString("N")));
+            MacriaProjeKaynagi kaynak = acilis.Veri.Kaynaklar[0];
+            MacriaKaynakDenetimi denetim = MacriaProje.Denetle(kaynak, proje, acilis.AnalysisJson.ContainsKey("k1"), motor);
+            Check(denetim.Durum == MacriaKaynakDurumu.Ayni, "unchanged STEP needs no analysis: " + denetim.Aciklama);
+            GeometryLabProcessAdapterResult kayitli = GeometryLabProcessAdapter.SonucuJsondanKur(
+                acilis.AnalysisJson["k1"], acilis.DxfKlasoru.GetValueOrDefault("k1"));
+            var (profil2, montaj2) = MacriaProjeSatirlari.Kur(denetim.BulunanYol!, kayitli, acilis.Veri.Ayarlar.LazerAzamiKalinlikMm);
+            var (eslenen, eslenemeyen) = MacriaProje.KararlariEsle(acilis.Veri.Kararlar,
+                MacriaProjeSatirlari.Adaylar(profil2, montaj2, kaynakId), _ => false);
+            int uygulanan = eslenen.Count(x => MacriaProjeSatirlari.Uygula(x.Karar, x.Aday.Satir));
+            double acSn = sure.Elapsed.TotalSeconds;
+
+            Check(eslenemeyen.Count == 0 && uygulanan == kararlar.Count, "every decision returns to its row");
+            Check(Satirlar(profil, montaj).SequenceEqual(Satirlar(profil2, montaj2)), "opened project shows the same rows as the analysis");
+            Check(montaj2.Where(x => x.DxfSourcePath != null).All(x => File.Exists(x.DxfSourcePath)),
+                "engine DXFs of the opened project exist");
+            Console.WriteLine(string.Create(System.Globalization.CultureInfo.InvariantCulture,
+                $"REAL_PROJECT: {Path.GetFileName(step)} parça={result.Analysis.Parts.Count} satır={profil.Count + montaj.Count} karar={kararlar.Count} analiz={analizSn:0.0}s kaydet={kaydetSn:0.00}s aç(hash+satır+karar)={acSn:0.00}s proje={new FileInfo(proje).Length / 1024.0:0}KB"));
+        }
+    }
+
+    private static IEnumerable<string> Satirlar(IEnumerable<GeometryLabStepProfileListItem> profil, IEnumerable<MontajParcaSatiri> montaj) =>
+        profil.Select(x => string.Join("|", x.SourceFileName, x.EffectiveStatusDisplay, x.EffectiveProfileTypeDisplay, x.SectionDisplay,
+                x.LengthDisplay, x.CutDisplay, x.DecisionSource, x.UserDecisionNote, x.KullaniciKarari))
+            .Concat(montaj.Select(x => string.Join("|", x.PartName, x.Quantity, x.StatusDisplay, x.DecisionDisplay, x.GroupDisplay,
+                x.ThicknessDisplay, x.HoleSummary, x.ExplanationDisplay, Path.GetFileName(x.DxfSourcePath ?? ""))));
 
     private static bool Throws(Action eylem)
     {

@@ -27,6 +27,9 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
 
     public required string SourceStepPath { get; init; }
     public required string PartName { get; init; }
+    // Engine identity of the part (localId, productId), for .macria decisions.
+    public int PartLocalId { get; init; }
+    public string? ProductId { get; init; }
     public int Quantity { get; init; }
     public string EngineClass { get; init; } = "";
     public IReadOnlyList<string> EngineReasons { get; init; } = Array.Empty<string>();
@@ -69,6 +72,9 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
     public MontajParcaKategorisi EffectiveCategory { get; private set; } = MontajParcaKategorisi.KontrolGerekli;
     public GeometryLabDecisionSource DecisionSource { get; private set; } = GeometryLabDecisionSource.Automatic;
     public bool HasUserDecision => DecisionSource == GeometryLabDecisionSource.User;
+    /// <summary>Which user decision is in effect (MacriaProje.Karar*), or null.</summary>
+    public string? KullaniciKarari => !HasUserDecision ? null
+        : EffectiveCategory == MontajParcaKategorisi.Sac ? MacriaProje.KararSacOnayla : MacriaProje.KararKontrole;
     public bool CanApproveAsSheet => DxfSourcePath != null && ThicknessMm != null;
     public bool IsInSheetTab => EffectiveCategory is MontajParcaKategorisi.Sac or MontajParcaKategorisi.OnayGerekli;
     public bool IsInReviewTab => EffectiveCategory is MontajParcaKategorisi.KontrolGerekli or MontajParcaKategorisi.Diger;
@@ -125,6 +131,8 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
         {
             SourceStepPath = stepPath,
             PartName = string.IsNullOrWhiteSpace(part.Name) ? "Parça " + part.LocalId : part.Name!,
+            PartLocalId = part.LocalId,
+            ProductId = string.IsNullOrWhiteSpace(part.ProductId) ? null : part.ProductId,
             Quantity = part.Quantity,
             EngineClass = part.Classification ?? "",
             EngineReasons = part.ClassificationReasons,
