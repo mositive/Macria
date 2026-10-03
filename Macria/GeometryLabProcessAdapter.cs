@@ -87,6 +87,8 @@ public sealed record GeometryLabProcessAdapterResult
     public string StandardOutput { get; init; } = "";
     public string StandardError { get; init; } = "";
     public GeometryLabAnalysisTransport? Analysis { get; init; }
+    // The engine's analysis.json exactly as written; a .macria project stores it.
+    public string? AnalysisJson { get; init; }
     public bool HasMultipleProfileResults { get; init; }
     public bool TemporaryDirectoryCleaned { get; init; }
     // Folder the engine wrote the part DXFs into; null without PartDxfRootDirectory.
@@ -313,37 +315,54 @@ public sealed class GeometryLabProcessAdapter
         try
         {
             json = await File.ReadAllTextAsync(outputPath, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (IOException exception)
+        {
+            return Result(GeometryLabProcessAdapterStatus.InvalidJson, exception.Message, stdout, stderr, process.ExitCode);
+        }
+        return SonucuJsondanKur(json, partDxfDirectory) with
+        {
+            ExitCode = process.ExitCode,
+            StandardOutput = stdout,
+            StandardError = stderr
+        };
+    }
+
+    /// <summary>
+    /// The result of an engine analysis.json: the live analysis and a .macria
+    /// project's stored engine output both go through here (schema check and
+    /// deserialization). `partDxfDirectory` is where the part DXFs are now.
+    /// </summary>
+    public static GeometryLabProcessAdapterResult SonucuJsondanKur(string json, string? partDxfDirectory)
+    {
+        try
+        {
             using JsonDocument document = JsonDocument.Parse(json);
             if (document.RootElement.ValueKind != JsonValueKind.Object ||
                 !document.RootElement.TryGetProperty("schemaVersion", out JsonElement schemaElement) ||
                 schemaElement.ValueKind != JsonValueKind.String)
                 return Result(GeometryLabProcessAdapterStatus.InvalidJson,
-                    "GeometryLab JSON does not contain a string schemaVersion.", stdout, stderr, process.ExitCode);
+                    "GeometryLab JSON does not contain a string schemaVersion.");
             if (!IsSupportedSchemaVersion(schemaElement.GetString()))
                 return Result(GeometryLabProcessAdapterStatus.UnsupportedSchema,
-                    "GeometryLab JSON schemaVersion is not supported.", stdout, stderr, process.ExitCode);
+                    "GeometryLab JSON schemaVersion is not supported.");
 
             GeometryLabAnalysisTransport? analysis = JsonSerializer.Deserialize<GeometryLabAnalysisTransport>(json, JsonOptions);
             if (analysis is null)
                 return Result(GeometryLabProcessAdapterStatus.InvalidJson,
-                    "GeometryLab JSON could not be deserialized.", stdout, stderr, process.ExitCode);
+                    "GeometryLab JSON could not be deserialized.");
             return new GeometryLabProcessAdapterResult
             {
                 Status = GeometryLabProcessAdapterStatus.Succeeded,
-                ExitCode = process.ExitCode,
-                StandardOutput = stdout,
-                StandardError = stderr,
                 Analysis = analysis,
+                AnalysisJson = json,
+                PartDxfDirectory = partDxfDirectory,
                 HasMultipleProfileResults = analysis.ProfileRecognitions.Count > 1
             };
         }
         catch (JsonException exception)
         {
-            return Result(GeometryLabProcessAdapterStatus.InvalidJson, exception.Message, stdout, stderr, process.ExitCode);
-        }
-        catch (IOException exception)
-        {
-            return Result(GeometryLabProcessAdapterStatus.InvalidJson, exception.Message, stdout, stderr, process.ExitCode);
+            return Result(GeometryLabProcessAdapterStatus.InvalidJson, exception.Message);
         }
     }
 

@@ -102,7 +102,7 @@ Most real behaviour needs a running CATIA and cannot be verified on a dev machin
 - The 3D STEP viewer is different: `OcctViewerNative` loads `Macria.GeometryViewer.dll` (OCCT) from the same folder into the Macria process with `LoadLibraryEx`, and `OcctViewportHost` hosts it. A native crash in the viewer therefore takes Macria down with it.
 - The viewer DLL is pinned and never freed. OCCT cannot be unloaded safely: on `FreeLibrary`, TKXSBase's static destructors run after TKDESTEP is already unmapped and crash. Before the pin, this crashed Macria on close and left WER `dotnet.exe` processes holding `Macria.dll` locked.
 - Every 3D preview (the Profiller, Saclar and Kontrol gerekli tabs, and the "Büyük Aç" window) uses the shared `Step3BPaneli` UserControl. It holds the toolbar, the viewport and the status line. Its toolbar rules are in `Step3BAracDurumu` and are tested in `GeometryLabAdapter.Tests`. `MainWindow.ExternalStepPreview.cs` wires every panel through `TumStep3BPanelleri()`. Add a new 3D feature to the panel, not to a single tab.
-- `GeometryEngineRuntime/README.md` still says nothing is loaded in-process. That is outdated.
+- `GeometryEngineRuntime/motor-surumu.txt` holds the packaged engine version (`2026.10.3.1`) and its GeometryLab commit. Update it whenever the exe changes; `.macria` projects compare it on open.
 - `GeometryLabProcessAdapter` starts it with `--input <step> --output <json>` and deserializes the result with `GeometryLabTransportDtos`. `GeometryLabEngineLocator` resolves the exe path.
 - Only verified GeometryLab x64 Release outputs go into `GeometryEngineRuntime/` (see its README).
 

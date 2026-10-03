@@ -55,6 +55,8 @@ internal static class Program
             OcctStepPreviewAdapterTests();
             Step3BAracDurumuTests();
             RealViewerDllPinned();
+            StoredJsonResultTests();
+            MotorKimligiTests();
             ExternalStepExcelWriter();
             await TemporaryStepWorkspaceAsync();
             await TemporaryStepFailureAndCancellationAsync();
@@ -184,6 +186,46 @@ internal static class Program
             "viewer DLL stays loaded after Dispose and FreeLibrary (pinned)");
         Check(NativeModules.GetModuleHandle("TKXSBase.dll") != IntPtr.Zero && NativeModules.GetModuleHandle("TKDESTEP.dll") != IntPtr.Zero,
             "OCCT STEP modules stay loaded, so their static destructors run only at process exit");
+    }
+
+    // A .macria project rebuilds results from the stored analysis.json through
+    // the same parsing as a live analysis.
+    private static void StoredJsonResultTests()
+    {
+        const string json = "{\"schemaVersion\":\"1.2\",\"status\":\"Succeeded\",\"errors\":[],\"warnings\":[],\"profileRecognitions\":[]," +
+                            "\"parts\":[{\"localId\":3,\"name\":\"P3\",\"quantity\":2,\"dxfFile\":\"part-3.dxf\"}]}";
+        string dxf = Path.Combine(_root, "stored-dxf");
+        GeometryLabProcessAdapterResult result = GeometryLabProcessAdapter.SonucuJsondanKur(json, dxf);
+        Check(result.IsSuccess && result.AnalysisJson == json, "stored analysis.json yields a success result that keeps the raw JSON");
+        Check(result.Analysis?.Parts.Count == 1 && result.PartDxfPath(result.Analysis.Parts[0]) == Path.Combine(dxf, "part-3.dxf"),
+            "stored result resolves part DXFs in the given folder");
+        Check(GeometryLabProcessAdapter.SonucuJsondanKur("{\"schemaVersion\":\"9.0\"}", null).Status ==
+              GeometryLabProcessAdapterStatus.UnsupportedSchema, "stored JSON with an unknown engine schema is rejected");
+        Check(GeometryLabProcessAdapter.SonucuJsondanKur("{bozuk", null).Status == GeometryLabProcessAdapterStatus.InvalidJson,
+            "stored JSON that does not parse is InvalidJson");
+    }
+
+    private static void MotorKimligiTests()
+    {
+        string folder = Path.Combine(_root, "motor-kimligi");
+        Directory.CreateDirectory(folder);
+        string exe = Path.Combine(folder, GeometryLabEngineLocator.EngineFileName);
+        File.WriteAllText(exe, "motor A");
+        GeometryLabMotorKimligi bilinmeyen = GeometryLabMotorKimligi.Oku(exe);
+        Check(bilinmeyen.Surum == null && bilinmeyen.Sha256.Length == 64, "engine without motor-surumu.txt has only a hash");
+
+        File.WriteAllText(Path.Combine(folder, GeometryLabMotorKimligi.SurumDosyasi), "# yorum\n2026.10.3.1\nabc1234\n");
+        File.SetLastWriteTimeUtc(exe, DateTime.UtcNow.AddMinutes(1)); // invalidates the cached identity
+        GeometryLabMotorKimligi yeni = GeometryLabMotorKimligi.Oku(exe);
+        Check(yeni.Surum == "2026.10.3.1" && yeni.Commit == "abc1234", "motor-surumu.txt gives version and commit");
+
+        var eski = new GeometryLabMotorKimligi { Surum = "2026.10.2.1", Sha256 = "X" };
+        var dahaYeni = new GeometryLabMotorKimligi { Surum = "2026.10.4.1", Sha256 = "Y" };
+        Check(yeni.OncekindenFarkli(eski), "a newer engine version asks for a rescan");
+        Check(!yeni.OncekindenFarkli(dahaYeni), "an older installed engine does not ask");
+        Check(!yeni.OncekindenFarkli(yeni with { }), "the same engine does not ask");
+        Check(yeni.OncekindenFarkli(yeni with { Sha256 = "BASKA" }), "the same version with a different exe asks");
+        Check(yeni.OncekindenFarkli(null), "an analysis without engine identity asks");
     }
 
     private static class NativeModules

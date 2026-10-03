@@ -10,6 +10,12 @@ DLL'leri alınır. Test EXE'leri, `.pdb`, `.lib`, `.exp` ve CMake ara
 dosyaları buraya konmaz. `Macria.csproj` bu klasörü Debug, Release ve publish
 çıktılarında `GeometryEngine\` altına kopyalar.
 
+Motor sürümü: `Macria.GeometryEngine.exe` her değiştiğinde `motor-surumu.txt`
+güncellenir. İlk satır sıralanabilir sürümdür (`yıl.ay.gün.n`, ör. `2026.10.3.1`;
+aynı gün ikinci paket `.2`), ikinci satır GeometryLab commit'idir. Macria bunu
+`.macria` projelerine yazar; açılışta kurulu motor daha yeniyse "eski motorla
+taranmış, yeniden taransın mı?" diye sorar. Motor JSON'unda sürüm alanı yoktur.
+
 Analiz motoru (`Macria.GeometryEngine.exe`) her zaman ayrı bir child process
 olarak başlatılır. 3B STEP görüntüleyici ise farklıdır: `OcctViewerNative`,
 `Macria.GeometryViewer.dll`'i ve OCCT DLL'lerini `LoadLibraryEx` ile Macria
@@ -28,3 +34,4 @@ işlemine yükler; görüntüleyicideki native bir çökme Macria'yı da kapatı
 | 2026-10-02 | `Macria.GeometryEngine.exe` | GeometryLab `477c222`, x64 Release | Geçerlilik parça başına (bozuk parça Kontrol gerekli, montajın gerisi analiz edilir; `geometryValid`, `validityIssues`); kenar dışbükeyliği normallerden; parça başına süre sınırı `--parca-sure-siniri` (varsayılan 120 s; `analysisSeconds`, `analysisTimedOut`); gövde başına paralel analiz `--is-parcacigi` (varsayılan çekirdek − 1). Şema 1.2, alanlar yalnız ek. WGRV004423 (195 parça) artık analiz ediliyor: 59 s. Yeni sistem bağımlılığı yalnız UCRT `api-ms-win-crt-convert-l1-1-0.dll` (Windows'ta mevcut). Diğer 38 dosya (OCCT DLL'leri, viewer) bayt bayt aynı kaldı. Önceki paket: Macria git geçmişinde bir önceki commit (BEFORE ZIP yerine). |
 | 2026-10-03 | `Macria.GeometryEngine.exe` | GeometryLab `237a30a`, x64 Release | `--ilerleme`: `--output` ile stdout'a satır satır `MACRIA-ILERLEME <aşama> <tamamlanan> <toplam>` (okuma, topoloji, parca, sac); bayraksız davranış ve JSON aynı. Yavaş parça notu (30 s) JSON yerine stderr'de. Diğer 38 dosya aynı. Önceki paket: Macria git geçmişinde bir önceki commit. |
 | 2026-10-03 | `Macria.GeometryViewer.dll` | GeometryLab `3463249`, x64 Release | Paylaşılan model önbelleği: STEP süreç başına bir kez XDE ile okunur ve bir kez üçgenlenir; bütün oturumlar paylaşır. Yeni dışa açık fonksiyonlar `MacriaGeometryViewer_PreloadStep`, `MacriaGeometryViewer_ReleaseModels`. WGRV004423, 4 oturum: 194 s / 938 MB → 8,4 s / 742 MB. Doğrudan `TKXSBase.dll` bağımlılığı kalktı (dosya runtime'da kalıyor, motor kullanıyor). Motor exe ve diğer dosyalar aynı. Önceki paket: Macria git geçmişinde bir önceki commit. |
+| 2026-10-03 | `motor-surumu.txt` (yeni) | — | Kurulu motorun sürümü: `2026.10.3.1`, GeometryLab `237a30a` (exe değişmedi). `.macria` projeleri motor sürümünü buradan alır. |
