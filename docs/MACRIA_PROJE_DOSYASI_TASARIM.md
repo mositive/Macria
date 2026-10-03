@@ -1,6 +1,6 @@
 # Macria Proje Dosyası (.macria) — Tasarım
 
-- **Durum:** Tasarım (2026-10-03). Kod henüz yok; uygulama §13'teki aşamalarla yapılacak.
+- **Durum:** Tasarım kabul edildi (2026-10-03). Uygulama §13'teki aşamalarla; Aşama 1 uygulanıyor.
 - **Kapsam:** Dosya Analiz Merkezi → STEP / STP Analizi sonuçlarının kaydedilip yeniden açılması.
 
 ## 1. Bağlam
@@ -57,7 +57,7 @@ kaynaklar/<kaynakId>/analysis.json    motorun yazdığı JSON, bayt bayt aynı
 kaynaklar/<kaynakId>/dxf/part-<n>.dxf, part-<n>-kesim.dxf
 --- ileride ---
 kaynaklar/<kaynakId>/model/...        3B model önbelleği (Aşama 4)
-catia/tarama.json                     CATIA karşılaştırma anlık görüntüsü (Aşama 3)
+catia/tarama.json                     CATIA karşılaştırma anlık görüntüsü (Aşama 2)
 ```
 
 `kaynakId`: kısa, kalıcı kimlik (`k1`, `k2`, ...). Yol değişse de aynı kalır.
@@ -94,7 +94,7 @@ catia/tarama.json                     CATIA karşılaştırma anlık görüntüs
       "durum": "Succeeded",
       "mesaj": null,
       "motorSemaSurumu": "1.2",
-      "motorSha256": "…",
+      "motor": { "surum": "2026.10.3.1", "commit": "237a30a", "sha256": "…" },
       "sureSn": 64.2,
       "montaj": true
     }
@@ -143,6 +143,7 @@ catia/tarama.json                     CATIA karşılaştırma anlık görüntüs
 - **Komutlar:** STEP / STP Analizi araç şeridinde "Proje ▾" menüsü.
   - **Aç** (Ctrl+O).
   - **Kaydet** (Ctrl+S): Yolu yoksa Farklı Kaydet'e düşer.
+  - **Varsayılan kayıt yeri:** İlk STEP'in klasörü; ad, STEP'in adı (`WGRV004423 A.stp` → `WGRV004423 A.macria`).
   - **Farklı Kaydet** (Ctrl+Shift+S).
   - **Son açılanlar** (en çok 10).
   - Dosya Analiz Merkezi ana sayfasında ayrıca "Proje Aç" kartı ve son açılanlar listesi.
@@ -179,6 +180,8 @@ catia/tarama.json                     CATIA karşılaştırma anlık görüntüs
       - WGRV (17,9 MB) için ~0,1 s; 500 MB için birkaç saniye, ilerleme gösterilir.
       - OneDrive yalnız bulutta duran dosyayı bu sırada indirir.
    3. **Motor şema sürümü** artık desteklenmiyorsa kaynak "değişmiş" gibi ele alınır ve yeniden tarama önerilir.
+   4. **Motor sürümü:** Kurulu motorun sürümü kaynağın taranmış olduğu sürümden yeniyse, hash sorusuyla aynı pencerede sorulur: "Eski motorla taranmış (2026.10.2.1 → 2026.10.3.1); yeniden taransın mı?" Seçenekler: **Yeniden tara** / **Kayıtlı sonuçla aç**. Sürüm aynı ama exe SHA-256'sı farklıysa da aynı soru sorulur (paketleme hatası olabilir).
+      - Motor sürümü `GeometryEngineRuntime/motor-surumu.txt` dosyasından okunur (`2026.10.3.1` + GeometryLab commit'i). Motor JSON'unda sürüm alanı olmadığı için bu dosya her motor paketlemesinde güncellenir (README kuralı). Dosya yoksa sürüm "bilinmiyor" sayılır ve yalnız SHA-256 karşılaştırılır.
 3. **Durumlara göre davranış:**
    - **Aynı:** Motor çalışmaz.
      - Ham JSON, `SonucuJsondanKur` ile sonuca çevrilir.
@@ -241,7 +244,7 @@ catia/tarama.json                     CATIA karşılaştırma anlık görüntüs
 
 ## 12. Riskler
 
-1. **CATIA karşılaştırması saklanmazsa** (Aşama 1–2): "CATIA sac unsuru" (`ThreeDScan`) kararları açılışta kaybolur; satırlar "Onay gerekli"ye döner. Kullanıcıya açılışta bildirilir, Aşama 3 çözer. Ara çözüm: önemli olanları kullanıcı "Sac Olarak Onayla" ile karara çevirir.
+1. **CATIA karşılaştırması saklanmazsa** (Aşama 1): "CATIA sac unsuru" (`ThreeDScan`) kararları açılışta kaybolur; satırlar "Onay gerekli"ye döner. Kullanıcıya açılışta bildirilir, Aşama 2 çözer. Ara çözüm: önemli olanları kullanıcı "Sac Olarak Onayla" ile karara çevirir.
 2. **Yeniden taramada farklı sonuç:** Süre sınırı ya da motor sürümü değişmişse parça sınıfları değişebilir. Kararlar §8 ile korunur; değişen sınıflar rapora yazılır.
 3. **Karar eşleme belirsizliği:** Aynı adlı parçalar ve yeniden adlandırılan parçalar. Belirsiz karar uygulanmaz, eşlenemeyenlere düşer.
 4. **ZIP güvenliği:** Açarken `..` içeren ve mutlak yollar reddedilir (zip slip). Kayıt sayısı ve açılmış boyut sınırlanır (zip bombası).
@@ -261,19 +264,21 @@ catia/tarama.json                     CATIA karşılaştırma anlık görüntüs
   - Açılışta hash kontrolü:
     - aynıysa tarama yok;
     - değişmiş/bulunamadıysa basit bir soru: "Yeniden tara" (bulunduysa) / "Salt-okunur aç" / "İptal".
+  - Motor sürümü (`motor-surumu.txt` + exe SHA-256); motor yeniyse aynı soruda "Yeniden tara / Kayıtlı sonuçla aç".
+  - Varsayılan kayıt yeri: STEP'in yanı, STEP'in adıyla.
   - Kaydedilmemiş değişiklikte kapanış, yeni analiz ve başka proje açma sorusu.
   - **Testler:**
     - Sahte motor JSON'uyla ZIP round-trip ve şema sürümü reddi.
     - Zip slip reddi.
     - montaj-1 ile gerçek round-trip: kaydet → aç → satırlar ve kararlar aynı, motor çalışmadı.
 - **Aşama 2:**
+  - CATIA karşılaştırma anlık görüntüsü (`catia/tarama.json`) ile `ThreeDScan` kararlarının korunması.
   - Son açılanlar ve ana sayfadaki "Proje Aç" kartı.
   - "Yeni yolu göster" ve `goreliYol`.
   - Yeniden taramada `productId` / ad ile karar eşleme ve eşlenemeyen kararlar raporu.
   - DXF Üret geçmişi.
   - Kaydetmede `.bak`.
 - **Aşama 3:**
-  - CATIA karşılaştırma anlık görüntüsü (`catia/tarama.json`) ile `ThreeDScan` kararlarının korunması.
   - Projeye dosya ekleme (yeni analiz listeyi değiştirmek yerine ekler).
   - `.macria` dosya ilişkilendirmesi ve sürükle-bırak.
 - **Aşama 4:** Projede 3B model önbelleği (GeometryLab API'si gerekir); önbellek anahtarının SHA-256'ya geçmesi.
