@@ -41,6 +41,9 @@ public partial class MainWindow
         _externalStepProfileView.Filter = item => item is GeometryLabStepProfileListItem row &&
             _externalStepProfileFilters.IsVisible(row.ResultGroup);
         if (gridExternalStepProfil != null) gridExternalStepProfil.ItemsSource = _externalStepProfileView;
+        // "Tabloyu Temizle" is enabled only while there is something to clear.
+        _externalStepProfileRows.CollectionChanged += (_, _) => ExternalStepAnalizButonunuGuncelle();
+        _montajParcaRows.CollectionChanged += (_, _) => ExternalStepAnalizButonunuGuncelle();
         ExternalStepProfilOzetiniGuncelle();
         ExternalStepFilterDenetimleriniGuncelle();
         ExternalStepAnalizButonunuGuncelle();
@@ -104,6 +107,41 @@ public partial class MainWindow
     {
         if (btnExternalStepProfilAnaliz != null)
             btnExternalStepProfilAnaliz.IsEnabled = !_externalStepProfileAnalysisRunning && !_exporting;
+        if (btnExternalStepTemizle != null)
+            btnExternalStepTemizle.IsEnabled = !_externalStepProfileAnalysisRunning &&
+                (_externalStepProfileRows.Count > 0 || _montajParcaRows.Count > 0);
+    }
+
+    // Empties Profiller, Saclar and Kontrol gerekli without starting a new
+    // analysis; user decisions in them are lost, so it asks first.
+    private void btnExternalStepTemizle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_externalStepProfileAnalysisRunning) return;
+        int satir = _externalStepProfileRows.Count + _montajParcaRows.Count;
+        if (satir == 0) return;
+        if (!OnayWindow.Sor(this, "Tabloyu Temizle",
+                "STEP analiz sonuçları (Profiller, Saclar, Kontrol gerekli) ve bunlarda verdiğiniz kararlar " +
+                "(Liste dışı, sac onayları) silinecek. Geri almak için dosyaları yeniden analiz etmeniz gerekir.",
+                "Temizle"))
+            return;
+
+        OcctPreviewWindow? buyuk = _externalStepPreviewWindow;
+        buyuk?.Close();
+        ExternalStepSeciminiTemizle();
+        gridSacParcalar?.SelectedItems.Clear();
+        gridKontrolParcalar?.SelectedItems.Clear();
+        _externalStepProfileRows.Clear();
+        _montajParcaRows.Clear();
+        Step3BModelHazirlayici.Temizle();
+        MotorDxfOturumunuTemizle();
+        ExternalStepOnizlemesiniGuncelle(null);
+        SacOnizlemesiniGoster(null, false);
+        kontrolOnizleme.Goster(null, null, _montajParcaGorunumu);
+        MontajSekmeleriniGuncelle();
+        ExternalStepProfilOzetiniGuncelle();
+        _externalStepProfileView?.Refresh();
+        tabExternalStepSonuc.SelectedItem = tabExternalStepProfiller;
+        LogInfo("STEP analiz tablosu temizlendi: " + satir + " satır.");
     }
 
     private List<GeometryLabStepProfileListItem> GorunenSeciliExternalStepSatirlari() =>

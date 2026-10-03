@@ -2063,6 +2063,10 @@
                                 Content="STEP / STP Dosyalarını Seç ve Analiz Et" Height="30" Padding="14,0"
                                 ToolTip="CATIA bağlantısı gerektirmez; seçilen STEP dosyalarını yalnız GeometryLab ile analiz eder"
                                 Click="btnExternalStepProfilAnaliz_Click"/>
+                        <Button x:Name="btnExternalStepTemizle" Style="{StaticResource SecondaryButton}"
+                                Content="Tabloyu Temizle" Height="30" Padding="12,0" Margin="10,0,0,0" IsEnabled="False"
+                                ToolTip="Profiller, Saclar ve Kontrol gerekli listelerini boşaltır (onay ister)"
+                                Click="btnExternalStepTemizle_Click"/>
                         <!-- Analiz surerken: hareketli cubuk, asama / "142 / 195 parca", Iptal -->
                         <StackPanel x:Name="pnlExternalStepIlerleme" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed">
                             <ProgressBar x:Name="barExternalStepIlerleme" Width="180" Height="6" VerticalAlignment="Center"
