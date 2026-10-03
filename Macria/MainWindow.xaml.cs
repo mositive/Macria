@@ -325,6 +325,7 @@ namespace Macria
                 MontajParcaListesiniKur();
                 ExternalStepOnizlemesiniKur();
                 DxfDwgListesiniKur();
+                TabloSutunGenisligi.Uygula(gridExternalStepProfil, gridSacParcalar, gridKontrolParcalar, gridDxfDwgFiles);
 
             ParcaSutunDeposu.Yukle();
             ParcaSutunlariniUygula();

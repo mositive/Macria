@@ -2255,14 +2255,17 @@
                                 <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="{StaticResource BorderBrush}"/>
                                 <Border Grid.Column="2" Margin="8,0,0,0" Padding="12" CornerRadius="4" Background="{StaticResource BgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
                                     <Grid>
+                                        <!-- 3B fills the panel as in Kontrol gerekli; the part details
+                                             stay below it, capped and scrolled, so the panel never
+                                             outgrows a short window -->
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="3*" MinHeight="240"/>
-                                            <RowDefinition Height="2*" MinHeight="90"/>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
                                         <TextBlock Grid.Row="0" Text="3B Önizleme" FontWeight="SemiBold" FontSize="14" Margin="0,0,0,7"/>
                                         <local:Step3BPaneli Grid.Row="1" x:Name="profilOnizleme" DiagnosticName="Gömülü 3B" Margin="0,0,0,9"/>
-                                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                                        <ScrollViewer Grid.Row="2" MaxHeight="180" VerticalScrollBarVisibility="Auto">
                                             <StackPanel>
                                                 <TextBlock Text="Seçili Parça" FontWeight="SemiBold" FontSize="14"/>
                                                 <TextBlock x:Name="txtExternalStepDetailMessage" Margin="0,12,0,0" TextWrapping="Wrap" Foreground="{StaticResource TextDisabledBrush}" Text="Ayrıntıları görmek için listeden bir STEP seçin."/>
