@@ -58,7 +58,10 @@ internal static class Program
             StoredJsonResultTests();
             MotorKimligiTests();
             MacriaProjeTests();
+            SekmeKurallariTests();
             await RealProjectRoundTripAsync();
+            await RealSinglePartPathAsync();
+            RealOldProjectsTests();
             ExternalStepExcelWriter();
             await TemporaryStepWorkspaceAsync();
             await TemporaryStepFailureAndCancellationAsync();
@@ -455,6 +458,185 @@ internal static class Program
                 "engine DXFs of the opened project exist");
             Console.WriteLine(string.Create(System.Globalization.CultureInfo.InvariantCulture,
                 $"REAL_PROJECT: {Path.GetFileName(step)} parça={result.Analysis.Parts.Count} satır={profil.Count + montaj.Count} karar={kararlar.Count} analiz={analizSn:0.0}s kaydet={kaydetSn:0.00}s aç(hash+satır+karar)={acSn:0.00}s proje={new FileInfo(proje).Length / 1024.0:0}KB"));
+        }
+    }
+
+    private static void SekmeKurallariTests()
+    {
+        // Engine code + evidence -> tab (docs/SEKME_VE_ARAC_CUBUGU_PLANI.md).
+        (string Kod, bool Kanit, AnalizSekmesi Sekme)[] tablo =
+        {
+            (MotorSinifKodu.Sheet, true, AnalizSekmesi.Saclar),
+            (MotorSinifKodu.HollowProfile, true, AnalizSekmesi.Profiller),
+            (MotorSinifKodu.ProcessedProfile, true, AnalizSekmesi.Profiller),
+            (MotorSinifKodu.SheetProfileConflict, true, AnalizSekmesi.KontrolGerekli),
+            (MotorSinifKodu.FlatPatternFailed, true, AnalizSekmesi.KontrolGerekli),
+            (MotorSinifKodu.MultiSolid, false, AnalizSekmesi.KontrolGerekli),
+            (MotorSinifKodu.SolidBar, true, AnalizSekmesi.KontrolGerekli),
+            (MotorSinifKodu.ThickerThanOutline, true, AnalizSekmesi.KontrolGerekli),
+            (MotorSinifKodu.ThickerThanMaterial, true, AnalizSekmesi.KontrolGerekli),
+            (MotorSinifKodu.UnsupportedFaces, true, AnalizSekmesi.KontrolGerekli),
+            (MotorSinifKodu.UnsupportedFaces, false, AnalizSekmesi.Tanimsiz),
+            (MotorSinifKodu.SheetAnalysisIncomplete, true, AnalizSekmesi.KontrolGerekli),
+            (MotorSinifKodu.SheetAnalysisIncomplete, false, AnalizSekmesi.Tanimsiz),
+            (MotorSinifKodu.NotRecognized, true, AnalizSekmesi.KontrolGerekli),
+            (MotorSinifKodu.NotRecognized, false, AnalizSekmesi.Tanimsiz),
+            (MotorSinifKodu.InvalidGeometry, false, AnalizSekmesi.Tanimsiz),
+            (MotorSinifKodu.TimedOut, false, AnalizSekmesi.Tanimsiz),
+            (MotorSinifKodu.NoSolid, false, AnalizSekmesi.Tanimsiz),
+            ("Bilinmeyen", false, AnalizSekmesi.KontrolGerekli)
+        };
+        foreach (var (kod, kanit, sekme) in tablo)
+            Check(SekmeKurallari.OtomatikSekme(kod, kanit) == sekme, $"{kod} (kanıt {kanit}) -> {sekme}");
+        Check(SekmeKurallari.Diger(MotorSinifKodu.ThickerThanMaterial) && !SekmeKurallari.Diger(MotorSinifKodu.NotRecognized),
+            "solid bars and too-thick parts are Diğer; unrecognized parts are not");
+        Check(MotorSinifKodu.KodCikar("ReviewRequired", new[] { "Tanıyıcıların desteklemediği yüz tipleri var (BSpline): x" }) ==
+              MotorSinifKodu.UnsupportedFaces &&
+              MotorSinifKodu.KodCikar("Other", new[] { "Sac kabuğu bulundu ama kalınlık (30 mm) parçanın gerçek et genişliğinden (6 mm) büyük", "Sac veya profil olarak tanınmadı." }) ==
+              MotorSinifKodu.ThickerThanMaterial,
+            "codes are derived from the engine's reason texts");
+
+        // Toolbar: what each tab offers.
+        var profilSatiri = new GeometryLabStepProfileListItem { SourceStepPath = "C:\\a.stp" };
+        GeometryLabAnalysisTransport analysis = AssemblyAnalysis();
+        MontajParcaSatiri sac = MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[1], "C:\\x.dxf", 20);
+        IAnalizSatiri[] hicbiri = Array.Empty<IAnalizSatiri>();
+        AnalizAracDurumu profiller = AnalizAracDurumu.Hesapla(AnalizSekmesi.Profiller, new IAnalizSatiri[] { profilSatiri }, true, false);
+        Check(!profiller.ProfilOnaylaGorunur && !profiller.SacOnaylaGorunur && profiller.KontroleGorunur && profiller.ListeDisiGorunur &&
+              profiller.OtomatikGorunur && !profiller.GeriAlGorunur && !profiller.DxfUretGorunur && profiller.DosyayiAcEtkin,
+            "Profiller: Kontrol Gerekliye Al, Liste Dışına Çıkar, Otomatik Karara Dön");
+        AnalizAracDurumu saclar = AnalizAracDurumu.Hesapla(AnalizSekmesi.Saclar, new IAnalizSatiri[] { sac }, true, true);
+        Check(saclar.SacOnaylaGorunur && saclar.SacOnaylaEtkin && saclar.DxfUretGorunur && saclar.DxfUretEtkin &&
+              !saclar.ProfilOnaylaGorunur && saclar.KontroleGorunur, "Saclar: Sac Olarak Onayla (onay bekleyen), DXF Üret");
+        sac.ApproveAsSheet();
+        Check(!AnalizAracDurumu.Hesapla(AnalizSekmesi.Saclar, new IAnalizSatiri[] { sac }, true, true).SacOnaylaEtkin,
+            "an approved sheet cannot be approved again");
+        AnalizAracDurumu kontrol = AnalizAracDurumu.Hesapla(AnalizSekmesi.KontrolGerekli,
+            new IAnalizSatiri[] { profilSatiri, sac }, true, false);
+        Check(kontrol.ProfilOnaylaGorunur && kontrol.ProfilOnaylaEtkin && kontrol.SacOnaylaGorunur && kontrol.SacOnaylaEtkin &&
+              !kontrol.KontroleGorunur && !kontrol.DxfUretGorunur && !kontrol.DosyayiAcEtkin,
+            "Kontrol gerekli: Profil / Sac Olarak Onayla; no Kontrol Gerekliye Al");
+        AnalizAracDurumu tanimsiz = AnalizAracDurumu.Hesapla(AnalizSekmesi.Tanimsiz, hicbiri, false, false);
+        Check(tanimsiz.ProfilOnaylaGorunur && tanimsiz.SacOnaylaGorunur && tanimsiz.KontroleGorunur && !tanimsiz.ListeDisiEtkin &&
+              !tanimsiz.ExcelEtkin, "Tanımsız: every decision, nothing enabled without a selection");
+        AnalizAracDurumu listeDisi = AnalizAracDurumu.Hesapla(AnalizSekmesi.ListeDisi, new IAnalizSatiri[] { sac }, true, false);
+        Check(listeDisi.GeriAlGorunur && listeDisi.GeriAlEtkin && !listeDisi.ListeDisiGorunur && !listeDisi.OtomatikGorunur &&
+              !listeDisi.SacOnaylaGorunur && !listeDisi.ProfilOnaylaGorunur && !listeDisi.KontroleGorunur,
+            "Liste dışı: only Geri Al");
+
+        // Schema 1.0 projects: Incelemeye -> Kontrol gerekli, profile ListeDisi -> flag,
+        // a file-row decision (parca null) -> the source's single part.
+        var tekParca = new GeometryLabStepProfileListItem
+        {
+            SourceStepPath = "C:\\t.stp", PartName = "T", PartQuantity = 1, PartLocalId = 1
+        };
+        tekParca.MarkAnalyzing();
+        var adaylar = new List<MacriaKararAdayi>
+        {
+            new("k1", MacriaProje.HedefProfil, new MacriaParcaKimligi { LocalId = 1, Ad = "T" }, tekParca),
+            new("k2", MacriaProje.HedefMontaj, new MacriaParcaKimligi { LocalId = 7, Ad = "S" }, sac)
+        };
+        var eski = new[]
+        {
+            new MacriaProjeKarari { Kaynak = "k1", Parca = null, Hedef = MacriaProje.HedefProfil, Karar = MacriaProje.KararIncelemeye },
+            new MacriaProjeKarari { Kaynak = "k1", Parca = null, Hedef = MacriaProje.HedefProfil, Karar = MacriaProje.KararListeDisi, Not = "eski" },
+            new MacriaProjeKarari { Kaynak = "k2", Parca = null, Hedef = MacriaProje.HedefProfil, Karar = MacriaProje.KararListeDisi }
+        };
+        var (eslenen, eslenemeyen) = MacriaProje.KararlariEsle(eski, adaylar, _ => false);
+        Check(eslenen.Count == 3 && eslenemeyen.Count == 0, "1.0 file-row decisions find the single part of their source");
+        Check(eslenen.All(x => MacriaProjeSatirlari.Uygula(x.Karar, x.Aday.Satir)), "1.0 decisions apply");
+        Check(tekParca.Sekme == AnalizSekmesi.ListeDisi && tekParca.ListeDisiNotu == "eski" &&
+              tekParca.KullaniciKarari == MacriaProje.KararKontrole,
+            "Incelemeye becomes Kontrol gerekli, ListeDisi the flag over it");
+        tekParca.ListeyeGeriAl();
+        Check(tekParca.Sekme == AnalizSekmesi.KontrolGerekli, "Geri Al returns it to Kontrol gerekli");
+        Check(sac.Sekme == AnalizSekmesi.ListeDisi, "a 1.0 file-row exclusion reaches a sheet part too");
+        List<MacriaProjeKarari> toplanan = MacriaProjeSatirlari.KararlariTopla(new[] { tekParca }, new[] { sac },
+            yol => yol == "C:\\t.stp" ? "k1" : "k2");
+        Check(toplanan.Count(x => x.Karar == MacriaProje.KararListeDisi) == 1 &&
+              toplanan.Any(x => x.Karar == MacriaProje.KararKontrole && x.Hedef == MacriaProje.HedefProfil) &&
+              toplanan.Any(x => x.Karar == MacriaProje.KararSacOnayla),
+            "1.1 writes the category decision and the Liste dışı flag apart");
+    }
+
+    // Every single-part STEP under MACRIA_TEK_PARCA_KOK: its profile row built
+    // from the file (old path) and from its part (schema 1.1 path) must show
+    // the same profile.
+    private static async Task RealSinglePartPathAsync()
+    {
+        string? engine = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_EXE");
+        string? kok = Environment.GetEnvironmentVariable("MACRIA_TEK_PARCA_KOK");
+        if (string.IsNullOrWhiteSpace(engine) || !File.Exists(engine) || string.IsNullOrWhiteSpace(kok) || !Directory.Exists(kok))
+        {
+            Console.WriteLine("REAL_SINGLE_PART: SKIPPED - MACRIA_TEK_PARCA_KOK unavailable.");
+            return;
+        }
+        int dosya = 0, profil = 0, digerSekme = 0;
+        foreach (string step in Directory.GetFiles(kok, "*.stp", SearchOption.AllDirectories)
+                     .Concat(Directory.GetFiles(kok, "*.step", SearchOption.AllDirectories)).OrderBy(x => x))
+        {
+            GeometryLabProcessAdapterResult result = await Adapter(engine, TimeSpan.Zero).AnalyzeAsync(step);
+            if (!result.IsSuccess || result.Analysis?.Parts.Count != 1 || MontajParcaSatiri.IsAssembly(result.Analysis)) continue;
+            ++dosya;
+            var eskiYol = new GeometryLabStepProfileListItem { SourceStepPath = step };
+            eskiYol.Apply(result);
+            var (profiller, parcalar) = MacriaProjeSatirlari.Kur(step, result, 20);
+            Check(profiller.Count + parcalar.Count == 1, "a single-part STEP gives one row: " + Path.GetFileName(step));
+            if (profiller.Count == 1)
+            {
+                ++profil;
+                GeometryLabStepProfileListItem yeni = profiller[0];
+                string Gorunum(GeometryLabStepProfileListItem x) => string.Join("|", x.EffectiveStatusDisplay, x.EffectiveProfileTypeDisplay,
+                    x.SectionDisplay, x.LengthDisplay, x.TopologyDisplay, x.CutDisplay, x.OperationDisplay, x.QuantityDisplay);
+                Check(Gorunum(eskiYol) == Gorunum(yeni),
+                    "single-part profile looks the same by file and by part: " + Path.GetFileName(step) + "\n  " + Gorunum(eskiYol) + "\n  " + Gorunum(yeni));
+            }
+            else
+            {
+                ++digerSekme;
+                Console.WriteLine($"REAL_SINGLE_PART: {Path.GetFileName(step)} -> {parcalar[0].Sekme} ({parcalar[0].StatusDisplay}, {parcalar[0].EngineCode}); eskiden {eskiYol.EffectiveStatusDisplay}");
+            }
+        }
+        Console.WriteLine($"REAL_SINGLE_PART: {dosya} tek parçalı STEP, {profil} profil aynı, {digerSekme} profil dışı sekmede");
+    }
+
+    // Saved schema 1.0 projects (MACRIA_ESKI_PROJELER, ';'-separated): their
+    // decisions land on the new tabs.
+    private static void RealOldProjectsTests()
+    {
+        string[] projeler = (Environment.GetEnvironmentVariable("MACRIA_ESKI_PROJELER") ?? "")
+            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Where(File.Exists).ToArray();
+        if (projeler.Length == 0)
+        {
+            Console.WriteLine("REAL_OLD_PROJECT: SKIPPED - MACRIA_ESKI_PROJELER unavailable.");
+            return;
+        }
+        foreach (string proje in projeler)
+        {
+            MacriaProjeAcilisi acilis = MacriaProje.Ac(proje, Path.Combine(_root, "eski-proje", Guid.NewGuid().ToString("N")));
+            var profil = new List<GeometryLabStepProfileListItem>();
+            var montaj = new List<MontajParcaSatiri>();
+            var kaynakIdleri = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (MacriaProjeKaynagi kaynak in acilis.Veri.Kaynaklar)
+            {
+                kaynakIdleri[kaynak.Yol] = kaynak.Id;
+                if (!acilis.AnalysisJson.TryGetValue(kaynak.Id, out string? json)) continue;
+                var (p, m) = MacriaProjeSatirlari.Kur(kaynak.Yol,
+                    GeometryLabProcessAdapter.SonucuJsondanKur(json, acilis.DxfKlasoru.GetValueOrDefault(kaynak.Id)),
+                    acilis.Veri.Ayarlar.LazerAzamiKalinlikMm);
+                profil.AddRange(p);
+                montaj.AddRange(m);
+            }
+            var (eslenen, eslenemeyen) = MacriaProje.KararlariEsle(acilis.Veri.Kararlar,
+                MacriaProjeSatirlari.Adaylar(profil, montaj, yol => kaynakIdleri.GetValueOrDefault(yol)), _ => false);
+            int uygulanan = eslenen.Count(x => MacriaProjeSatirlari.Uygula(x.Karar, x.Aday.Satir));
+            Check(eslenemeyen.Count == 0 && uygulanan == acilis.Veri.Kararlar.Count,
+                "every decision of an old project lands on a row: " + Path.GetFileName(proje));
+            IEnumerable<IAnalizSatiri> hepsi = profil.Cast<IAnalizSatiri>().Concat(montaj);
+            Console.WriteLine($"REAL_OLD_PROJECT: {Path.GetFileName(proje)} şema {acilis.Manifest.SchemaVersion}, {acilis.Veri.Kararlar.Count} karar uygulandı; " +
+                string.Join(", ", hepsi.GroupBy(x => x.Sekme).OrderBy(g => g.Key).Select(g => g.Key + " " + g.Count())));
+            foreach (var (karar, aday) in eslenen)
+                Console.WriteLine($"REAL_OLD_PROJECT:    {karar.Karar} {karar.Parca?.Ad ?? "(dosya satırı)"} -> {((IAnalizSatiri)aday.Satir).Sekme}");
         }
     }
 
@@ -963,11 +1145,26 @@ internal static class Program
         Check(conflict.EffectiveCategory == MontajParcaKategorisi.Sac && conflict.ExplanationDisplay.Contains("çakışması"),
             "the CATIA sheet-metal feature settles the conflict as Sac");
 
-        MontajParcaSatiri shaft = Row(4, null);
-        Check(shaft.EffectiveCategory == MontajParcaKategorisi.Diger && shaft.IsInReviewTab && !shaft.CanApproveAsSheet,
-            "an Other part is listed under Kontrol gerekli and cannot be approved as sheet");
+        sheet.ListeDisinaCikar("fason");
+        Check(sheet.Sekme == AnalizSekmesi.ListeDisi && !sheet.IsInSheetTab && !sheet.IsInReviewTab &&
+              sheet.AciklamaGosterimi.Contains("fason"), "Liste dışı takes a row out of every tab, with its note");
+        sheet.ListeyeGeriAl();
+        Check(sheet.Sekme == AnalizSekmesi.KontrolGerekli && sheet.HasUserDecision,
+            "Geri Al returns the row to the tab of its decision");
+
+        MontajParcaSatiri shaft = MontajParcaSatiri.Olustur("C:\\m.stp", analysis,
+            analysis.Parts[4] with { ClassificationCode = MotorSinifKodu.SolidBar, RecognitionEvidence = true }, null, 20);
+        Check(shaft.EffectiveCategory == MontajParcaKategorisi.Diger && shaft.Sekme == AnalizSekmesi.KontrolGerekli &&
+              !shaft.CanApproveAsSheet, "a solid bar is Diğer under Kontrol gerekli");
         shaft.ApproveAsSheet();
-        Check(shaft.EffectiveCategory == MontajParcaKategorisi.Diger, "no approval without an engine DXF");
+        Check(shaft.EffectiveCategory == MontajParcaKategorisi.Sac && shaft.Sekme == AnalizSekmesi.Saclar &&
+              shaft.DxfDisplay == "açınım yok – CATIA'dan" && shaft.ExplanationDisplay.Contains("CATIA'dan"),
+            "a part without flat pattern is approved as sheet; its DXF comes from CATIA");
+        Check(sheet.DxfDisplay != "açınım yok – CATIA'dan", "a part with an engine DXF names the DXF file");
+        MontajParcaSatiri bos = Row(4, null);
+        Check(bos.EngineCode == MotorSinifKodu.NotRecognized && !bos.EngineEvidence &&
+              bos.EffectiveCategory == MontajParcaKategorisi.Tanimsiz && bos.Sekme == AnalizSekmesi.Tanimsiz,
+            "an Other part with no evidence (old output, derived code) is Tanımsız");
         Check(Row(0).EffectiveCategory == MontajParcaKategorisi.Profil, "a profile part goes to the profile list");
 
         // Profile part as an existing profile row.
@@ -1374,10 +1571,15 @@ internal static class Program
               review.DecisionSource == GeometryLabDecisionSource.User && review.HasUserDecision &&
               review.DecisionToolTip.Contains("Karar kaynağı: Kullanıcı", StringComparison.Ordinal),
             "a user decision preserves the automatic category and exposes its source");
+        Check(review.Sekme == AnalizSekmesi.KontrolGerekli && review.KullaniciKarari == MacriaProje.KararKontrole,
+            "a profile moved to review is listed under Kontrol gerekli");
         review.ExcludeFromList("Teknik inceleme sonrası");
-        Check(review.EffectiveCategory == GeometryLabExternalStepResultGroup.Excluded &&
-              review.UserDecisionNote == "Teknik inceleme sonrası" && review.AnalysisStatus == "Liste dışı",
-            "bulk-compatible user exclusion changes only the effective presentation");
+        Check(review.ListeDisi && review.Sekme == AnalizSekmesi.ListeDisi && review.ListeDisiNotu == "Teknik inceleme sonrası" &&
+              review.EffectiveCategory == GeometryLabExternalStepResultGroup.ReviewRequired && review.HasUserDecision &&
+              review.AciklamaGosterimi.Contains("Teknik inceleme sonrası"),
+            "Liste dışı is a flag over the row's decision, with its note");
+        review.ListeyeGeriAl();
+        Check(!review.ListeDisi && review.Sekme == AnalizSekmesi.KontrolGerekli, "Geri Al returns the profile to Kontrol gerekli");
         review.RestoreAutomaticDecision();
         Check(review.EffectiveCategory == GeometryLabExternalStepResultGroup.ReviewRequired &&
               review.DecisionSource == GeometryLabDecisionSource.Automatic && review.UserDecisionNote == "" &&
@@ -1411,7 +1613,8 @@ internal static class Program
         Check(item.CatiaQuantityDisplay == "2", "6A-08 quantity transfer");
         Check(item.DecisionSource == GeometryLabDecisionSource.ThreeDScan, "6A-09 confirmed sheet decision source");
         Check(item.EffectiveCategory == GeometryLabExternalStepResultGroup.Excluded, "6A-10 confirmed sheet excluded");
-        Check(item.EffectiveStatusDisplay == "Liste dışı", "6A-10b effective CATIA exclusion is shown in status column");
+        Check(item.EffectiveStatusDisplay == "Sac (CATIA)" && item.Sekme == AnalizSekmesi.KontrolGerekli,
+            "6A-10b a profile row CATIA calls a sheet is shown as such under Kontrol gerekli");
         Check(item.EffectiveProfileTypeDisplay == "Sac Parça" && item.ProfileType == "—", "6A-10c CATIA sheet type is visible without overwriting technical type");
         var unknown = new GeometryLabStepProfileListItem { SourceStepPath = "01-Duz-Duz_Rep.stp" }; unknown.MarkAnalyzing(); unknown.ApplyCatiaComparison(CatiaStepMatcher.Match(snapshot, unknown.SourceStepPath));
         Check(unknown.DecisionSource != GeometryLabDecisionSource.ThreeDScan, "6A-11 false does not decide");
@@ -1422,7 +1625,7 @@ internal static class Program
         var none = new GeometryLabStepProfileListItem { SourceStepPath = "none.stp" }; none.MarkAnalyzing(); none.ApplyCatiaComparison(CatiaStepMatcher.Match(snapshot, none.SourceStepPath));
         Check(none.CatiaMatchDisplay == "Eşleşmedi", "6A-15 unmatched display");
         Check(none.CatiaQuantityDisplay == "—", "6A-16 unmatched quantity blank");
-        item.ExcludeFromList(); Check(item.HasUserDecision, "6A-17 user decision exists");
+        item.MoveToReview(); Check(item.HasUserDecision, "6A-17 user decision exists");
         item.ApplyCatiaComparison(CatiaStepMatcher.Match(snapshot, item.SourceStepPath)); Check(item.CatiaMatchDisplay == "Kullanıcı kararı korundu", "6A-18 user wins");
         item.RestoreAutomaticDecision(); Check(item.DecisionSource == GeometryLabDecisionSource.ThreeDScan, "6A-19 restore CATIA priority");
         Check(item.EffectiveProfileTypeDisplay == "Sac Parça", "6A-19b restore CATIA sheet type");

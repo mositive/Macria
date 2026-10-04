@@ -26,6 +26,7 @@
     <Compile Include="../Macria/MacriaProje.cs" Link="Macria/MacriaProje.cs" />
     <Compile Include="../Macria/MacriaProjeSatirlari.cs" Link="Macria/MacriaProjeSatirlari.cs" />
     <Compile Include="../Macria/MotorSinifKodu.cs" Link="Macria/MotorSinifKodu.cs" />
+    <Compile Include="../Macria/AnalizSekmesi.cs" Link="Macria/AnalizSekmesi.cs" />
     <Compile Include="../Macria/GeometryLabTemporaryStepExporter.cs" Link="Macria/GeometryLabTemporaryStepExporter.cs" />
     <Compile Include="../Macria/RaporModel.cs" Link="Macria/RaporModel.cs" />
     <Compile Include="../Macria/ExcelYazici.cs" Link="Macria/ExcelYazici.cs" />

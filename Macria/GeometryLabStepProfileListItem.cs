@@ -65,7 +65,7 @@ public enum GeometryLabExternalStepResultGroup
 /// Session-only, read-only presentation of one user-selected external STEP analysis.
 /// It has no CATIA or ProfilRow references and never owns the input STEP file.
 /// </summary>
-public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged
+public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAnalizSatiri
 {
     public required string SourceStepPath { get; init; }
     // Set for one part of an assembly STEP; the row then shows "file > part (xN)".
@@ -91,7 +91,10 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged
     {
         GeometryLabExternalStepResultGroup.DefiniteProfile => "Tanındı",
         GeometryLabExternalStepResultGroup.ReviewRequired => "İnceleme gerekli",
-        GeometryLabExternalStepResultGroup.Excluded => "Liste dışı",
+        // Automatic only (failed analysis, several solids, CATIA sheet): the
+        // user's "Liste dışı" is a flag (ListeDisi), not this category.
+        GeometryLabExternalStepResultGroup.Excluded when DecisionSource == GeometryLabDecisionSource.ThreeDScan => "Sac (CATIA)",
+        GeometryLabExternalStepResultGroup.Excluded => AnalysisStatus,
         _ => "Tanımsız"
     };
 
@@ -290,10 +293,28 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged
     }
 
     public void MoveToReview(string? note = null) => ApplyUserCategory(GeometryLabExternalStepResultGroup.ReviewRequired,
-        "Kullanıcı kararıyla incelemeye alındı.", note, "İnceleme gerekli", MacriaProje.KararIncelemeye);
+        "Kullanıcı kararıyla kontrol gerekliye alındı.", note, "İnceleme gerekli", MacriaProje.KararKontrole);
 
-    public void ExcludeFromList(string? note = null) => ApplyUserCategory(GeometryLabExternalStepResultGroup.Excluded,
-        "Kullanıcı kararıyla profil listesinden çıkarıldı.", note, "Liste dışı", MacriaProje.KararListeDisi);
+    /// <summary>Takes the row out of every list (Liste dışı); its decision stays for Geri Al.</summary>
+    public void ExcludeFromList(string? note = null) => ListeDisinaCikar(note);
+
+    /// <summary>Taken out of every list by the user; Geri Al brings it back to its tab.</summary>
+    public bool ListeDisi { get; private set; }
+    public string ListeDisiNotu { get; private set; } = "";
+
+    public void ListeDisinaCikar(string? not = null)
+    {
+        ListeDisi = true;
+        ListeDisiNotu = not?.Trim() ?? "";
+        RaiseDecisionProperties();
+    }
+
+    public void ListeyeGeriAl()
+    {
+        ListeDisi = false;
+        ListeDisiNotu = "";
+        RaiseDecisionProperties();
+    }
 
     public void RestoreAutomaticDecision()
     {
@@ -652,5 +673,40 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasUserDecision)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(EffectiveProfileTypeDisplay)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DecisionToolTip)));
+        foreach (string name in new[] { nameof(ListeDisi), nameof(Sekme), nameof(DurumEtiketi), nameof(KararGosterimi),
+                                         nameof(AciklamaGosterimi), nameof(EffectiveStatusDisplay), nameof(KullaniciKarari) })
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
+
+    // IAnalizSatiri: common columns of the mixed tabs and the common toolbar.
+    public AnalizSekmesi Sekme => ListeDisi ? AnalizSekmesi.ListeDisi : NormalizeEffectiveCategory(EffectiveCategory) switch
+    {
+        GeometryLabExternalStepResultGroup.DefiniteProfile => AnalizSekmesi.Profiller,
+        GeometryLabExternalStepResultGroup.ReviewRequired => AnalizSekmesi.KontrolGerekli,
+        // Several solids, or CATIA calls the part a sheet: someone has to look.
+        GeometryLabExternalStepResultGroup.Excluded when DecisionSource == GeometryLabDecisionSource.ThreeDScan ||
+                                                         AnalysisStatus == "Çoklu solid" => AnalizSekmesi.KontrolGerekli,
+        // The engine classified this part as a profile: there is evidence.
+        GeometryLabExternalStepResultGroup.Unclassified when PartLocalId != null => AnalizSekmesi.KontrolGerekli,
+        _ => AnalizSekmesi.Tanimsiz
+    };
+    bool IAnalizSatiri.ProfilSatiri => true;
+    string IAnalizSatiri.KaynakYolu => SourceStepPath;
+    string? IAnalizSatiri.ParcaAdi => PartName;
+    string IAnalizSatiri.ParcaGosterimi => SourceFileName;
+    string IAnalizSatiri.AdetGosterimi => QuantityDisplay;
+    string IAnalizSatiri.TurGosterimi => EffectiveProfileTypeDisplay == "—" ? "Profil?" : EffectiveProfileTypeDisplay;
+    string IAnalizSatiri.OlcuGosterimi => SectionDisplay;
+    public string DurumEtiketi => EffectiveStatusDisplay;
+    public string KararGosterimi => DecisionSource switch
+    {
+        GeometryLabDecisionSource.User => "Kullanıcı",
+        GeometryLabDecisionSource.ThreeDScan => "CATIA 3B tarama",
+        _ => "Otomatik"
+    };
+    public string AciklamaGosterimi => ListeDisi && ListeDisiNotu.Length > 0
+        ? ExplanationDisplay + " (Liste dışı: " + ListeDisiNotu + ")"
+        : ExplanationDisplay;
+    bool IAnalizSatiri.OnayBekliyor => false;
+    void IAnalizSatiri.KontrolGerekliyeAl() => MoveToReview();
 }

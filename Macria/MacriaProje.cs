@@ -147,7 +147,7 @@ public sealed record MacriaKararAdayi(string KaynakId, string Hedef, MacriaParca
 public static class MacriaProje
 {
     public const string Format = "macria-proje";
-    public const string SemaSurumu = "1.0";
+    public const string SemaSurumu = "1.1";
     public const string Uzanti = ".macria";
 
     public const string HedefProfil = "profil";
@@ -155,6 +155,7 @@ public static class MacriaProje
 
     public const string KararProfilOnayla = "ProfilOnayla";
     public const string KararElleProfil = "ElleProfil";
+    // Schema 1.0 name of a profile row's "Kontrol Gerekliye Al"; still read.
     public const string KararIncelemeye = "Incelemeye";
     public const string KararListeDisi = "ListeDisi";
     public const string KararSacOnayla = "SacOnayla";
@@ -404,15 +405,20 @@ public static class MacriaProje
     {
         var eslenen = new List<(MacriaProjeKarari, MacriaKararAdayi)>();
         var eslenemeyen = new List<MacriaProjeKarari>();
-        var kullanilan = new HashSet<object>(ReferenceEqualityComparer.Instance);
+        // A row takes one category decision and one "Liste dışı" flag.
+        var kullanilan = new HashSet<(object, bool)>();
         foreach (MacriaProjeKarari karar in kararlar)
         {
-            List<MacriaKararAdayi> ayniHedef = adaylar
-                .Where(a => a.KaynakId == karar.Kaynak && a.Hedef == karar.Hedef && !kullanilan.Contains(a.Satir))
+            bool bayrak = karar.Karar == KararListeDisi;
+            List<MacriaKararAdayi> ayniKaynak = adaylar
+                .Where(a => a.KaynakId == karar.Kaynak && !kullanilan.Contains((a.Satir, bayrak)))
                 .ToList();
+            List<MacriaKararAdayi> ayniHedef = ayniKaynak.Where(a => a.Hedef == karar.Hedef).ToList();
             MacriaKararAdayi? aday;
             if (karar.Parca is null)
-                aday = Tek(ayniHedef.Where(a => a.Parca is null));
+                // A file row; since schema 1.1 a single-part STEP is listed by
+                // its part, so a source with one row takes the decision.
+                aday = Tek(ayniHedef.Where(a => a.Parca is null)) ?? Tek(ayniKaynak);
             else if (!yenidenTarandi(karar.Kaynak))
                 aday = Tek(ayniHedef.Where(a => a.Parca?.LocalId == karar.Parca.LocalId &&
                                                 (karar.Parca.Ad is null || a.Parca.Ad == karar.Parca.Ad)));
@@ -422,7 +428,7 @@ public static class MacriaProje
                            : null)
                        ?? (karar.Parca.Ad is string ad ? Tek(ayniHedef.Where(a => a.Parca?.Ad == ad)) : null);
             if (aday is null) { eslenemeyen.Add(karar); continue; }
-            kullanilan.Add(aday.Satir);
+            kullanilan.Add((aday.Satir, bayrak));
             eslenen.Add((karar, aday));
         }
         return (eslenen, eslenemeyen);

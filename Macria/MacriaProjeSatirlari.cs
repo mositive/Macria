@@ -12,19 +12,24 @@ namespace Macria;
 public static class MacriaProjeSatirlari
 {
     /// <summary>
-    /// Rows for one analysed STEP: a single-part file (or a failed analysis)
-    /// is one Profiller row; an assembly gives one Profiller row per profile
-    /// part and Saclar / Kontrol gerekli rows for the others.
+    /// Rows for one analysed STEP. Every STEP with engine parts (schema 1.2),
+    /// a single-part file too, gives one Profiller row per profile part and a
+    /// part row for each other part (Saclar, Kontrol gerekli, Tanımsız). A
+    /// failed analysis or an older schema without parts stays one file row.
     /// </summary>
     public static (List<GeometryLabStepProfileListItem> Profil, List<MontajParcaSatiri> Montaj) Kur(
         string stepPath, GeometryLabProcessAdapterResult result, double laserMaximumMm)
     {
-        if (result.IsSuccess && MontajParcaSatiri.IsAssembly(result.Analysis))
+        if (ParcaYolundan(result))
             return MontajSatirlari(stepPath, result, laserMaximumMm);
         var row = new GeometryLabStepProfileListItem { SourceStepPath = stepPath };
         row.Apply(result);
         return (new List<GeometryLabStepProfileListItem> { row }, new List<MontajParcaSatiri>());
     }
+
+    /// <summary>The result is listed by its engine parts (see Kur).</summary>
+    public static bool ParcaYolundan(GeometryLabProcessAdapterResult result) =>
+        result.IsSuccess && result.Analysis?.Parts.Count > 0;
 
     public static (List<GeometryLabStepProfileListItem> Profil, List<MontajParcaSatiri> Montaj) MontajSatirlari(
         string stepPath, GeometryLabProcessAdapterResult result, double laserMaximumMm)
@@ -64,7 +69,9 @@ public static class MacriaProjeSatirlari
         var kararlar = new List<MacriaProjeKarari>();
         foreach (GeometryLabStepProfileListItem row in profil)
         {
-            if (row.KullaniciKarari is not string karar || kaynakId(row.SourceStepPath) is not string id) continue;
+            if (kaynakId(row.SourceStepPath) is not string id) continue;
+            if (row.ListeDisi) kararlar.Add(ListeDisiKarari(id, ProfilKimligi(row), MacriaProje.HedefProfil, row.ListeDisiNotu));
+            if (row.KullaniciKarari is not string karar) continue;
             kararlar.Add(new MacriaProjeKarari
             {
                 Kaynak = id,
@@ -79,7 +86,9 @@ public static class MacriaProjeSatirlari
         }
         foreach (MontajParcaSatiri row in montaj)
         {
-            if (row.KullaniciKarari is not string karar || kaynakId(row.SourceStepPath) is not string id) continue;
+            if (kaynakId(row.SourceStepPath) is not string id) continue;
+            if (row.ListeDisi) kararlar.Add(ListeDisiKarari(id, MontajKimligi(row), MacriaProje.HedefMontaj, row.ListeDisiNotu));
+            if (row.KullaniciKarari is not string karar) continue;
             kararlar.Add(new MacriaProjeKarari
             {
                 Kaynak = id,
@@ -90,6 +99,15 @@ public static class MacriaProjeSatirlari
         }
         return kararlar;
     }
+
+    private static MacriaProjeKarari ListeDisiKarari(string kaynak, MacriaParcaKimligi? parca, string hedef, string not) => new()
+    {
+        Kaynak = kaynak,
+        Parca = parca,
+        Hedef = hedef,
+        Karar = MacriaProje.KararListeDisi,
+        Not = string.IsNullOrWhiteSpace(not) ? null : not
+    };
 
     public static List<MacriaKararAdayi> Adaylar(IEnumerable<GeometryLabStepProfileListItem> profil,
         IEnumerable<MontajParcaSatiri> montaj, Func<string, string?> kaynakId)
@@ -107,6 +125,11 @@ public static class MacriaProjeSatirlari
     /// <summary>Applies a decision through the row's own decision method; false when it does not apply to that row.</summary>
     public static bool Uygula(MacriaProjeKarari karar, object satir)
     {
+        if (karar.Karar == MacriaProje.KararListeDisi && satir is IAnalizSatiri analizSatiri)
+        {
+            analizSatiri.ListeDisinaCikar(karar.Not);
+            return analizSatiri.ListeDisi;
+        }
         switch (satir)
         {
             case GeometryLabStepProfileListItem profil:
@@ -115,15 +138,14 @@ public static class MacriaProjeSatirlari
                     case MacriaProje.KararProfilOnayla: profil.ConfirmAsProfile(karar.Not); break;
                     case MacriaProje.KararElleProfil when karar.ElleProfil is { } elle:
                         profil.ConfirmManualHollowProfile(elle.Tur, elle.Kesit, karar.Not); break;
-                    case MacriaProje.KararIncelemeye: profil.MoveToReview(karar.Not); break;
-                    case MacriaProje.KararListeDisi: profil.ExcludeFromList(karar.Not); break;
+                    case MacriaProje.KararIncelemeye or MacriaProje.KararKontrole: profil.MoveToReview(karar.Not); break;
                     default: return false;
                 }
-                return profil.KullaniciKarari == karar.Karar;
+                return profil.KullaniciKarari == (karar.Karar == MacriaProje.KararIncelemeye ? MacriaProje.KararKontrole : karar.Karar);
             case MontajParcaSatiri montaj:
                 switch (karar.Karar)
                 {
-                    case MacriaProje.KararSacOnayla when montaj.CanApproveAsSheet: montaj.ApproveAsSheet(); break;
+                    case MacriaProje.KararSacOnayla: montaj.ApproveAsSheet(); break;
                     case MacriaProje.KararKontrole: montaj.MoveToReview(); break;
                     default: return false;
                 }

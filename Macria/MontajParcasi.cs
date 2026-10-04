@@ -11,9 +11,10 @@ public enum MontajParcaKategorisi
 {
     Sac,            // Saclar: approved (CATIA sheet-metal feature or user)
     OnayGerekli,    // Saclar: engine found a geometric sheet, not confirmed yet
-    KontrolGerekli, // Kontrol gerekli tab
-    Diger,          // Kontrol gerekli tab, class "Diğer"
-    Profil          // Profiller tab (existing profile rows)
+    KontrolGerekli, // Kontrol gerekli tab: evidence found, not decided
+    Diger,          // Kontrol gerekli tab, class "Diğer" (solid bar, ring, nut, shaft)
+    Profil,         // Profiller tab (existing profile rows)
+    Tanimsiz        // Tanımsız tab: no evidence, invalid geometry, timed out, no solid
 }
 
 /// <summary>
@@ -21,7 +22,7 @@ public enum MontajParcaKategorisi
 /// The engine class is pure geometry; the CATIA sheet-metal feature and the
 /// user's decision settle what Macria shows. No CATIA COM references.
 /// </summary>
-public sealed class MontajParcaSatiri : INotifyPropertyChanged
+public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
 {
     private static readonly CultureInfo Tr = CultureInfo.GetCultureInfo("tr-TR");
 
@@ -79,9 +80,19 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
     /// <summary>Which user decision is in effect (MacriaProje.Karar*), or null.</summary>
     public string? KullaniciKarari => !HasUserDecision ? null
         : EffectiveCategory == MontajParcaKategorisi.Sac ? MacriaProje.KararSacOnayla : MacriaProje.KararKontrole;
+    /// <summary>The engine unfolded the part: DXF Üret writes it. Approval does not need it.</summary>
     public bool CanApproveAsSheet => DxfSourcePath != null && ThicknessMm != null;
-    public bool IsInSheetTab => EffectiveCategory is MontajParcaKategorisi.Sac or MontajParcaKategorisi.OnayGerekli;
-    public bool IsInReviewTab => EffectiveCategory is MontajParcaKategorisi.KontrolGerekli or MontajParcaKategorisi.Diger;
+    public bool IsInSheetTab => !ListeDisi && EffectiveCategory is MontajParcaKategorisi.Sac or MontajParcaKategorisi.OnayGerekli;
+    public bool IsInReviewTab => !ListeDisi && EffectiveCategory is MontajParcaKategorisi.KontrolGerekli or MontajParcaKategorisi.Diger;
+
+    /// <summary>Taken out of every list by the user; Geri Al brings it back to its tab.</summary>
+    public bool ListeDisi { get; private set; }
+    public string ListeDisiNotu { get; private set; } = "";
+
+    /// <summary>"DXF" column: the file DXF Üret writes, or why there is none.</summary>
+    public string DxfDisplay => DxfSourcePath != null && ThicknessMm is double t
+        ? DxfAdi.Uret(PartName, t, Quantity)
+        : "açınım yok – CATIA'dan";
 
     public string StatusDisplay => EffectiveCategory switch
     {
@@ -89,6 +100,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
         MontajParcaKategorisi.OnayGerekli => "Geometrik sac, onay gerekli",
         MontajParcaKategorisi.Diger => "Diğer",
         MontajParcaKategorisi.Profil => "Profil",
+        MontajParcaKategorisi.Tanimsiz => "Tanımsız",
         _ => "Kontrol gerekli"
     };
 
@@ -105,7 +117,9 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
         {
             if (HasUserDecision)
                 return EffectiveCategory == MontajParcaKategorisi.Sac
-                    ? "Kullanıcı tarafından sac olarak onaylandı."
+                    ? (DxfSourcePath != null
+                        ? "Kullanıcı tarafından sac olarak onaylandı."
+                        : "Kullanıcı tarafından sac olarak onaylandı; motor açınım üretemedi, DXF CATIA'dan alınmalı.")
                     : "Kullanıcı kararıyla kontrol gerekliye alındı.";
             return EffectiveCategory switch
             {
@@ -187,9 +201,9 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
         Recalculate();
     }
 
+    /// <summary>Saclar, with or without an engine flat pattern ("açınım yok – CATIA'dan").</summary>
     public void ApproveAsSheet()
     {
-        if (!CanApproveAsSheet) return;
         DecisionSource = GeometryLabDecisionSource.User;
         EffectiveCategory = MontajParcaKategorisi.Sac;
         RaiseAll();
@@ -208,6 +222,20 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
         Recalculate();
     }
 
+    public void ListeDisinaCikar(string? not = null)
+    {
+        ListeDisi = true;
+        ListeDisiNotu = not?.Trim() ?? "";
+        RaiseAll();
+    }
+
+    public void ListeyeGeriAl()
+    {
+        ListeDisi = false;
+        ListeDisiNotu = "";
+        RaiseAll();
+    }
+
     private void Recalculate()
     {
         bool catiaSheet = CatiaSheetMetalFeature == true;
@@ -218,7 +246,9 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
             "ReviewRequired" when SheetCandidate && ProfileCandidate != null && catiaSheet && ThicknessMm != null =>
                 MontajParcaKategorisi.Sac,
             "Profile" => MontajParcaKategorisi.Profil,
-            "Other" => MontajParcaKategorisi.Diger,
+            _ when SekmeKurallari.Diger(EngineCode) => MontajParcaKategorisi.Diger,
+            _ when SekmeKurallari.OtomatikSekme(EngineCode, EngineEvidence) == AnalizSekmesi.Tanimsiz =>
+                MontajParcaKategorisi.Tanimsiz,
             _ => MontajParcaKategorisi.KontrolGerekli
         };
         if (!HasUserDecision)
@@ -266,12 +296,41 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
             nameof(EffectiveCategory), nameof(AutomaticCategory), nameof(DecisionSource), nameof(HasUserDecision),
             nameof(StatusDisplay), nameof(DecisionDisplay), nameof(ExplanationDisplay), nameof(IsInSheetTab),
             nameof(IsInReviewTab), nameof(CatiaMatchDisplay), nameof(CatiaQuantityDisplay), nameof(CatiaReferenceTitle),
-            nameof(CatiaSheetMetalFeature), nameof(GroupDisplay)
+            nameof(CatiaSheetMetalFeature), nameof(GroupDisplay), nameof(ListeDisi), nameof(Sekme),
+            nameof(DurumEtiketi), nameof(KararGosterimi), nameof(AciklamaGosterimi), nameof(IsThickPlate)
         })
             Raise(name);
     }
 
     private void Raise(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+    // IAnalizSatiri: common columns of the mixed tabs and the common toolbar.
+    public AnalizSekmesi Sekme => ListeDisi ? AnalizSekmesi.ListeDisi : EffectiveCategory switch
+    {
+        MontajParcaKategorisi.Sac or MontajParcaKategorisi.OnayGerekli => AnalizSekmesi.Saclar,
+        MontajParcaKategorisi.Profil => AnalizSekmesi.Profiller,
+        MontajParcaKategorisi.Tanimsiz => AnalizSekmesi.Tanimsiz,
+        _ => AnalizSekmesi.KontrolGerekli
+    };
+    bool IAnalizSatiri.ProfilSatiri => false;
+    string IAnalizSatiri.KaynakYolu => SourceStepPath;
+    string? IAnalizSatiri.ParcaAdi => PartName;
+    string IAnalizSatiri.ParcaGosterimi => PartName;
+    string IAnalizSatiri.AdetGosterimi => Quantity.ToString(CultureInfo.InvariantCulture);
+    string IAnalizSatiri.TurGosterimi => EffectiveCategory switch
+    {
+        MontajParcaKategorisi.Sac or MontajParcaKategorisi.OnayGerekli => "Sac",
+        MontajParcaKategorisi.Diger => "Diğer",
+        _ => ProfileCandidate != null ? "Sac / profil" : SheetCandidate || ThicknessMm != null ? "Sac?" : "—"
+    };
+    string IAnalizSatiri.OlcuGosterimi => ThicknessMm is double t ? "t = " + FormatNumber(t) + " mm" : "—";
+    public string DurumEtiketi => StatusDisplay;
+    public string KararGosterimi => DecisionDisplay;
+    public string AciklamaGosterimi => ListeDisi && ListeDisiNotu.Length > 0
+        ? ExplanationDisplay + " (Liste dışı: " + ListeDisiNotu + ")"
+        : ExplanationDisplay;
+    public bool OnayBekliyor => EffectiveCategory == MontajParcaKategorisi.OnayGerekli;
+    void IAnalizSatiri.KontrolGerekliyeAl() => MoveToReview();
 
     /// <summary>True when a STEP holds more than one part or repeats its only part.</summary>
     public static bool IsAssembly(GeometryLabAnalysisTransport? analysis) =>
