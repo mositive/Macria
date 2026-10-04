@@ -278,6 +278,9 @@ namespace Macria
         {
             InitializeComponent();
             WindowEffects.RoundCorners(this);
+            // Tests / automation (MACRIA_OTOMASYON=1): no visible window, no questions.
+            OtomasyonModu.Gizle(this);
+            OtomasyonModu.KapanisiPlanla(this);
 
 #if DEBUG
             // CATIA bulunmayan gelistirme bilgisayarinda F9 ile kahve penceresi,

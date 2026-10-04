@@ -46,6 +46,12 @@ About the tests:
 - The "Real*Engine" cases in `GeometryLabAdapter.Tests` run the packaged `GeometryEngineRuntime/Macria.GeometryEngine.exe`.
 - `DxfEdit.Tests` has one save/overwrite test that needs filesystem ACL and `File.Replace` permissions. A sandbox may block it. A permission failure there does not count as a pass (see `DxfEdit.Tests/README.md`).
 
+Automated runs must never show Macria to the user:
+
+- Start Macria for a smoke test only in automation mode: `MACRIA_OTOMASYON=1` (window off-screen, not in the taskbar, no focus, the unsaved-project question on close is skipped), with `MACRIA_OTOMASYON_KAPAN=<seconds>` so it closes itself. `tools/Macria-GizliDuman.ps1 <bin folder>` does this and checks that no window reached the screen.
+- A harness that creates `MainWindow` itself calls `OtomasyonModu.Ac()` first.
+- Do not start Macria with a plain `Start-Process dotnet Macria.dll`.
+
 Debug-only shortcuts, for testing without CATIA:
 
 - `F9` runs a fake bulk-DXF run with the progress window and animation.

@@ -120,6 +120,12 @@ public partial class MainWindow
     private bool ProjeDegisiklikleriniSor(string islem)
     {
         if (!_projeKirli) return true;
+        if (OtomasyonModu.Acik)
+        {
+            // Nobody is there to answer; the changes are not saved.
+            LogInfo("Otomasyon modu: kaydedilmemiş proje sorusu atlandı (" + islem + ").");
+            return true;
+        }
         string ad = _projeYolu is null ? "STEP analizi henüz bir projeye kaydedilmedi" : Path.GetFileName(_projeYolu) + " kaydedilmemiş değişiklikler içeriyor";
         int secim = OnayWindow.Sec(this, "Kaydedilmemiş Proje",
             ad + ". " + islem + " öncesinde kaydedilsin mi?", "İptal", "Kaydetme", "Kaydet");
