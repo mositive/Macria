@@ -387,6 +387,21 @@ internal static class Program
             double analizSn = sure.Elapsed.TotalSeconds;
             Check(result.IsSuccess && result.AnalysisJson != null, "real analysis succeeds and keeps its JSON: " + Path.GetFileName(step));
 
+            // Older engine outputs have no code: the derived code and evidence
+            // must equal what the engine writes, for every part.
+            int kodFarki = 0;
+            foreach (GeometryLabPartTransport parca in result.Analysis!.Parts)
+            {
+                var motorun = MotorSinifKodu.Belirle(result.Analysis, parca);
+                var turetilen = MotorSinifKodu.Belirle(result.Analysis, parca with { ClassificationCode = null, RecognitionEvidence = null });
+                if (string.IsNullOrEmpty(parca.ClassificationCode) || motorun != turetilen)
+                {
+                    ++kodFarki;
+                    Console.WriteLine($"REAL_CODE: {parca.Name}: motor {motorun} / türetilen {turetilen}");
+                }
+            }
+            Check(kodFarki == 0, "codes derived from reason texts equal the engine's codes: " + Path.GetFileName(step));
+
             var (profil, montaj) = MacriaProjeSatirlari.Kur(step, result, 20);
             // Decisions of every kind the rows offer.
             profil.FirstOrDefault()?.ExcludeFromList("proje testi");

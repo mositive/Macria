@@ -115,6 +115,14 @@ public sealed record GeometryLabPartTransport
     [JsonPropertyName("classificationReasons")]
     public IReadOnlyList<string> ClassificationReasons { get; init; } = Array.Empty<string>();
 
+    // Engine 2026.10.5.1+: why, as a code (MotorSinifKodu), and whether a
+    // recognizer found anything. Null in older outputs (MotorSinifKodu derives them).
+    [JsonPropertyName("classificationCode")]
+    public string? ClassificationCode { get; init; }
+
+    [JsonPropertyName("recognitionEvidence")]
+    public bool? RecognitionEvidence { get; init; }
+
     [JsonPropertyName("sheetCandidate")]
     public bool SheetCandidate { get; init; }
 

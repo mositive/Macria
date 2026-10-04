@@ -33,6 +33,9 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
     public int Quantity { get; init; }
     public string EngineClass { get; init; } = "";
     public IReadOnlyList<string> EngineReasons { get; init; } = Array.Empty<string>();
+    /// <summary>Why the engine decided so (MotorSinifKodu) and whether it found any evidence.</summary>
+    public string EngineCode { get; init; } = "";
+    public bool EngineEvidence { get; init; }
     public bool SheetCandidate { get; init; }
     public string? ProfileCandidate { get; init; }
     public double? ThicknessMm { get; init; }
@@ -128,8 +131,11 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
             ? null
             : analysis.SheetMetalAnalyses.FirstOrDefault(x => x.SolidId?.LocalId == solidId);
         bool sheetUsable = part.SheetCandidate && sheet?.ThicknessMm != null;
+        (string kod, bool kanit) = MotorSinifKodu.Belirle(analysis, part);
         var row = new MontajParcaSatiri
         {
+            EngineCode = kod,
+            EngineEvidence = kanit,
             SourceStepPath = stepPath,
             PartName = string.IsNullOrWhiteSpace(part.Name) ? "Parça " + part.LocalId : part.Name!,
             PartLocalId = part.LocalId,
