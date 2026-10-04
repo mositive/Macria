@@ -20,38 +20,6 @@ public enum GeometryLabDecisionSource
     ThreeDScan
 }
 
-/// <summary>Session-only visibility state for independent external STEP groups.</summary>
-public sealed class GeometryLabExternalStepFilterState
-{
-    public bool DefiniteProfilesVisible { get; set; } = true;
-    public bool ReviewRequiredVisible { get; set; }
-    public bool ExcludedVisible { get; set; }
-    public bool UnclassifiedVisible { get; set; }
-
-    public bool TumGruplarGorunur => DefiniteProfilesVisible && ReviewRequiredVisible &&
-        ExcludedVisible && UnclassifiedVisible;
-
-    public string TumunuDegistirMetni => TumGruplarGorunur ? "Tümünü Gizle" : "Tümünü Göster";
-
-    public void TumunuGorunurYap(bool visible)
-    {
-        DefiniteProfilesVisible = visible;
-        ReviewRequiredVisible = visible;
-        ExcludedVisible = visible;
-        UnclassifiedVisible = visible;
-    }
-
-    public bool IsVisible(GeometryLabExternalStepResultGroup group) => group switch
-    {
-        GeometryLabExternalStepResultGroup.DefiniteProfile => DefiniteProfilesVisible,
-        GeometryLabExternalStepResultGroup.ProcessedProfile => DefiniteProfilesVisible,
-        GeometryLabExternalStepResultGroup.ReviewRequired => ReviewRequiredVisible,
-        GeometryLabExternalStepResultGroup.Excluded => ExcludedVisible,
-        GeometryLabExternalStepResultGroup.Unclassified => UnclassifiedVisible,
-        _ => false
-    };
-}
-
 public enum GeometryLabExternalStepResultGroup
 {
     DefiniteProfile,

@@ -19,87 +19,21 @@ public partial class MainWindow
 {
     private readonly ObservableCollection<MontajParcaSatiri> _montajParcaRows = new();
     private ICollectionView? _sacParcaView;
-    private ICollectionView? _kontrolParcaView;
     private string? _motorDxfOturumKlasoru;
-
-    // Tab filters, like the Profiller ones: which statuses each tab lists.
-    private bool _sacOnayliGorunur = true;
-    private bool _sacBekleyenGorunur = true;
-    private bool _kontrolGerekliGorunur = true;
-    private bool _kontrolDigerGorunur = true;
     // Saclar alt sekmesi: false = Lazer, true = Şalama/Kütük.
     private bool _sacSalamaSekmesi;
 
     private void MontajParcaListesiniKur()
     {
+        // Saclar: approved and waiting sheets of the open sub-tab (Lazer or Şalama/Kütük).
         _sacParcaView = new ListCollectionView(_montajParcaRows)
         {
-            Filter = item => item is MontajParcaSatiri row && row.IsInSheetTab && row.IsThickPlate == _sacSalamaSekmesi &&
-                             (row.EffectiveCategory == MontajParcaKategorisi.Sac ? _sacOnayliGorunur : _sacBekleyenGorunur)
-        };
-        _kontrolParcaView = new ListCollectionView(_montajParcaRows)
-        {
-            Filter = item => item is MontajParcaSatiri row && row.IsInReviewTab &&
-                             (row.EffectiveCategory == MontajParcaKategorisi.Diger ? _kontrolDigerGorunur : _kontrolGerekliGorunur)
+            Filter = item => item is MontajParcaSatiri row && row.Sekme == AnalizSekmesi.Saclar &&
+                             row.IsThickPlate == _sacSalamaSekmesi
         };
         if (gridSacParcalar != null) gridSacParcalar.ItemsSource = _sacParcaView;
-        if (gridKontrolParcalar != null) gridKontrolParcalar.ItemsSource = _kontrolParcaView;
         // The 3D panel is wired with the others in ExternalStepOnizlemesiniKur.
-        kontrolOnizleme?.Temizle(KontrolBosMesaji);
-        MontajSekmeleriniGuncelle();
-    }
-
-    private const string KontrolBosMesaji = "Önizlemek için listeden bir parça seçin.";
-
-    private void chkMontajFiltre_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not CheckBox checkBox) return;
-        bool visible = checkBox.IsChecked == true;
-        switch (checkBox.Name)
-        {
-            case "chkSacOnayli": _sacOnayliGorunur = visible; break;
-            case "chkSacOnayGerekli": _sacBekleyenGorunur = visible; break;
-            case "chkKontrolGerekli": _kontrolGerekliGorunur = visible; break;
-            case "chkKontrolDiger": _kontrolDigerGorunur = visible; break;
-            default: return;
-        }
-        MontajSekmeleriniGuncelle();
-    }
-
-    private void btnSacTumFiltreler_Click(object sender, RoutedEventArgs e)
-    {
-        bool show = !(_sacOnayliGorunur && _sacBekleyenGorunur);
-        _sacOnayliGorunur = _sacBekleyenGorunur = show;
-        MontajSekmeleriniGuncelle();
-    }
-
-    private void btnKontrolTumFiltreler_Click(object sender, RoutedEventArgs e)
-    {
-        bool show = !(_kontrolGerekliGorunur && _kontrolDigerGorunur);
-        _kontrolGerekliGorunur = _kontrolDigerGorunur = show;
-        MontajSekmeleriniGuncelle();
-    }
-
-    private void MontajFiltreleriniGoster()
-    {
-        int Count(MontajParcaKategorisi category) => _montajParcaRows.Count(x => x.EffectiveCategory == category);
-        // The Saclar filters count the open sub-tab only.
-        int SacCount(MontajParcaKategorisi category) =>
-            SacGrubuSatirlari().Count(x => x.EffectiveCategory == category);
-        void Set(CheckBox? box, string caption, int count, bool visible)
-        {
-            if (box == null) return;
-            box.Content = caption + " (" + count + ")";
-            box.IsChecked = visible;
-        }
-        Set(chkSacOnayli, "Sac", SacCount(MontajParcaKategorisi.Sac), _sacOnayliGorunur);
-        Set(chkSacOnayGerekli, "Geometrik sac, onay gerekli", SacCount(MontajParcaKategorisi.OnayGerekli), _sacBekleyenGorunur);
-        Set(chkKontrolGerekli, "Kontrol gerekli", Count(MontajParcaKategorisi.KontrolGerekli), _kontrolGerekliGorunur);
-        Set(chkKontrolDiger, "Diğer", Count(MontajParcaKategorisi.Diger), _kontrolDigerGorunur);
-        if (btnSacTumFiltreler != null)
-            btnSacTumFiltreler.Content = _sacOnayliGorunur && _sacBekleyenGorunur ? "Tümünü Gizle" : "Tümünü Göster";
-        if (btnKontrolTumFiltreler != null)
-            btnKontrolTumFiltreler.Content = _kontrolGerekliGorunur && _kontrolDigerGorunur ? "Tümünü Gizle" : "Tümünü Göster";
+        kontrolOnizleme?.Temizle(GenelBosMesaji);
     }
 
     /// <summary>A new, empty folder for this analysis run's engine DXFs; the previous run's is removed.</summary>
@@ -125,13 +59,14 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// An assembly STEP replaces its file row by one profile row per profile part
-    /// and adds the other parts to the Saclar / Kontrol gerekli tabs.
-    /// Returns false for a single-part STEP, whose row stays as it is.
+    /// A STEP with engine parts (a single-part file too) replaces its file row
+    /// by one profile row per profile part and part rows for the others
+    /// (Saclar, Kontrol gerekli, Tanımsız). Returns false for a failed analysis
+    /// or an older schema without parts, whose file row stays as it is.
     /// </summary>
     private bool MontajSonucunuDagit(GeometryLabStepProfileListItem fileRow, GeometryLabProcessAdapterResult result)
     {
-        if (!result.IsSuccess || !MontajParcaSatiri.IsAssembly(result.Analysis)) return false;
+        if (!MacriaProjeSatirlari.ParcaYolundan(result)) return false;
         bool ilkMontaj = _montajParcaRows.Count == 0;
         GeometryLabAnalysisTransport analysis = result.Analysis!;
         int index = _externalStepProfileRows.IndexOf(fileRow);
@@ -145,7 +80,8 @@ public partial class MainWindow
             _montajParcaRows.Add(row);
         LogSuccess("Montaj STEP'i: " + fileRow.SourceFileName + " — " + analysis.Parts.Count + " parça (" +
                    _montajParcaRows.Count(x => x.SourceStepPath == fileRow.SourceStepPath && x.IsInSheetTab) + " sac, " +
-                   _montajParcaRows.Count(x => x.SourceStepPath == fileRow.SourceStepPath && x.IsInReviewTab) + " kontrol).");
+                   _montajParcaRows.Count(x => x.SourceStepPath == fileRow.SourceStepPath && x.Sekme == AnalizSekmesi.KontrolGerekli) + " kontrol, " +
+                   _montajParcaRows.Count(x => x.SourceStepPath == fileRow.SourceStepPath && x.Sekme == AnalizSekmesi.Tanimsiz) + " tanımsız).");
         // A new list opens on the sub-tab that has sheets: Lazer unless it is empty.
         if (ilkMontaj)
             SacGrubunuSec(!_montajParcaRows.Any(x => x.IsInSheetTab && !x.IsThickPlate) &&
@@ -154,45 +90,11 @@ public partial class MainWindow
         return true;
     }
 
-    private void MontajSekmeleriniGuncelle()
-    {
-        _sacParcaView?.Refresh();
-        _kontrolParcaView?.Refresh();
-        MontajFiltreleriniGoster();
-        int sac = _montajParcaRows.Count(x => x.IsInSheetTab);
-        int kontrol = _montajParcaRows.Count(x => x.IsInReviewTab);
-        bool montajVar = _montajParcaRows.Count > 0;
-        if (tabExternalStepSaclar != null)
-        {
-            tabExternalStepSaclar.Header = "Saclar (" + sac + ")";
-            tabExternalStepSaclar.Visibility = montajVar ? Visibility.Visible : Visibility.Collapsed;
-        }
-        if (tabExternalStepKontrol != null)
-        {
-            tabExternalStepKontrol.Header = "Kontrol gerekli (" + kontrol + ")";
-            tabExternalStepKontrol.Visibility = montajVar ? Visibility.Visible : Visibility.Collapsed;
-        }
-        if (!montajVar && tabExternalStepSonuc != null && tabExternalStepProfiller != null)
-            tabExternalStepSonuc.SelectedItem = tabExternalStepProfiller;
-        if (tabSacLazer != null)
-            tabSacLazer.Header = "Lazer (" + _montajParcaRows.Count(x => x.IsInSheetTab && !x.IsThickPlate) + ")";
-        if (tabSacSalama != null)
-            tabSacSalama.Header = "Şalama/Kütük (" + _montajParcaRows.Count(x => x.IsInSheetTab && x.IsThickPlate) + ")";
-        if (txtSacOzet != null)
-        {
-            List<MontajParcaSatiri> grup = SacGrubuSatirlari();
-            int onayli = grup.Count(x => x.EffectiveCategory == MontajParcaKategorisi.Sac);
-            int bekleyen = grup.Count(x => x.EffectiveCategory == MontajParcaKategorisi.OnayGerekli);
-            string esik = MontajParcaSatiri.FormatNumber(Ayarlar.LazerAzamiKalinlikMm);
-            txtSacOzet.Text = SacGrubuAdi() + ": " + onayli + " onaylı sac, " + bekleyen + " onay bekleyen. " +
-                              (_sacSalamaSekmesi ? "Kalınlık > " : "Kalınlık ≤ ") + esik + " mm (Ayarlar).";
-        }
-        MontajKomutlariniGuncelle();
-    }
+    private void MontajSekmeleriniGuncelle() => AnalizSekmeleriniGuncelle();
 
     /// <summary>Sheet rows of the open sub-tab (Lazer or Şalama/Kütük), filters ignored.</summary>
     private List<MontajParcaSatiri> SacGrubuSatirlari() =>
-        _montajParcaRows.Where(x => x.IsInSheetTab && x.IsThickPlate == _sacSalamaSekmesi).ToList();
+        _montajParcaRows.Where(x => x.Sekme == AnalizSekmesi.Saclar && x.IsThickPlate == _sacSalamaSekmesi).ToList();
 
     private string SacGrubuAdi() => _sacSalamaSekmesi ? "Şalama/Kütük" : "Lazer";
 
@@ -239,70 +141,11 @@ public partial class MainWindow
         gridSacParcalar?.SelectedItems.OfType<MontajParcaSatiri>()
             .Where(x => x.IsInSheetTab && x.IsThickPlate == _sacSalamaSekmesi).ToList() ?? new();
 
-    private List<MontajParcaSatiri> SeciliKontrolSatirlari() =>
-        gridKontrolParcalar?.SelectedItems.OfType<MontajParcaSatiri>().Where(x => x.IsInReviewTab).ToList() ?? new();
-
-    private void MontajKomutlariniGuncelle()
-    {
-        List<MontajParcaSatiri> sac = SeciliSacSatirlari();
-        if (btnSacOnayla != null) btnSacOnayla.IsEnabled = sac.Any(x => x.EffectiveCategory != MontajParcaKategorisi.Sac && x.CanApproveAsSheet);
-        if (btnSacKontrole != null) btnSacKontrole.IsEnabled = sac.Count > 0;
-        if (btnSacOtomatik != null) btnSacOtomatik.IsEnabled = sac.Any(x => x.HasUserDecision);
-        if (btnSacDxfUret != null) btnSacDxfUret.IsEnabled = SacGrubuSatirlari().Any(x => x.EffectiveCategory == MontajParcaKategorisi.Sac);
-        List<MontajParcaSatiri> kontrol = SeciliKontrolSatirlari();
-        if (btnKontrolSacOnayla != null) btnKontrolSacOnayla.IsEnabled = kontrol.Any(x => x.CanApproveAsSheet);
-        if (btnKontrolOtomatik != null) btnKontrolOtomatik.IsEnabled = kontrol.Any(x => x.HasUserDecision);
-    }
-
     private void gridSacParcalar_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        MontajKomutlariniGuncelle();
+        AracCubugunuGuncelle();
         List<MontajParcaSatiri> selected = SeciliSacSatirlari();
         SacOnizlemesiniGoster(selected.Count == 1 ? selected[0] : null, selected.Count > 1);
-    }
-
-    private void gridKontrolParcalar_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        MontajKomutlariniGuncelle();
-        List<MontajParcaSatiri> selected = SeciliKontrolSatirlari();
-        if (kontrolOnizleme == null) return;
-        if (selected.Count != 1)
-        {
-            kontrolOnizleme.Temizle(selected.Count > 1 ? "Birden fazla parça seçildi." : KontrolBosMesaji);
-            return;
-        }
-        // The selected part alone, or highlighted in the faded assembly; a missing file is
-        // reported by the panel.
-        kontrolOnizleme.Goster(selected[0].SourceStepPath, selected[0].PartName, _montajParcaGorunumu);
-    }
-
-    private void btnSacOnayla_Click(object sender, RoutedEventArgs e) => MontajKarariUygula(SeciliSacSatirlari(), row => row.ApproveAsSheet());
-
-    private void btnSacKontrole_Click(object sender, RoutedEventArgs e) => MontajKarariUygula(SeciliSacSatirlari(), row => row.MoveToReview());
-
-    private void btnSacOtomatik_Click(object sender, RoutedEventArgs e) =>
-        MontajKarariUygula(SeciliSacSatirlari().Where(x => x.HasUserDecision).ToList(), row => row.RestoreAutomaticDecision());
-
-    private void btnKontrolSacOnayla_Click(object sender, RoutedEventArgs e)
-    {
-        List<MontajParcaSatiri> selected = SeciliKontrolSatirlari();
-        if (selected.Count > 0 && !selected.Any(x => x.CanApproveAsSheet))
-        {
-            MessageBox.Show(this, "Seçilen parçalar için motor açınım (DXF) üretemedi; sac olarak onaylanamaz.", "Sac Olarak Onayla", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-        MontajKarariUygula(selected.Where(x => x.CanApproveAsSheet).ToList(), row => row.ApproveAsSheet());
-    }
-
-    private void btnKontrolOtomatik_Click(object sender, RoutedEventArgs e) =>
-        MontajKarariUygula(SeciliKontrolSatirlari().Where(x => x.HasUserDecision).ToList(), row => row.RestoreAutomaticDecision());
-
-    private void MontajKarariUygula(List<MontajParcaSatiri> rows, Action<MontajParcaSatiri> karar)
-    {
-        if (rows.Count == 0 || ProjeSaltOkunurUyarisi()) return;
-        foreach (MontajParcaSatiri row in rows) karar(row);
-        ProjeDegisti();
-        MontajSekmeleriniGuncelle();
     }
 
     // Saclar: "Açınım (2B) | 3B". The 3D panel is created on the first 3D choice, so
@@ -440,7 +283,7 @@ public partial class MainWindow
         MessageBox.Show(this, rapor, "DXF Üret — Rapor", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
-    private void btnSacExcelAktar_Click(object sender, RoutedEventArgs e)
+    private void SacExcelAktar()
     {
         List<MontajParcaSatiri> rows = (_sacParcaView?.Cast<MontajParcaSatiri>() ?? Enumerable.Empty<MontajParcaSatiri>()).ToList();
         if (rows.Count == 0)

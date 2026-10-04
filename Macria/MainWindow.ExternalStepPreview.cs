@@ -163,13 +163,17 @@ public partial class MainWindow
     private void tabExternalStepSonuc_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         // SelectionChanged also bubbles up from the grids and the Lazer/Şalama tabs.
-        if (!ReferenceEquals(e.OriginalSource, tabExternalStepSonuc) || _externalStepPreviewWindow == null) return;
-        object secili = tabExternalStepSonuc.SelectedItem;
-        BuyukOnizlemeSekmesi sekme =
-            ReferenceEquals(secili, tabExternalStepProfiller) ? BuyukOnizlemeSekmesi.Profiller
-            : ReferenceEquals(secili, tabExternalStepSaclar) ? BuyukOnizlemeSekmesi.Saclar
-            : ReferenceEquals(secili, tabExternalStepKontrol) ? BuyukOnizlemeSekmesi.Kontrol
-            : BuyukOnizlemeSekmesi.Yok;
+        if (!ReferenceEquals(e.OriginalSource, tabExternalStepSonuc)) return;
+        SagPaneliGuncelle();
+        AracCubugunuGuncelle();
+        if (_externalStepPreviewWindow == null) return;
+        // The mixed tabs (Kontrol gerekli, Tanımsız, Liste dışı) share one 3D view.
+        BuyukOnizlemeSekmesi sekme = AktifSekme() switch
+        {
+            AnalizSekmesi.Profiller => BuyukOnizlemeSekmesi.Profiller,
+            AnalizSekmesi.Saclar => BuyukOnizlemeSekmesi.Saclar,
+            _ => BuyukOnizlemeSekmesi.Kontrol
+        };
         if (sekme == BuyukOnizlemeSekmesi.Yok || sekme == _buyukOnizlemeKaynagi) return;
         _buyukOnizlemeKaynagi = sekme;
         BuyukOnizlemeyiKaynakla();

@@ -8,8 +8,9 @@ namespace Macria;
 
 /// <summary>
 /// Gives every column of a result grid a minimum width that keeps its header
-/// readable, so neither a narrow window nor a dragged divider squeezes it; a
-/// grid narrower than its columns then scrolls horizontally.
+/// readable (and a fixed-width column its designed width), so neither a
+/// narrow window nor a dragged divider squeezes it; a grid narrower than its
+/// columns then scrolls horizontally.
 /// </summary>
 internal static class TabloSutunGenisligi
 {
@@ -38,6 +39,9 @@ internal static class TabloSutunGenisligi
             var olcu = new FormattedText(baslik, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
                 yaziTipi, tablo.FontSize, Brushes.Black, pikselBasinaNokta);
             sutun.MinWidth = Math.Max(sutun.MinWidth, Math.Ceiling(olcu.Width + BaslikPayi));
+            // A fixed-width column keeps its designed width: the star column
+            // (Açıklama) would otherwise squeeze it down to its header.
+            if (sutun.Width.IsAbsolute) sutun.MinWidth = Math.Max(sutun.MinWidth, sutun.Width.Value);
         }
     }
 }

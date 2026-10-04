@@ -329,10 +329,12 @@ namespace Macria
             // oturumunda yaşayan Dosya Analiz Merkezi koleksiyonunu kullanır.
                 ExternalStepProfilListesiniKur();
                 MontajParcaListesiniKur();
+                AnalizSekmeleriniKur();
                 ExternalStepOnizlemesiniKur();
                 ProjeKur();
                 DxfDwgListesiniKur();
-                TabloSutunGenisligi.Uygula(gridExternalStepProfil, gridSacParcalar, gridKontrolParcalar, gridDxfDwgFiles);
+                TabloSutunGenisligi.Uygula(gridExternalStepProfil, gridSacParcalar, gridKontrolParcalar, gridTanimsiz,
+                    gridListeDisi, gridDxfDwgFiles);
 
             ParcaSutunDeposu.Yukle();
             ParcaSutunlariniUygula();

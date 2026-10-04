@@ -17,7 +17,6 @@ namespace Macria;
 public partial class MainWindow
 {
     private readonly ObservableCollection<GeometryLabStepProfileListItem> _externalStepProfileRows = new();
-    private readonly GeometryLabExternalStepFilterState _externalStepProfileFilters = new();
     private ICollectionView? _externalStepProfileView;
     private bool _externalStepProfileAnalysisRunning;
     private CatiaScanSnapshot? _lastSuccessfulCatiaSnapshot;
@@ -38,70 +37,17 @@ public partial class MainWindow
     private void ExternalStepProfilListesiniKur()
     {
         _externalStepProfileView = CollectionViewSource.GetDefaultView(_externalStepProfileRows);
+        // Profiller lists the definite profiles only; the rest is on the other tabs.
         _externalStepProfileView.Filter = item => item is GeometryLabStepProfileListItem row &&
-            _externalStepProfileFilters.IsVisible(row.ResultGroup);
+            row.Sekme == AnalizSekmesi.Profiller;
         if (gridExternalStepProfil != null) gridExternalStepProfil.ItemsSource = _externalStepProfileView;
         // "Tabloyu Temizle" is enabled only while there is something to clear.
         _externalStepProfileRows.CollectionChanged += (_, _) => ExternalStepAnalizButonunuGuncelle();
         _montajParcaRows.CollectionChanged += (_, _) => ExternalStepAnalizButonunuGuncelle();
-        ExternalStepProfilOzetiniGuncelle();
-        ExternalStepFilterDenetimleriniGuncelle();
         ExternalStepAnalizButonunuGuncelle();
     }
 
-    private void chkExternalStepFilter_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not CheckBox checkBox) return;
-        bool visible = checkBox.IsChecked == true;
-        switch (checkBox.Name)
-        {
-            case "chkExternalStepDefinite": _externalStepProfileFilters.DefiniteProfilesVisible = visible; break;
-            case "chkExternalStepReview": _externalStepProfileFilters.ReviewRequiredVisible = visible; break;
-            case "chkExternalStepExcluded": _externalStepProfileFilters.ExcludedVisible = visible; break;
-            case "chkExternalStepUnclassified": _externalStepProfileFilters.UnclassifiedVisible = visible; break;
-            default: return;
-        }
-        _externalStepProfileView?.Refresh();
-        ExternalStepSeciminiTemizle();
-        ExternalStepFilterDenetimleriniGuncelle();
-    }
-
-    private void ExternalStepProfilOzetiniGuncelle()
-    {
-        int definite = Count(GeometryLabExternalStepResultGroup.DefiniteProfile);
-        int review = Count(GeometryLabExternalStepResultGroup.ReviewRequired);
-        int excluded = Count(GeometryLabExternalStepResultGroup.Excluded);
-        int unclassified = Count(GeometryLabExternalStepResultGroup.Unclassified);
-        SetFilterCaption(chkExternalStepDefinite, "Kesin profiller", definite);
-        SetFilterCaption(chkExternalStepReview, "İnceleme gerekli", review);
-        SetFilterCaption(chkExternalStepExcluded, "Liste dışı", excluded);
-        SetFilterCaption(chkExternalStepUnclassified, "Tanımsız", unclassified);
-    }
-
-    private void btnExternalStepTumFiltreler_Click(object sender, RoutedEventArgs e)
-    {
-        _externalStepProfileFilters.TumunuGorunurYap(!_externalStepProfileFilters.TumGruplarGorunur);
-        _externalStepProfileView?.Refresh();
-        ExternalStepSeciminiTemizle();
-        ExternalStepFilterDenetimleriniGuncelle();
-    }
-
-    private void ExternalStepFilterDenetimleriniGuncelle()
-    {
-        if (chkExternalStepDefinite != null) chkExternalStepDefinite.IsChecked = _externalStepProfileFilters.DefiniteProfilesVisible;
-        if (chkExternalStepReview != null) chkExternalStepReview.IsChecked = _externalStepProfileFilters.ReviewRequiredVisible;
-        if (chkExternalStepExcluded != null) chkExternalStepExcluded.IsChecked = _externalStepProfileFilters.ExcludedVisible;
-        if (chkExternalStepUnclassified != null) chkExternalStepUnclassified.IsChecked = _externalStepProfileFilters.UnclassifiedVisible;
-        if (btnExternalStepTumFiltreler != null) btnExternalStepTumFiltreler.Content = _externalStepProfileFilters.TumunuDegistirMetni;
-        ExternalStepKomutlariniGuncelle();
-    }
-
-    private int Count(GeometryLabExternalStepResultGroup group) => _externalStepProfileRows.Count(x => x.ResultGroup == group);
-
-    private static void SetFilterCaption(CheckBox? checkBox, string caption, int count)
-    {
-        if (checkBox != null) checkBox.Content = $"{caption} ({count})";
-    }
+    private void ExternalStepProfilOzetiniGuncelle() => AnalizSekmeleriniGuncelle();
 
     private void ExternalStepAnalizButonunuGuncelle()
     {
@@ -135,6 +81,8 @@ public partial class MainWindow
         ExternalStepSeciminiTemizle();
         gridSacParcalar?.SelectedItems.Clear();
         gridKontrolParcalar?.SelectedItems.Clear();
+        gridTanimsiz?.SelectedItems.Clear();
+        gridListeDisi?.SelectedItems.Clear();
         _externalStepProfileRows.Clear();
         _montajParcaRows.Clear();
         Step3BModelHazirlayici.Temizle();
@@ -201,53 +149,20 @@ public partial class MainWindow
         if (txtExternalStepDetailExplanation != null) txtExternalStepDetailExplanation.Text = "Açıklama: " + item.ExplanationDisplay;
     }
 
-    private void ExternalStepKomutlariniGuncelle()
-    {
-        List<GeometryLabStepProfileListItem> selected = GorunenSeciliExternalStepSatirlari();
-        if (btnExternalStepDosyayiAc != null) btnExternalStepDosyayiAc.IsEnabled = selected.Count == 1;
-        if (btnExternalStepKesin != null) btnExternalStepKesin.IsEnabled = selected.Count > 0;
-        if (btnExternalStepIncele != null) btnExternalStepIncele.IsEnabled = selected.Count > 0;
-        if (btnExternalStepListeDisi != null) btnExternalStepListeDisi.IsEnabled = selected.Count > 0;
-        if (btnExternalStepOtomatik != null) btnExternalStepOtomatik.IsEnabled = selected.Any(x => x.HasUserDecision);
-    }
+    private void ExternalStepKomutlariniGuncelle() => AracCubugunuGuncelle();
 
-    private void btnExternalStepDosyayiAc_Click(object sender, RoutedEventArgs e)
+    /// <summary>
+    /// "Profil Olarak Onayla": rows with a section are confirmed as they are; a
+    /// single row without one gets its type and section from the manual dialog.
+    /// </summary>
+    private void ProfilleriOnayla(List<GeometryLabStepProfileListItem> selected)
     {
-        GeometryLabStepProfileListItem? item = GorunenSeciliExternalStepSatirlari().SingleOrDefault();
-        if (item == null) return;
-        string path = item.SourceStepPath;
-        if (!File.Exists(path))
-        {
-            MessageBox.Show(this, "Seçilen STEP dosyası artık belirtilen konumda bulunmuyor.", "Dosyayı Aç", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-        if (Path.GetExtension(path).ToLowerInvariant() is not ".stp" and not ".step")
-        {
-            MessageBox.Show(this, "Seçilen dosya desteklenen bir STEP dosyası değil.", "Dosyayı Aç", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-        try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
-        catch (System.ComponentModel.Win32Exception exception)
-        {
-            LogError("STEP dosyası açılamadı: " + exception.Message);
-            MessageBox.Show(this, "Bu dosya türü için Windows'ta varsayılan bir uygulama tanımlı değil.", "Dosyayı Aç", MessageBoxButton.OK, MessageBoxImage.Warning);
-        }
-        catch (Exception exception)
-        {
-            LogError("STEP dosyası açılamadı: " + exception.Message);
-            MessageBox.Show(this, "Seçilen STEP dosyası açılamadı.", "Dosyayı Aç", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-
-    private void btnExternalStepKesin_Click(object sender, RoutedEventArgs e)
-    {
-        List<GeometryLabStepProfileListItem> selected = GorunenSeciliExternalStepSatirlari();
         if (selected.Count == 0 || ProjeSaltOkunurUyarisi()) return;
         if (selected.Any(x => !x.CanUserConfirmExistingHollowProfile))
         {
             if (selected.Count != 1)
             {
-                MessageBox.Show(this, "Kesit bilgisi olmayan birden fazla kayıt tek işlemde onaylanamaz. Her kaydı ayrı ayrı kontrol edin.", "Kesin Profile Aktar", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(this, "Kesit bilgisi olmayan birden fazla kayıt tek işlemde onaylanamaz. Her kaydı ayrı ayrı kontrol edin.", "Profil Olarak Onayla", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
             var dialog = new ManualHollowProfileWindow { Owner = this };
@@ -256,40 +171,16 @@ public partial class MainWindow
                 selected[0].ConfirmManualHollowProfile(dialog.ProfileType, dialog.SectionDisplay);
                 ProjeDegisti();
             }
-            _externalStepProfileView?.Refresh(); ExternalStepProfilOzetiniGuncelle(); ExternalStepKomutlariniGuncelle();
+            AnalizSekmeleriniGuncelle();
             return;
         }
-        if (MessageBox.Show(this, "Seçilen kayıtlar kesin profil olarak onaylansın mı?", "Kesin Profile Aktar", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+        if (MessageBox.Show(this, "Seçilen kayıtlar kesin profil olarak onaylansın mı?", "Profil Olarak Onayla", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
         foreach (GeometryLabStepProfileListItem item in selected) item.ConfirmAsProfile();
         ProjeDegisti();
-        _externalStepProfileView?.Refresh(); ExternalStepProfilOzetiniGuncelle(); ExternalStepKomutlariniGuncelle();
+        AnalizSekmeleriniGuncelle();
     }
 
-    private void btnExternalStepIncele_Click(object sender, RoutedEventArgs e)
-    {
-        if (ProjeSaltOkunurUyarisi()) return;
-        foreach (GeometryLabStepProfileListItem item in GorunenSeciliExternalStepSatirlari()) item.MoveToReview();
-        ProjeDegisti();
-        _externalStepProfileView?.Refresh(); ExternalStepProfilOzetiniGuncelle(); ExternalStepKomutlariniGuncelle();
-    }
-
-    private void btnExternalStepListeDisi_Click(object sender, RoutedEventArgs e)
-    {
-        if (ProjeSaltOkunurUyarisi()) return;
-        foreach (GeometryLabStepProfileListItem item in GorunenSeciliExternalStepSatirlari()) item.ExcludeFromList();
-        ProjeDegisti();
-        _externalStepProfileView?.Refresh(); ExternalStepProfilOzetiniGuncelle(); ExternalStepKomutlariniGuncelle();
-    }
-
-    private void btnExternalStepOtomatik_Click(object sender, RoutedEventArgs e)
-    {
-        if (ProjeSaltOkunurUyarisi()) return;
-        foreach (GeometryLabStepProfileListItem item in GorunenSeciliExternalStepSatirlari().Where(x => x.HasUserDecision)) item.RestoreAutomaticDecision();
-        ProjeDegisti();
-        _externalStepProfileView?.Refresh(); ExternalStepProfilOzetiniGuncelle(); ExternalStepKomutlariniGuncelle();
-    }
-
-    private void btnExternalStepExcelAktar_Click(object sender, RoutedEventArgs e)
+    private void ProfilExcelAktar()
     {
         List<GeometryLabStepProfileListItem> gorunenSatirlar = (_externalStepProfileView?.Cast<GeometryLabStepProfileListItem>()
             ?? Enumerable.Empty<GeometryLabStepProfileListItem>()).ToList();

@@ -1101,7 +1101,7 @@ internal static class Program
             MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[index], dxf, 20);
         MontajParcaSatiri sheet = Row(1);
         Check(sheet.EffectiveCategory == MontajParcaKategorisi.OnayGerekli && sheet.IsInSheetTab &&
-              sheet.StatusDisplay == "Geometrik sac, onay gerekli" && sheet.ExplanationDisplay.Contains("doğrulanmadı"),
+              sheet.StatusDisplay == "Onay gerekli" && sheet.ExplanationDisplay.Contains("doğrulanmadı"),
             "engine sheet without CATIA is a geometric sheet awaiting approval");
         Check(sheet.ThicknessDisplay == "20 mm" && sheet.GroupDisplay == "Lazer" && sheet.BendCountDisplay == "2",
             "thickness 20 = laser maximum is Lazer; bends counted");
@@ -1539,28 +1539,9 @@ internal static class Program
               rows.Select(x => x.ResultGroup).Distinct().Count() == 4,
             "processed base stock retains its automatic origin but shares the definite profile filter");
 
-        var filters = new GeometryLabExternalStepFilterState();
-        Check(rows.Count(x => filters.IsVisible(x.ResultGroup)) == 2,
-            "default filters show normal and processed definite profiles together");
-        Check(filters.TumunuDegistirMetni == "Tümünü Göster",
-            "the bulk filter button initially offers to show hidden groups");
-        filters.TumunuGorunurYap(true);
-        Check(rows.All(x => filters.IsVisible(x.ResultGroup)) && filters.TumunuDegistirMetni == "Tümünü Gizle",
-            "bulk show reveals all four filter groups and updates its caption");
-        filters.TumunuGorunurYap(false);
-        Check(rows.All(x => !filters.IsVisible(x.ResultGroup)) && filters.TumunuDegistirMetni == "Tümünü Göster",
-            "bulk hide hides all groups without mutating retained rows");
-        filters.TumunuGorunurYap(true);
-        filters.TumunuGorunurYap(false);
-        filters.DefiniteProfilesVisible = true;
-        Check(rows.Count(x => filters.IsVisible(x.ResultGroup)) == 2,
-            "the definite filter contains both normal and processed profiles exactly once");
-        filters.DefiniteProfilesVisible = false;
-        Check(rows.Count(x => filters.IsVisible(x.ResultGroup)) == 0,
-            "all filters disabled hide the table rows without changing the session results");
-        filters.ReviewRequiredVisible = filters.ExcludedVisible = filters.UnclassifiedVisible = true;
-        Check(rows.Count(x => filters.IsVisible(x.ResultGroup)) == 3,
-            "review, excluded, and unclassified filters independently restore their rows");
+        Check(definite.Sekme == AnalizSekmesi.Profiller && processed.Sekme == AnalizSekmesi.Profiller &&
+              review.Sekme == AnalizSekmesi.KontrolGerekli && unclassified.Sekme == AnalizSekmesi.Tanimsiz,
+            "definite and processed profiles are on Profiller, review on Kontrol gerekli, a file row without a profile on Tanımsız");
         Check(unclassified.ExplanationDisplay == "Kararlı ve tam profil kesiti bulunamadı." &&
               !unclassified.ExplanationDisplay.Contains("Stable representative", StringComparison.Ordinal),
             "user-facing explanations translate known engine reasons and never expose the English text");

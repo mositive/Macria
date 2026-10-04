@@ -97,7 +97,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
     public string StatusDisplay => EffectiveCategory switch
     {
         MontajParcaKategorisi.Sac => "Sac",
-        MontajParcaKategorisi.OnayGerekli => "Geometrik sac, onay gerekli",
+        MontajParcaKategorisi.OnayGerekli => "Onay gerekli",
         MontajParcaKategorisi.Diger => "Diğer",
         MontajParcaKategorisi.Profil => "Profil",
         MontajParcaKategorisi.Tanimsiz => "Tanımsız",
