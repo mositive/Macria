@@ -52,15 +52,16 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged
     public string EngineReasonDisplay => EngineReasons.Count == 0 ? "" : string.Join(" ", EngineReasons);
 
     private double _laserMaximumMm = 20;
-    public string GroupDisplay => ThicknessMm is double t
-        ? (t <= _laserMaximumMm ? "Lazer" : "Şalama/Kütük")
-        : "—";
+    // The engine's thickness carries float noise (20.000000000038 or
+    // 19.99999999999933 for a 20 mm plate); a plate at the limit is Lazer.
+    private const double LaserLimitToleranceMm = 0.001;
+    public string GroupDisplay => ThicknessMm is null ? "—" : IsThickPlate ? "Şalama/Kütük" : "Lazer";
 
     /// <summary>
     /// Thicker than the laser maximum: listed under Şalama/Kütük. A sheet row
     /// without a thickness stays under Lazer, where its "—" group shows.
     /// </summary>
-    public bool IsThickPlate => ThicknessMm is double t && t > _laserMaximumMm;
+    public bool IsThickPlate => ThicknessMm is double t && t > _laserMaximumMm + LaserLimitToleranceMm;
 
     /// <summary>null: no CATIA comparison or no single match.</summary>
     public bool? CatiaSheetMetalFeature { get; private set; }

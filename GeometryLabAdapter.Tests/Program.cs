@@ -916,6 +916,15 @@ internal static class Program
         thick.SetLaserMaximum(25);
         Check(thick.GroupDisplay == "Lazer", "the group follows the laser maximum setting");
         Check(!thick.IsThickPlate, "the sub-tab follows the laser maximum setting");
+        // Float noise from the engine (WGRV004423: 20.000000000038 for a 20 mm plate).
+        MontajParcaSatiri Kalinlik(double t) => MontajParcaSatiri.Olustur("C:\\m.stp", analysis with
+        {
+            SheetMetalAnalyses = analysis.SheetMetalAnalyses
+                .Select(s => s.SolidId?.LocalId == 2 ? s with { ThicknessMm = t } : s).ToArray()
+        }, analysis.Parts[1], "C:\\x.dxf", 20);
+        Check(Kalinlik(20.000000000038).GroupDisplay == "Lazer" && !Kalinlik(20.000000000038).IsThickPlate,
+            "a 20 mm plate with float noise stays Lazer");
+        Check(Kalinlik(20.01).IsThickPlate, "20,01 mm is Şalama/Kütük");
 
         sheet.ApplyCatiaComparison(new[] { new CatiaScanSnapshotItem("Sac A", "p", "r", "k", 2, true) });
         Check(sheet.EffectiveCategory == MontajParcaKategorisi.Sac && sheet.DecisionSource == GeometryLabDecisionSource.ThreeDScan &&
