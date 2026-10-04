@@ -11,13 +11,10 @@ public partial class MainWindow
     private OcctPartView _montajParcaGorunumu = OcctPartView.Isolated;
 
     // Every embedded 3D panel of Dosya Analiz Merkezi; wiring, the shared part
-    // view and shutdown all go through this list.
+    // view and shutdown all go through this list. One panel serves every tab.
     private IEnumerable<Step3BPaneli> TumStep3BPanelleri()
     {
-        if (profilOnizleme != null) yield return profilOnizleme;
-        if (kontrolOnizleme != null) yield return kontrolOnizleme;
-        // Created on the first 3D choice in Saclar.
-        if (_sacOnizleme3B != null) yield return _sacOnizleme3B;
+        if (onizleme3B != null) yield return onizleme3B;
     }
 
     private void ExternalStepOnizlemesiniKur()
@@ -64,13 +61,6 @@ public partial class MainWindow
         panel.Shutdown();
     }
 
-    private void ExternalStepOnizlemesiniGuncelle(GeometryLabStepProfileListItem? item)
-    {
-        // An assembly part row: the part alone or inside the faded assembly; a
-        // missing file is reported by the panel. A null row clears it.
-        profilOnizleme.Goster(item?.SourceStepPath, item?.PartName, _montajParcaGorunumu);
-    }
-
     private GeometryLabStepProfileListItem? ExternalStepOnizlemeSatiri()
     {
         List<GeometryLabStepProfileListItem> selected = GorunenSeciliExternalStepSatirlari().ToList();
@@ -107,24 +97,11 @@ public partial class MainWindow
         else LogInfo(e.Message);
     }
 
-    // One "Büyük Aç" window for every tab. It shows the selection of the tab
-    // that is open now: opening it from a tab, or switching tabs while it is
-    // open, makes that tab the source; it then follows that tab's selection.
-    private enum BuyukOnizlemeSekmesi { Yok, Profiller, Saclar, Kontrol }
-
-    private BuyukOnizlemeSekmesi _buyukOnizlemeKaynagi;
-
-    private BuyukOnizlemeSekmesi Step3BSekmesi(object? panel) =>
-        panel == null ? BuyukOnizlemeSekmesi.Yok
-        : ReferenceEquals(panel, profilOnizleme) ? BuyukOnizlemeSekmesi.Profiller
-        : ReferenceEquals(panel, kontrolOnizleme) ? BuyukOnizlemeSekmesi.Kontrol
-        : ReferenceEquals(panel, _sacOnizleme3B) ? BuyukOnizlemeSekmesi.Saclar
-        : BuyukOnizlemeSekmesi.Yok;
-
+    // One "Büyük Aç" window for every tab: it shows what the right panel shows
+    // (in Saclar 2D, the selected sheet) and follows the open tab's selection.
     private void Onizleme_BuyukAcIstendi(object? sender, System.EventArgs e)
     {
         if (sender is not Step3BPaneli kaynak || kaynak.StepYolu == null || !File.Exists(kaynak.StepYolu)) return;
-        _buyukOnizlemeKaynagi = Step3BSekmesi(kaynak);
         if (_externalStepPreviewWindow != null)
         {
             BuyukOnizlemeyiKaynakla();
@@ -142,23 +119,13 @@ public partial class MainWindow
         {
             previewWindow.Diagnostic -= Onizleme_Diagnostic;
             previewWindow.PartViewToggleRequested -= BuyukOnizleme_PartViewToggleRequested;
-            if (ReferenceEquals(_externalStepPreviewWindow, previewWindow))
-            {
-                _externalStepPreviewWindow = null;
-                _buyukOnizlemeKaynagi = BuyukOnizlemeSekmesi.Yok;
-            }
+            if (ReferenceEquals(_externalStepPreviewWindow, previewWindow)) _externalStepPreviewWindow = null;
         };
         BuyukOnizlemeyiKaynakla();
         previewWindow.Show();
     }
 
-    // Saclar is not followed through its 3D panel, which is emptied in 2D mode
-    // or may not exist yet; SacOnizlemesiniGoster updates the window directly.
-    private void Onizleme_GosterimDegisti(object? sender, System.EventArgs e)
-    {
-        BuyukOnizlemeSekmesi sekme = Step3BSekmesi(sender);
-        if (sekme != BuyukOnizlemeSekmesi.Saclar && sekme == _buyukOnizlemeKaynagi) BuyukOnizlemeyiKaynakla();
-    }
+    private void Onizleme_GosterimDegisti(object? sender, System.EventArgs e) => BuyukOnizlemeyiKaynakla();
 
     private void tabExternalStepSonuc_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
@@ -166,33 +133,15 @@ public partial class MainWindow
         if (!ReferenceEquals(e.OriginalSource, tabExternalStepSonuc)) return;
         SagPaneliGuncelle();
         AracCubugunuGuncelle();
-        if (_externalStepPreviewWindow == null) return;
-        // The mixed tabs (Kontrol gerekli, Tanımsız, Liste dışı) share one 3D view.
-        BuyukOnizlemeSekmesi sekme = AktifSekme() switch
-        {
-            AnalizSekmesi.Profiller => BuyukOnizlemeSekmesi.Profiller,
-            AnalizSekmesi.Saclar => BuyukOnizlemeSekmesi.Saclar,
-            _ => BuyukOnizlemeSekmesi.Kontrol
-        };
-        if (sekme == BuyukOnizlemeSekmesi.Yok || sekme == _buyukOnizlemeKaynagi) return;
-        _buyukOnizlemeKaynagi = sekme;
-        BuyukOnizlemeyiKaynakla();
     }
 
     private void BuyukOnizlemeyiKaynakla()
     {
-        if (_externalStepPreviewWindow == null) return;
-        switch (_buyukOnizlemeKaynagi)
-        {
-            case BuyukOnizlemeSekmesi.Profiller:
-                _externalStepPreviewWindow.ShowStep(profilOnizleme.StepYolu, profilOnizleme.ParcaAdi, _montajParcaGorunumu);
-                break;
-            case BuyukOnizlemeSekmesi.Kontrol:
-                _externalStepPreviewWindow.ShowStep(kontrolOnizleme.StepYolu, kontrolOnizleme.ParcaAdi, _montajParcaGorunumu);
-                break;
-            case BuyukOnizlemeSekmesi.Saclar:
-                _externalStepPreviewWindow.ShowStep(_sacOnizlemeSatiri?.SourceStepPath, _sacOnizlemeSatiri?.PartName, _montajParcaGorunumu);
-                break;
-        }
+        if (_externalStepPreviewWindow == null || onizleme3B == null) return;
+        bool sac2B = AktifSekme() == AnalizSekmesi.Saclar && !_sac3BModu;
+        if (sac2B)
+            _externalStepPreviewWindow.ShowStep(_sacOnizlemeSatiri?.SourceStepPath, _sacOnizlemeSatiri?.PartName, _montajParcaGorunumu);
+        else
+            _externalStepPreviewWindow.ShowStep(onizleme3B.StepYolu, onizleme3B.ParcaAdi, _montajParcaGorunumu);
     }
 }

@@ -166,32 +166,50 @@ public partial class MainWindow
         btnAnalizGeriAl.IsEnabled = durum.GeriAlEtkin;
     }
 
-    // Right panel: Profiller's 3D + details, Saclar's 2D | 3D, and the common
-    // 3D view for the mixed tabs.
-    private void SagPaneliGuncelle()
-    {
-        if (pnlProfilSag == null) return;
-        AnalizSekmesi sekme = AktifSekme();
-        pnlProfilSag.Visibility = sekme == AnalizSekmesi.Profiller ? Visibility.Visible : Visibility.Collapsed;
-        pnlSacSag.Visibility = sekme == AnalizSekmesi.Saclar ? Visibility.Visible : Visibility.Collapsed;
-        pnlGenelSag.Visibility = sekme is AnalizSekmesi.KontrolGerekli or AnalizSekmesi.Tanimsiz or AnalizSekmesi.ListeDisi
-            ? Visibility.Visible
-            : Visibility.Collapsed;
-        GenelOnizlemeyiGuncelle();
-    }
-
+    // One right panel for every tab: the 3D view (in Saclar also the engine
+    // DXF, "Açınım (2B) | 3B") and the "Seçili Parça" lines.
     private const string GenelBosMesaji = "Önizlemek için listeden bir parça seçin.";
 
-    private void GenelOnizlemeyiGuncelle()
+    private void SagPaneliGuncelle()
     {
-        if (kontrolOnizleme == null || AktifSekme() is AnalizSekmesi.Profiller or AnalizSekmesi.Saclar) return;
+        if (onizleme3B == null) return;
         List<IAnalizSatiri> secili = SeciliAnalizSatirlari();
+        bool sac = AktifSekme() == AnalizSekmesi.Saclar;
+        bool ikiB = sac && !_sac3BModu;
+        pnlSacGecis.Visibility = sac ? Visibility.Visible : Visibility.Collapsed;
+        txtSagBaslik.Text = ikiB ? "Motor DXF Önizleme" : "3B Önizleme";
+        sacOnizleme2B.Visibility = ikiB ? Visibility.Visible : Visibility.Collapsed;
+        pnlSacOnizlemeAlt.Visibility = ikiB ? Visibility.Visible : Visibility.Collapsed;
+        onizleme3B.Visibility = ikiB ? Visibility.Collapsed : Visibility.Visible;
+        if (sac) SacOnizlemesiniGoster(secili.Count == 1 ? secili[0] as MontajParcaSatiri : null, secili.Count > 1);
+        string mesaj = secili.Count > 1 ? "Birden fazla parça seçildi." : GenelBosMesaji;
+        // In 2D the 3D model is let go, as before, to give the memory back.
+        if (ikiB || secili.Count != 1) onizleme3B.Temizle(mesaj);
+        else onizleme3B.Goster(secili[0].KaynakYolu, secili[0].ParcaAdi, _montajParcaGorunumu);
+        SeciliParcaAyrintisiniGoster(secili);
+        BuyukOnizlemeyiKaynakla();
+    }
+
+    private void SeciliParcaAyrintisiniGoster(List<IAnalizSatiri> secili)
+    {
+        pnlSeciliParca.Children.Clear();
         if (secili.Count != 1)
         {
-            kontrolOnizleme.Temizle(secili.Count > 1 ? "Birden fazla parça seçildi." : GenelBosMesaji);
+            txtSeciliParcaMesaj.Visibility = Visibility.Visible;
+            txtSeciliParcaMesaj.Text = secili.Count > 1 ? "Birden fazla parça seçildi." : "Ayrıntıları görmek için listeden bir parça seçin.";
             return;
         }
-        kontrolOnizleme.Goster(secili[0].KaynakYolu, secili[0].ParcaAdi, _montajParcaGorunumu);
+        txtSeciliParcaMesaj.Visibility = Visibility.Collapsed;
+        foreach (KeyValuePair<string, string> satir in secili[0].Ayrintilar)
+        {
+            var metin = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) };
+            metin.Inlines.Add(new System.Windows.Documents.Run(satir.Key + ": ")
+            {
+                Foreground = (System.Windows.Media.Brush)FindResource("TextSecondaryBrush")
+            });
+            metin.Inlines.Add(new System.Windows.Documents.Run(satir.Value));
+            pnlSeciliParca.Children.Add(metin);
+        }
     }
 
     private void KarmaTablo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -199,7 +217,7 @@ public partial class MainWindow
         // Selection changes bubble up; only the open tab's grid counts.
         if (!ReferenceEquals(sender, SekmeTablosu(AktifSekme()))) return;
         AracCubugunuGuncelle();
-        GenelOnizlemeyiGuncelle();
+        SagPaneliGuncelle();
     }
 
     // ------------------------------------------------------------- toolbar

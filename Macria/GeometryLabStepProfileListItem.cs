@@ -676,5 +676,20 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
         ? ExplanationDisplay + " (Liste dışı: " + ListeDisiNotu + ")"
         : ExplanationDisplay;
     bool IAnalizSatiri.OnayBekliyor => false;
+    IReadOnlyList<KeyValuePair<string, string>> IAnalizSatiri.Ayrintilar => new KeyValuePair<string, string>[]
+    {
+        new("STEP dosyası", SourceFileName),
+        new("Durum", EffectiveStatusDisplay),
+        new("Parça türü", EffectiveProfileTypeDisplay),
+        new("Kesit", SectionDisplay),
+        new("Boy", LengthDisplay),
+        new("Topoloji bilgisi", TopologyDisplay),
+        new("Açılı kesim", CutDisplay),
+        new("İşlem durumu", OperationDisplay),
+        new("CATIA adedi", CatiaQuantityDisplay),
+        new("Eşleşme", CatiaMatchDisplay),
+        new("Karar", KararGosterimi),
+        new("Açıklama", AciklamaGosterimi)
+    };
     void IAnalizSatiri.KontrolGerekliyeAl() => MoveToReview();
 }

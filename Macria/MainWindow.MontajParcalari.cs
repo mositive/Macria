@@ -32,8 +32,6 @@ public partial class MainWindow
                              row.IsThickPlate == _sacSalamaSekmesi
         };
         if (gridSacParcalar != null) gridSacParcalar.ItemsSource = _sacParcaView;
-        // The 3D panel is wired with the others in ExternalStepOnizlemesiniKur.
-        kontrolOnizleme?.Temizle(GenelBosMesaji);
     }
 
     /// <summary>A new, empty folder for this analysis run's engine DXFs; the previous run's is removed.</summary>
@@ -116,8 +114,7 @@ public partial class MainWindow
         // The first selection happens while the window is still being built.
         if (_sacParcaView == null) return;
         MontajSekmeleriniGuncelle();
-        List<MontajParcaSatiri> selected = SeciliSacSatirlari();
-        SacOnizlemesiniGoster(selected.Count == 1 ? selected[0] : null, selected.Count > 1);
+        SagPaneliGuncelle();
     }
 
     private void MontajLazerEsiginiUygula()
@@ -126,8 +123,7 @@ public partial class MainWindow
         ProjeLazerSiniriniGuncelle(Ayarlar.LazerAzamiKalinlikMm);
         MontajSekmeleriniGuncelle();
         // The bend-information setting changes which engine DXF is shown.
-        List<MontajParcaSatiri> selected = SeciliSacSatirlari();
-        SacOnizlemesiniGoster(selected.Count == 1 ? selected[0] : null, selected.Count > 1);
+        SagPaneliGuncelle();
     }
 
     private void MontajCatiaKarsilastir(CatiaScanSnapshot snapshot)
@@ -144,14 +140,11 @@ public partial class MainWindow
     private void gridSacParcalar_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         AracCubugunuGuncelle();
-        List<MontajParcaSatiri> selected = SeciliSacSatirlari();
-        SacOnizlemesiniGoster(selected.Count == 1 ? selected[0] : null, selected.Count > 1);
+        SagPaneliGuncelle();
     }
 
-    // Saclar: "Açınım (2B) | 3B". The 3D panel is created on the first 3D choice, so
-    // a session that never uses it opens no extra native viewer; back in 2D its
-    // model is cleared to give the memory back, the panel itself stays.
-    private Step3BPaneli? _sacOnizleme3B;
+    // Saclar: "Açınım (2B) | 3B" in the shared right panel; back in 2D the
+    // 3D model is cleared to give the memory back.
     private bool _sac3BModu;
     private MontajParcaSatiri? _sacOnizlemeSatiri;
     private bool _sacOnizlemeCoklu;
@@ -163,46 +156,22 @@ public partial class MainWindow
     private void SacOnizlemeModunuAyarla(bool ucB)
     {
         _sac3BModu = ucB;
-        if (ucB && _sacOnizleme3B == null)
-        {
-            _sacOnizleme3B = new Step3BPaneli { DiagnosticName = "Sac 3B" };
-            sacOnizleme3BYeri.Child = _sacOnizleme3B;
-            Step3BPaneliniBagla(_sacOnizleme3B);
-        }
-
         btnSacOnizleme2B.Style = (Style)FindResource(ucB ? "SecondaryButton" : "PrimaryButton");
         btnSacOnizleme3B.Style = (Style)FindResource(ucB ? "PrimaryButton" : "SecondaryButton");
-        txtSacOnizlemeBaslik.Text = ucB ? "3B Önizleme" : "Motor DXF Önizleme";
-        sacOnizleme2B.Visibility = ucB ? Visibility.Collapsed : Visibility.Visible;
-        pnlSacOnizlemeAlt.Visibility = ucB ? Visibility.Collapsed : Visibility.Visible;
-        sacOnizleme3BYeri.Visibility = ucB ? Visibility.Visible : Visibility.Collapsed;
-        Sac3BOnizlemesiniGuncelle();
+        SagPaneliGuncelle();
     }
 
-    private void Sac3BOnizlemesiniGuncelle()
-    {
-        if (_sacOnizleme3B == null) return;
-        if (!_sac3BModu || _sacOnizlemeSatiri == null)
-        {
-            _sacOnizleme3B.Temizle(_sacOnizlemeCoklu ? "Birden fazla parça seçildi." : "Önizlemek için listeden bir sac parça seçin.");
-            return;
-        }
-        _sacOnizleme3B.Goster(_sacOnizlemeSatiri.SourceStepPath, _sacOnizlemeSatiri.PartName, _montajParcaGorunumu);
-    }
-
+    /// <summary>The engine DXF of the selected sheet in the 2D view (the 3D view is SagPaneliGuncelle's).</summary>
     private void SacOnizlemesiniGoster(MontajParcaSatiri? row, bool coklu)
     {
         _sacOnizlemeSatiri = row;
         _sacOnizlemeCoklu = coklu;
-        Sac3BOnizlemesiniGuncelle();
-        if (_buyukOnizlemeKaynagi == BuyukOnizlemeSekmesi.Saclar) BuyukOnizlemeyiKaynakla();
-
         string? dxf = row?.DxfFor(Ayarlar.BukumBilgisiDxf);
         if (row == null || dxf == null)
         {
             SacOnizlemesiniBosalt(coklu ? "Birden fazla parça seçildi."
                 : row == null ? "Önizlemek için listeden bir sac parça seçin."
-                : "Bu parça için motor DXF'i yok.");
+                : "Bu parça için motor DXF'i yok (açınım yok – CATIA'dan).");
             return;
         }
         DxfPreviewReadResult result = _dxfDwgPreviewAdapter.Read(new PreviewRequest

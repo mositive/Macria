@@ -87,9 +87,7 @@ public partial class MainWindow
         _montajParcaRows.Clear();
         Step3BModelHazirlayici.Temizle();
         MotorDxfOturumunuTemizle();
-        ExternalStepOnizlemesiniGuncelle(null);
-        SacOnizlemesiniGoster(null, false);
-        kontrolOnizleme.Goster(null, null, _montajParcaGorunumu);
+        SagPaneliGuncelle();
         MontajSekmeleriniGuncelle();
         ExternalStepProfilOzetiniGuncelle();
         _externalStepProfileView?.Refresh();
@@ -106,47 +104,14 @@ public partial class MainWindow
     private void gridExternalStepProfil_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         ExternalStepKomutlariniGuncelle();
-        ExternalStepAyrintiyiGuncelle();
+        SagPaneliGuncelle();
     }
 
     private void ExternalStepSeciminiTemizle()
     {
         gridExternalStepProfil?.SelectedItems.Clear();
         ExternalStepKomutlariniGuncelle();
-        ExternalStepAyrintiyiGuncelle();
-    }
-
-    private void ExternalStepAyrintiyiGuncelle()
-    {
-        List<GeometryLabStepProfileListItem> selected = GorunenSeciliExternalStepSatirlari();
-        ExternalStepOnizlemesiniGuncelle(selected.Count == 1 ? selected[0] : null);
-        if (selected.Count != 1)
-        {
-            if (pnlExternalStepDetail != null) pnlExternalStepDetail.Visibility = Visibility.Collapsed;
-            if (txtExternalStepDetailMessage != null)
-            {
-                txtExternalStepDetailMessage.Visibility = Visibility.Visible;
-                txtExternalStepDetailMessage.Text = selected.Count > 1
-                    ? "Birden fazla parça seçildi."
-                    : "Ayrıntıları görmek için listeden bir STEP seçin.";
-            }
-            return;
-        }
-
-        GeometryLabStepProfileListItem item = selected[0];
-        if (txtExternalStepDetailMessage != null) txtExternalStepDetailMessage.Visibility = Visibility.Collapsed;
-        if (pnlExternalStepDetail != null) pnlExternalStepDetail.Visibility = Visibility.Visible;
-        if (txtExternalStepDetailFile != null) txtExternalStepDetailFile.Text = "STEP dosyası: " + item.SourceFileName;
-        if (txtExternalStepDetailStatus != null) txtExternalStepDetailStatus.Text = "Durum: " + item.EffectiveStatusDisplay;
-        if (txtExternalStepDetailType != null) txtExternalStepDetailType.Text = "Parça türü: " + item.EffectiveProfileTypeDisplay;
-        if (txtExternalStepDetailSection != null) txtExternalStepDetailSection.Text = "Kesit: " + item.SectionDisplay;
-        if (txtExternalStepDetailLength != null) txtExternalStepDetailLength.Text = "Boy: " + item.LengthDisplay;
-        if (txtExternalStepDetailTopology != null) txtExternalStepDetailTopology.Text = "Topoloji bilgisi: " + item.TopologyDisplay;
-        if (txtExternalStepDetailCut != null) txtExternalStepDetailCut.Text = "Açılı kesim: " + item.CutDisplay;
-        if (txtExternalStepDetailOperation != null) txtExternalStepDetailOperation.Text = "İşlem durumu: " + item.OperationDisplay;
-        if (txtExternalStepDetailCatia != null) txtExternalStepDetailCatia.Text = "CATIA adedi: " + item.CatiaQuantityDisplay;
-        if (txtExternalStepDetailMatch != null) txtExternalStepDetailMatch.Text = "Eşleşme: " + item.CatiaMatchDisplay;
-        if (txtExternalStepDetailExplanation != null) txtExternalStepDetailExplanation.Text = "Açıklama: " + item.ExplanationDisplay;
+        SagPaneliGuncelle();
     }
 
     private void ExternalStepKomutlariniGuncelle() => AracCubugunuGuncelle();

@@ -330,6 +330,21 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         ? ExplanationDisplay + " (Liste dışı: " + ListeDisiNotu + ")"
         : ExplanationDisplay;
     public bool OnayBekliyor => EffectiveCategory == MontajParcaKategorisi.OnayGerekli;
+    IReadOnlyList<KeyValuePair<string, string>> IAnalizSatiri.Ayrintilar => new KeyValuePair<string, string>[]
+    {
+        new("STEP dosyası", SourceFileName),
+        new("Parça", PartName + " (" + Quantity.ToString(CultureInfo.InvariantCulture) + " adet)"),
+        new("Durum", StatusDisplay),
+        new("Kalınlık", ThicknessDisplay),
+        new("Grup", GroupDisplay),
+        new("Büküm", BendCountDisplay),
+        new("Delikler", HoleSummary),
+        new("DXF", DxfDisplay),
+        new("CATIA adedi", CatiaQuantityDisplay),
+        new("Eşleşme", CatiaMatchDisplay),
+        new("Karar", DecisionDisplay),
+        new("Açıklama", AciklamaGosterimi)
+    };
     void IAnalizSatiri.KontrolGerekliyeAl() => MoveToReview();
 
     /// <summary>True when a STEP holds more than one part or repeats its only part.</summary>

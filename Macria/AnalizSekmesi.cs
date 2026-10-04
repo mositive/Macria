@@ -38,6 +38,8 @@ public interface IAnalizSatiri
     bool ListeDisi { get; }
     /// <summary>A geometric sheet in Saclar that is not approved yet ("Onay gerekli", shown amber).</summary>
     bool OnayBekliyor { get; }
+    /// <summary>"Seçili Parça" lines of the right panel (label, value).</summary>
+    IReadOnlyList<KeyValuePair<string, string>> Ayrintilar { get; }
     void ListeDisinaCikar(string? not = null);
     void ListeyeGeriAl();
     void KontrolGerekliyeAl();
