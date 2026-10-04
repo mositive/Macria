@@ -39,8 +39,16 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
     public bool EngineEvidence { get; init; }
     public bool SheetCandidate { get; init; }
     public string? ProfileCandidate { get; init; }
+    /// <summary>
+    /// The thickness the engine measured (offset skin pair), also when it
+    /// could not unfold the part or did not take it for a sheet.
+    /// </summary>
     public double? ThicknessMm { get; init; }
+    /// <summary>The engine recognized the sheet (its bends are counted), with or without a flat pattern.</summary>
+    public bool SheetRecognized { get; init; }
     public int BendCount { get; init; }
+    /// <summary>Machined plate: pockets, steps, counterbores; not cut in the DXF.</summary>
+    public bool MachiningPresent { get; init; }
     public string HoleSummary { get; init; } = "—";
     /// <summary>Engine DXF (part-&lt;id&gt;.dxf in the analysis' DXF folder), or null.</summary>
     public string? DxfSourcePath { get; init; }
@@ -52,7 +60,8 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
 
     public string SourceFileName => System.IO.Path.GetFileName(SourceStepPath);
     public string ThicknessDisplay => ThicknessMm is double t ? FormatNumber(t) + " mm" : "—";
-    public string BendCountDisplay => ThicknessMm is null ? "—" : BendCount.ToString(CultureInfo.InvariantCulture);
+    public string BendCountDisplay => SheetRecognized ? BendCount.ToString(CultureInfo.InvariantCulture) : "—";
+    public string MachiningDisplay => MachiningPresent ? "var" : "—";
     public string EngineReasonDisplay => EngineReasons.Count == 0 ? "" : string.Join(" ", EngineReasons);
 
     private double _laserMaximumMm = 20;
@@ -144,7 +153,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         GeometryLabSheetMetalTransport? sheet = solidId is null
             ? null
             : analysis.SheetMetalAnalyses.FirstOrDefault(x => x.SolidId?.LocalId == solidId);
-        bool sheetUsable = part.SheetCandidate && sheet?.ThicknessMm != null;
+        bool recognized = sheet?.Status == "Recognized";
         (string kod, bool kanit) = MotorSinifKodu.Belirle(analysis, part);
         var row = new MontajParcaSatiri
         {
@@ -159,8 +168,10 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
             EngineReasons = part.ClassificationReasons,
             SheetCandidate = part.SheetCandidate,
             ProfileCandidate = string.IsNullOrWhiteSpace(part.ProfileCandidate) ? null : part.ProfileCandidate,
-            ThicknessMm = sheetUsable ? sheet!.ThicknessMm : null,
-            BendCount = sheetUsable ? sheet!.Bends.Count : 0,
+            ThicknessMm = sheet?.ThicknessMm,
+            SheetRecognized = recognized,
+            BendCount = recognized ? sheet!.Bends.Count : 0,
+            MachiningPresent = part.MachiningPresent == true,
             HoleSummary = solidId is null
                 ? "—"
                 : HoleSummaryFor(analysis.HoleFeatures.Where(x => x.SolidId?.LocalId == solidId)),
@@ -339,6 +350,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         new("Grup", GroupDisplay),
         new("Büküm", BendCountDisplay),
         new("Delikler", HoleSummary),
+        new("İşleme", MachiningPresent ? "var (cep, basamak, havşa / imbus başı; DXF'te yok)" : "yok"),
         new("DXF", DxfDisplay),
         new("CATIA adedi", CatiaQuantityDisplay),
         new("Eşleşme", CatiaMatchDisplay),

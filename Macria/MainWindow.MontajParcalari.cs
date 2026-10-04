@@ -296,7 +296,7 @@ public partial class MainWindow
         foreach ((string name, double width) in new[]
         {
             ("Durum", 2.0), ("Parça", 2.2), ("Adet", 0.8), ("Kalınlık (mm)", 1.1), ("Grup", 1.3), ("Büküm", 0.8),
-            ("Delikler", 3.4), ("DXF Adı", 3.0), ("CATIA Adedi", 1.1), ("CATIA Eşleşme", 1.9), ("Karar", 1.3),
+            ("Delikler", 3.4), ("İşleme", 0.9), ("DXF Adı", 3.0), ("CATIA Adedi", 1.1), ("CATIA Eşleşme", 1.9), ("Karar", 1.3),
             ("Açıklama", 3.3), ("STEP Dosyası", 2.2)
         })
             rapor.Sutunlar.Add(new RaporSutun { Ad = name, Genislik = width });
@@ -304,8 +304,8 @@ public partial class MainWindow
             rapor.Satirlar.Add(new object?[]
             {
                 row.StatusDisplay, row.PartName, row.Quantity, row.ThicknessMm, row.GroupDisplay,
-                row.ThicknessMm is null ? null : row.BendCount, row.HoleSummary,
-                row.ThicknessMm is double t ? DxfAdi.Uret(row.PartName, t, row.Quantity) : "",
+                row.SheetRecognized ? row.BendCount : null, row.HoleSummary, row.MachiningPresent ? "var" : "",
+                row.DxfSourcePath != null && row.ThicknessMm is double t ? DxfAdi.Uret(row.PartName, t, row.Quantity) : "",
                 row.CatiaQuantityDisplay, row.CatiaMatchDisplay, row.DecisionDisplay, row.ExplanationDisplay, row.SourceFileName
             });
         return rapor;

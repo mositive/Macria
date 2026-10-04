@@ -129,6 +129,11 @@ public sealed record GeometryLabPartTransport
     [JsonPropertyName("profileCandidate")]
     public string? ProfileCandidate { get; init; }
 
+    // Engine 2026.10.5.2+: a machined plate (pockets, steps, counterbores);
+    // the DXF holds only the outline and the cut-through holes. Null in older outputs.
+    [JsonPropertyName("machiningPresent")]
+    public bool? MachiningPresent { get; init; }
+
     // File name the engine wrote with --dxf-klasor (part-<id>.dxf), or null.
     [JsonPropertyName("dxfFile")]
     public string? DxfFile { get; init; }

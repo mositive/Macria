@@ -1161,6 +1161,38 @@ internal static class Program
               shaft.DxfDisplay == "açınım yok – CATIA'dan" && shaft.ExplanationDisplay.Contains("CATIA'dan"),
             "a part without flat pattern is approved as sheet; its DXF comes from CATIA");
         Check(sheet.DxfDisplay != "açınım yok – CATIA'dan", "a part with an engine DXF names the DXF file");
+        // The engine measured a thickness but could not unfold the part
+        // (FlatPatternFailed) or did not take it for a sheet: the thickness is
+        // shown anyway; approved, the part is grouped by it.
+        GeometryLabAnalysisTransport olculen = analysis with
+        {
+            SheetMetalAnalyses = analysis.SheetMetalAnalyses.Concat(new[]
+            {
+                new GeometryLabSheetMetalTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 5 }, Status = "Recognized",
+                    ThicknessMm = 30, Bends = new[] { new GeometryLabSheetBendTransport() } }
+            }).ToArray()
+        };
+        MontajParcaSatiri acinimsiz = MontajParcaSatiri.Olustur("C:\\m.stp", olculen, analysis.Parts[4] with
+        {
+            Classification = "ReviewRequired", ClassificationCode = MotorSinifKodu.FlatPatternFailed, RecognitionEvidence = true,
+            MachiningPresent = true
+        }, null, 20);
+        Check(acinimsiz.Sekme == AnalizSekmesi.KontrolGerekli && acinimsiz.ThicknessDisplay == "30 mm" &&
+              acinimsiz.BendCountDisplay == "1" && acinimsiz.DxfDisplay == "açınım yok – CATIA'dan" &&
+              acinimsiz.MachiningDisplay == "var" && !acinimsiz.CanApproveAsSheet,
+            "no flat pattern: the measured thickness, bends and machining are shown, the DXF comes from CATIA");
+        acinimsiz.ApproveAsSheet();
+        Check(acinimsiz.Sekme == AnalizSekmesi.Saclar && acinimsiz.IsThickPlate && acinimsiz.GroupDisplay == "Şalama/Kütük",
+            "approved without a flat pattern, a 30 mm part is listed under Şalama/Kütük by its measured thickness");
+        MontajParcaSatiri sacDegil = MontajParcaSatiri.Olustur("C:\\m.stp", olculen with
+        {
+            SheetMetalAnalyses = new[]
+            {
+                new GeometryLabSheetMetalTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 5 }, Status = "NotSheet", ThicknessMm = 2 }
+            }
+        }, analysis.Parts[4] with { ClassificationCode = MotorSinifKodu.NotRecognized, RecognitionEvidence = true }, null, 20);
+        Check(sacDegil.ThicknessDisplay == "2 mm" && sacDegil.BendCountDisplay == "—" && sacDegil.MachiningDisplay == "—",
+            "a part the sheet recognizer rejected still shows the thickness it measured, without a bend count");
         MontajParcaSatiri bos = Row(4, null);
         Check(bos.EngineCode == MotorSinifKodu.NotRecognized && !bos.EngineEvidence &&
               bos.EffectiveCategory == MontajParcaKategorisi.Tanimsiz && bos.Sekme == AnalizSekmesi.Tanimsiz,
