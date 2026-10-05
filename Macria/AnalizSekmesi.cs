@@ -69,6 +69,20 @@ public static class SekmeKurallari
         _ => AnalizSekmesi.KontrolGerekli
     };
 
+    /// <summary>
+    /// The tab search: the text (case and Turkish letters ignored) in the part
+    /// name, the part column ("file › part") or the STEP file name. Empty matches all.
+    /// </summary>
+    public static bool AramayaUyar(IAnalizSatiri satir, string? arama)
+    {
+        string aranan = (arama ?? "").Trim();
+        if (aranan.Length == 0) return true;
+        var tr = System.Globalization.CultureInfo.GetCultureInfo("tr-TR").CompareInfo;
+        const System.Globalization.CompareOptions secenek = System.Globalization.CompareOptions.IgnoreCase;
+        bool Icerir(string? metin) => !string.IsNullOrEmpty(metin) && tr.IndexOf(metin, aranan, secenek) >= 0;
+        return Icerir(satir.ParcaAdi) || Icerir(satir.ParcaGosterimi) || Icerir(System.IO.Path.GetFileName(satir.KaynakYolu));
+    }
+
     /// <summary>A part the engine identified as neither sheet nor profile (shown as "Diğer").</summary>
     public static bool Diger(string kod) =>
         kod is MotorSinifKodu.SolidBar or MotorSinifKodu.ThickerThanOutline or MotorSinifKodu.ThickerThanMaterial;

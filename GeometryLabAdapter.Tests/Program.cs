@@ -39,6 +39,7 @@ internal static class Program
             KalinlikDuzeltmeTests();
             KararSutunlariTests();
             SutunDuzeniTests();
+            AramaTests();
             AssemblyProcessedProfilePart();
             AssemblyPartProfileGeometry();
             MotorDxfExport();
@@ -1280,6 +1281,23 @@ internal static class Program
               (int?)AnalizSutunDuzeni.Deger(sac, nameof(MontajParcaSatiri.Quantity)) == 2 &&
               AnalizSutunDuzeni.Deger(sac, "YokBoyle") == null && AnalizSutunDuzeni.Deger(sac, null) == null,
             "cell values come from the row's properties, explicit interface members included");
+    }
+
+    // (35) The tab search: part name, the part column and the STEP file name;
+    // case and Turkish letters ignored.
+    private static void AramaTests()
+    {
+        GeometryLabAnalysisTransport analysis = AssemblyAnalysis();
+        MontajParcaSatiri sac = MontajParcaSatiri.Olustur("C:\\Proje\\Kılıç Montaj.stp", analysis, analysis.Parts[1], "C:\\x.dxf", 20);
+        foreach ((string arama, bool uyar) in new[]
+                 {
+                     ("", true), ("  ", true), ("sac", true), ("SAC A", true), ("c a", true), ("KILIÇ", true), ("kılıç montaj", true),
+                     ("montaj.stp", true), ("Proje", false), ("profil", false)
+                 })
+            Check(SekmeKurallari.AramayaUyar(sac, arama) == uyar, "search \"" + arama + "\" " + (uyar ? "matches" : "does not match"));
+        var profil = new GeometryLabStepProfileListItem { SourceStepPath = "C:\\m.stp", PartName = "Kutu", PartQuantity = 3 };
+        Check(SekmeKurallari.AramayaUyar(profil, "kutu") && SekmeKurallari.AramayaUyar(profil, "M.STP") &&
+              !SekmeKurallari.AramayaUyar(profil, "sac"), "profile rows are searched by part and file name");
     }
 
     private static void AssemblyPartRows()

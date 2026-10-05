@@ -2162,6 +2162,9 @@
                     <Grid Margin="8,8,8,8">
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                     <WrapPanel x:Name="pnlAnalizAraclari" Grid.Row="0" Margin="0,0,0,4">
+                        <TextBox x:Name="txtAnalizArama" Style="{StaticResource SearchBox}" Width="230" Height="28" Margin="0,0,12,6"
+                                 ToolTip="Parça adına göre bütün sekmeleri ve Lazer / Şalama alt sekmelerini süzer; Esc temizler"
+                                 TextChanged="txtAnalizArama_TextChanged" KeyDown="txtAnalizArama_KeyDown"/>
                         <Button x:Name="btnAnalizExcel" Style="{StaticResource SecondaryButton}" Content="Excel'e Aktar" Height="28" Padding="10,0" Margin="0,0,6,6"
                                 ToolTip="Açık sekmenin görünen sütunlarını ve satırlarını Excel'e yazar" Click="btnAnalizExcel_Click"/>
                         <Button x:Name="btnAnalizSutunlar" Style="{StaticResource SecondaryButton}" Content="Sütunlar" Height="28" Padding="10,0" Margin="0,0,6,6"

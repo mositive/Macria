@@ -39,7 +39,7 @@ public partial class MainWindow
         _externalStepProfileView = CollectionViewSource.GetDefaultView(_externalStepProfileRows);
         // Profiller lists the definite profiles only; the rest is on the other tabs.
         _externalStepProfileView.Filter = item => item is GeometryLabStepProfileListItem row &&
-            row.Sekme == AnalizSekmesi.Profiller;
+            row.Sekme == AnalizSekmesi.Profiller && AramayaUyar(row);
         if (gridExternalStepProfil != null) gridExternalStepProfil.ItemsSource = _externalStepProfileView;
         // "Tabloyu Temizle" is enabled only while there is something to clear.
         _externalStepProfileRows.CollectionChanged += (_, _) => ExternalStepAnalizButonunuGuncelle();

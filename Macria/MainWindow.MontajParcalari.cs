@@ -29,7 +29,7 @@ public partial class MainWindow
         _sacParcaView = new ListCollectionView(_montajParcaRows)
         {
             Filter = item => item is MontajParcaSatiri row && row.Sekme == AnalizSekmesi.Saclar &&
-                             row.IsThickPlate == _sacSalamaSekmesi
+                             row.IsThickPlate == _sacSalamaSekmesi && AramayaUyar(row)
         };
         if (gridSacParcalar != null) gridSacParcalar.ItemsSource = _sacParcaView;
     }

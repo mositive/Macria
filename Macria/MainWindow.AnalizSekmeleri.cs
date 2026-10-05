@@ -45,7 +45,31 @@ public partial class MainWindow
     }
 
     private ListCollectionView SekmeGorunumu(AnalizSekmesi sekme) =>
-        new(_tumSatirlar) { Filter = item => item is IAnalizSatiri satir && satir.Sekme == sekme };
+        new(_tumSatirlar) { Filter = item => item is IAnalizSatiri satir && satir.Sekme == sekme && AramayaUyar(satir) };
+
+    // The search box above the tabs: every tab and the Lazer / Şalama sub-tabs
+    // list only the rows whose part name matches; the tab counts follow it.
+    private string _analizArama = "";
+
+    private bool AramayaUyar(IAnalizSatiri satir) => SekmeKurallari.AramayaUyar(satir, _analizArama);
+
+    private void txtAnalizArama_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        _analizArama = (txtAnalizArama.Text ?? "").Trim();
+        AnalizSekmeleriniGuncelle();
+        SagPaneliGuncelle();
+    }
+
+    private void txtAnalizArama_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key != System.Windows.Input.Key.Escape || txtAnalizArama.Text.Length == 0) return;
+        txtAnalizArama.Text = "";
+        e.Handled = true;
+    }
+
+    /// <summary>"Saclar (12)", or while searching "Saclar (3 / 12)".</summary>
+    private string SekmeBasligi(string ad, int bulunan, int toplam) =>
+        ad + " (" + (_analizArama.Length == 0 ? toplam.ToString() : bulunan + " / " + toplam) + ")";
 
     private void TumSatirlariYenile()
     {
@@ -118,7 +142,10 @@ public partial class MainWindow
         return SekmeTablosu(sekme)?.SelectedItems.OfType<IAnalizSatiri>().Where(x => x.Sekme == sekme).ToList() ?? new();
     }
 
-    private int SekmedekiSatirSayisi(AnalizSekmesi sekme) => _tumSatirlar.Count(x => x.Sekme == sekme);
+    /// <summary>Rows the tab lists (the search applied).</summary>
+    private int SekmedekiSatirSayisi(AnalizSekmesi sekme) => _tumSatirlar.Count(x => x.Sekme == sekme && AramayaUyar(x));
+
+    private int SekmedekiToplamSatir(AnalizSekmesi sekme) => _tumSatirlar.Count(x => x.Sekme == sekme);
 
     /// <summary>Re-filters every tab and updates the tab counts, the Saclar summary and the toolbar.</summary>
     private void AnalizSekmeleriniGuncelle()
@@ -129,13 +156,19 @@ public partial class MainWindow
         _tanimsizView?.Refresh();
         _listeDisiView?.Refresh();
         if (tabExternalStepProfiller == null) return;
-        tabExternalStepProfiller.Header = "Profiller (" + SekmedekiSatirSayisi(AnalizSekmesi.Profiller) + ")";
-        tabExternalStepSaclar.Header = "Saclar (" + SekmedekiSatirSayisi(AnalizSekmesi.Saclar) + ")";
-        tabExternalStepKontrol.Header = "Kontrol gerekli (" + SekmedekiSatirSayisi(AnalizSekmesi.KontrolGerekli) + ")";
-        tabExternalStepTanimsiz.Header = "Tanımsız (" + SekmedekiSatirSayisi(AnalizSekmesi.Tanimsiz) + ")";
-        tabExternalStepListeDisi.Header = "Liste dışı (" + SekmedekiSatirSayisi(AnalizSekmesi.ListeDisi) + ")";
-        tabSacLazer.Header = "Lazer (" + _montajParcaRows.Count(x => x.IsInSheetTab && !x.IsThickPlate) + ")";
-        tabSacSalama.Header = "Şalama/Kütük (" + _montajParcaRows.Count(x => x.IsInSheetTab && x.IsThickPlate) + ")";
+        foreach ((TabItem sekmeBasligi, string ad, AnalizSekmesi sekme) in new[]
+                 {
+                     (tabExternalStepProfiller, "Profiller", AnalizSekmesi.Profiller),
+                     (tabExternalStepSaclar, "Saclar", AnalizSekmesi.Saclar),
+                     (tabExternalStepKontrol, "Kontrol gerekli", AnalizSekmesi.KontrolGerekli),
+                     (tabExternalStepTanimsiz, "Tanımsız", AnalizSekmesi.Tanimsiz),
+                     (tabExternalStepListeDisi, "Liste dışı", AnalizSekmesi.ListeDisi)
+                 })
+            sekmeBasligi.Header = SekmeBasligi(ad, SekmedekiSatirSayisi(sekme), SekmedekiToplamSatir(sekme));
+        tabSacLazer.Header = SekmeBasligi("Lazer", _montajParcaRows.Count(x => x.IsInSheetTab && !x.IsThickPlate && AramayaUyar(x)),
+            _montajParcaRows.Count(x => x.IsInSheetTab && !x.IsThickPlate));
+        tabSacSalama.Header = SekmeBasligi("Şalama/Kütük", _montajParcaRows.Count(x => x.IsInSheetTab && x.IsThickPlate && AramayaUyar(x)),
+            _montajParcaRows.Count(x => x.IsInSheetTab && x.IsThickPlate));
         List<MontajParcaSatiri> grup = SacGrubuSatirlari();
         int onayli = grup.Count(x => x.EffectiveCategory == MontajParcaKategorisi.Sac);
         int bekleyen = grup.Count(x => x.EffectiveCategory == MontajParcaKategorisi.OnayGerekli);
