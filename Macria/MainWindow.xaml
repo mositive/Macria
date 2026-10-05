@@ -2163,7 +2163,9 @@
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                     <WrapPanel x:Name="pnlAnalizAraclari" Grid.Row="0" Margin="0,0,0,4">
                         <Button x:Name="btnAnalizExcel" Style="{StaticResource SecondaryButton}" Content="Excel'e Aktar" Height="28" Padding="10,0" Margin="0,0,6,6"
-                                ToolTip="Açık sekmedeki satırları Excel'e yazar" Click="btnAnalizExcel_Click"/>
+                                ToolTip="Açık sekmenin görünen sütunlarını ve satırlarını Excel'e yazar" Click="btnAnalizExcel_Click"/>
+                        <Button x:Name="btnAnalizSutunlar" Style="{StaticResource SecondaryButton}" Content="Sütunlar" Height="28" Padding="10,0" Margin="0,0,6,6"
+                                ToolTip="Açık sekmenin görünen sütunlarını ve sırasını düzenler; sekme başına hatırlanır" Click="btnAnalizSutunlar_Click"/>
                         <Button x:Name="btnAnalizUretimPaketi" Style="{StaticResource SecondaryButton}" Content="Üretim Paketi Hazırla" Height="28" Padding="10,0" Margin="0,0,6,6"
                                 ToolTip="Kesin profillerden üretim paketi hazırlar" Click="btnExternalStepUretimPaketi_Click"/>
                         <Button x:Name="btnAnalizCatia" Style="{StaticResource SecondaryButton}" Content="CATIA ile Karşılaştır" Height="28" Padding="10,0" Margin="0,0,6,6"
@@ -2261,6 +2263,7 @@
                                     <DataGridTemplateColumn Header="Motor gerekçesi" Width="*" MinWidth="200" SortMemberPath="MotorGerekcesi">
                                         <DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding MotorGerekcesi}" ToolTip="{Binding MotorGerekcesi}" Style="{StaticResource KirpilanHucre}"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="STEP dosyası" Binding="{Binding SourceStepPath}" Width="260" ElementStyle="{StaticResource KirpilanHucre}"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </TabItem>
@@ -2343,6 +2346,7 @@
                                         <DataGridTemplateColumn Header="Motor gerekçesi" Width="*" MinWidth="200" SortMemberPath="MotorGerekcesi">
                                             <DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding MotorGerekcesi}" ToolTip="{Binding MotorGerekcesi}" TextTrimming="CharacterEllipsis"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="STEP dosyası" Binding="{Binding SourceStepPath}" Width="260" ElementStyle="{StaticResource KirpilanHucre}"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
                             </Grid>

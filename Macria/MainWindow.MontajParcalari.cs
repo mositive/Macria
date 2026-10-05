@@ -342,7 +342,7 @@ public partial class MainWindow
         if (dialog.ShowDialog(this) != true) return;
         try
         {
-            ExcelYazici.Yaz(SacExcelRaporuHazirla(rows, _sacSalamaSekmesi ? "Saclar - Şalama-Kütük" : "Saclar - Lazer"), dialog.FileName);
+            ExcelYazici.Yaz(TabloRaporu(gridSacParcalar, _sacSalamaSekmesi ? "Saclar - Şalama-Kütük" : "Saclar - Lazer"), dialog.FileName);
             LogSuccess("Montaj sac listesi (" + SacGrubuAdi() + ") Excel'e yazıldı: " + dialog.FileName);
             MessageBox.Show(this, "Excel dosyası oluşturuldu:\n" + dialog.FileName, "Excel'e Aktar", MessageBoxButton.OK, MessageBoxImage.Information);
         }
@@ -351,34 +351,5 @@ public partial class MainWindow
             LogError("Montaj sac listesi Excel'e yazılamadı: " + exception.Message);
             MessageBox.Show(this, "Excel dosyası yazılamadı.\n" + exception.Message, "Excel'e Aktar", MessageBoxButton.OK, MessageBoxImage.Information);
         }
-    }
-
-    private static Rapor SacExcelRaporuHazirla(IEnumerable<MontajParcaSatiri> rows, string sayfaAdi)
-    {
-        var rapor = new Rapor
-        {
-            SayfaAdi = sayfaAdi,
-            TabloIlkSatirdanBaslar = true,
-            IlkSatiriDondur = true,
-            OtomatikFiltre = true
-        };
-        foreach ((string name, double width) in new[]
-        {
-            ("Durum", 2.0), ("Parça", 2.2), ("Adet", 0.8), ("Kalınlık (mm)", 1.1), ("Motor kalınlığı (mm)", 1.3),
-            ("Ham sac ölçüsü (mm)", 1.6), ("Grup", 1.3), ("Büküm", 0.8),
-            ("Delikler", 3.4), ("İşleme", 0.9), ("DXF Adı", 3.0), ("CATIA Adedi", 1.1), ("CATIA Eşleşme", 1.9), ("Karar", 1.3),
-            ("Kullanıcı kararı", 2.8), ("Motor gerekçesi", 3.3), ("STEP Dosyası", 2.2)
-        })
-            rapor.Sutunlar.Add(new RaporSutun { Ad = name, Genislik = width });
-        foreach (MontajParcaSatiri row in rows)
-            rapor.Satirlar.Add(new object?[]
-            {
-                row.StatusDisplay, row.PartName, row.Quantity, row.EtkinKalinlikMm, row.ThicknessMm,
-                row.HamSacOlcusuDisplay == "—" ? "" : row.HamSacOlcusuDisplay.Replace(" mm", ""), row.GroupDisplay,
-                row.SheetRecognized ? row.BendCount : null, row.HoleSummary, row.MachiningPresent ? "var" : "",
-                row.DxfSourcePath != null && row.EtkinKalinlikMm is double t ? DxfAdi.Uret(row.PartName, t, row.Quantity) : "",
-                row.CatiaQuantityDisplay, row.CatiaMatchDisplay, row.DecisionDisplay, row.KullaniciKarariMetni, row.MotorGerekcesi, row.SourceFileName
-            });
-        return rapor;
     }
 }

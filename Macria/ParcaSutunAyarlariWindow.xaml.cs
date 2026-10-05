@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Windows;
@@ -10,6 +11,10 @@ namespace Macria
         private readonly ObservableCollection<ParcaSutunSatiri> _sutunlar =
             new ObservableCollection<ParcaSutunSatiri>();
 
+        // Another table's columns (STEP / STP Analizi tabs); null: the parts table's.
+        private readonly Func<List<ParcaSutunTanimi>>? _varsayilanlar;
+        private readonly Func<List<ParcaSutunTanimi>, string?>? _kaydet;
+
         public ParcaSutunAyarlariWindow()
         {
             InitializeComponent();
@@ -17,6 +22,21 @@ namespace Macria
 
             listeSutunlar.ItemsSource = _sutunlar;
             Yukle(ParcaSutunDeposu.Sutunlar);
+        }
+
+        /// <summary>The same editor for another table: `kaydet` returns null or the reason it failed.</summary>
+        internal ParcaSutunAyarlariWindow(string baslik, string aciklama, List<ParcaSutunTanimi> sutunlar,
+            Func<List<ParcaSutunTanimi>> varsayilanlar, Func<List<ParcaSutunTanimi>, string?> kaydet)
+        {
+            InitializeComponent();
+            WindowEffects.RoundCorners(this);
+            Title = baslik;
+            txtBaslik.Text = baslik;
+            txtAciklama.Text = aciklama;
+            _varsayilanlar = varsayilanlar;
+            _kaydet = kaydet;
+            listeSutunlar.ItemsSource = _sutunlar;
+            Yukle(sutunlar);
         }
 
         private void Yukle(List<ParcaSutunTanimi> sutunlar)
@@ -54,7 +74,7 @@ namespace Macria
                     "Sıfırla"))
                 return;
 
-            Yukle(ParcaSutunDeposu.Varsayilanlar());
+            Yukle(_varsayilanlar?.Invoke() ?? ParcaSutunDeposu.Varsayilanlar());
             txtDurum.Text = "";
         }
 
@@ -70,8 +90,8 @@ namespace Macria
                 return;
             }
 
-            string hata;
-            if (!ParcaSutunDeposu.Kaydet(tanimlar, out hata))
+            string hata = "";
+            if (_kaydet != null ? (hata = _kaydet(tanimlar) ?? "").Length > 0 : !ParcaSutunDeposu.Kaydet(tanimlar, out hata))
             {
                 Uyar("Sütun ayarları kaydedilemedi: " + hata);
                 return;

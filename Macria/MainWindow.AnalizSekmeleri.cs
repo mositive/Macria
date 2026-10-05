@@ -38,6 +38,7 @@ public partial class MainWindow
             grid.ItemsSource = view;
             grid.SelectionChanged += KarmaTablo_SelectionChanged;
         }
+        AnalizSutunlariniKur();
         _externalStepProfileRows.CollectionChanged += (_, _) => TumSatirlariYenile();
         _montajParcaRows.CollectionChanged += (_, _) => TumSatirlariYenile();
         TumSatirlariYenile();
@@ -71,20 +72,23 @@ public partial class MainWindow
                      ("Eşleşme", nameof(IAnalizSatiri.CatiaMatchDisplay), new DataGridLength(130)),
                      ("Karar", nameof(IAnalizSatiri.KararGosterimi), new DataGridLength(100)),
                      ("Kullanıcı kararı", nameof(IAnalizSatiri.KullaniciKarariMetni), new DataGridLength(200)),
-                     ("Motor gerekçesi", nameof(IAnalizSatiri.MotorGerekcesi), new DataGridLength(1, DataGridLengthUnitType.Star))
+                     ("Motor gerekçesi", nameof(IAnalizSatiri.MotorGerekcesi), new DataGridLength(1, DataGridLengthUnitType.Star)),
+                     ("STEP dosyası", nameof(IAnalizSatiri.KaynakYolu), new DataGridLength(260))
                  })
         {
             var yol = new PropertyPath("(0)", typeof(IAnalizSatiri).GetProperty(ozellik)!);
             var stil = new Style(typeof(TextBlock), hucre);
             stil.Setters.Add(new Setter(FrameworkElement.ToolTipProperty, new Binding { Path = yol }));
-            grid.Columns.Add(new DataGridTextColumn
+            var sutun = new DataGridTextColumn
             {
                 Header = baslik,
                 Binding = new Binding { Path = yol, Mode = BindingMode.OneWay },
                 Width = genislik,
                 MinWidth = baslik == "Motor gerekçesi" ? 200 : 50,
                 ElementStyle = stil
-            });
+            };
+            _sutunOzellikleri[sutun] = ozellik;
+            grid.Columns.Add(sutun);
         }
     }
 
@@ -305,8 +309,7 @@ public partial class MainWindow
             AnalizSekmesi.Tanimsiz => "Tanımsız",
             _ => "Liste dışı"
         };
-        List<IAnalizSatiri> satirlar = _tumSatirlar.Where(x => x.Sekme == sekme).ToList();
-        if (satirlar.Count == 0)
+        if (SekmeTablosu(sekme)!.Items.Count == 0)
         {
             MessageBox.Show(this, ad + " sekmesinde aktarılacak satır yok.", "Excel'e Aktar", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
@@ -322,20 +325,7 @@ public partial class MainWindow
                        DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".xlsx"
         };
         if (dialog.ShowDialog(this) != true) return;
-        var rapor = new Rapor { SayfaAdi = ad, TabloIlkSatirdanBaslar = true, IlkSatiriDondur = true, OtomatikFiltre = true };
-        foreach ((string sutun, double genislik) in new[]
-                 {
-                     ("Durum", 2.0), ("Parça", 2.6), ("Adet", 0.8), ("Tür", 1.4), ("Ölçü", 1.6), ("CATIA Adedi", 1.1),
-                     ("CATIA Eşleşme", 1.9), ("Karar", 1.3), ("Kullanıcı kararı", 2.8), ("Motor gerekçesi", 4.0), ("STEP Dosyası", 2.2)
-                 })
-            rapor.Sutunlar.Add(new RaporSutun { Ad = sutun, Genislik = genislik });
-        foreach (IAnalizSatiri satir in satirlar)
-            rapor.Satirlar.Add(new object?[]
-            {
-                satir.DurumEtiketi, satir.ParcaGosterimi, satir.AdetGosterimi, satir.TurGosterimi, satir.OlcuGosterimi,
-                satir.CatiaQuantityDisplay, satir.CatiaMatchDisplay, satir.KararGosterimi, satir.KullaniciKarariMetni, satir.MotorGerekcesi,
-                Path.GetFileName(satir.KaynakYolu)
-            });
+        Rapor rapor = TabloRaporu(SekmeTablosu(sekme)!, ad);
         try
         {
             ExcelYazici.Yaz(rapor, dialog.FileName);

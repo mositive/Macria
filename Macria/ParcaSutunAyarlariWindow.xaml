@@ -67,7 +67,7 @@
                             Margin="16,0,0,0">
                     <Image Source="Assets/macria-logo.png" Width="16" Height="16"
                            RenderOptions.BitmapScalingMode="HighQuality"/>
-                    <TextBlock Text="Parça Tablosu Sütunları"
+                    <TextBlock x:Name="txtBaslik" Text="Parça Tablosu Sütunları"
                                FontSize="12" FontWeight="SemiBold"
                                Foreground="{StaticResource TextSecondaryBrush}"
                                VerticalAlignment="Center" Margin="8,0,0,0"/>
@@ -80,7 +80,7 @@
             <StackPanel Grid.Row="1" Margin="24,14,24,12">
                 <TextBlock Text="Görünür sütunları ve soldan sağa sıralarını belirleyin."
                            FontSize="14" FontWeight="SemiBold"/>
-                <TextBlock Text="Aynı düzen Sac Lazer Parça ve Ürün Ağacı — Eşsiz Parçalar sekmelerine uygulanır."
+                <TextBlock x:Name="txtAciklama" Text="Aynı düzen Sac Lazer Parça ve Ürün Ağacı — Eşsiz Parçalar sekmelerine uygulanır."
                            FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
                            Margin="0,5,0,0"/>
             </StackPanel>

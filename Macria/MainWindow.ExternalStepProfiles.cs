@@ -169,7 +169,7 @@ public partial class MainWindow
 
         try
         {
-            ExcelYazici.Yaz(ExternalStepExcelRaporuHazirla(gorunenSatirlar), dialog.FileName);
+            ExcelYazici.Yaz(TabloRaporu(gridExternalStepProfil, "STEP Analiz Sonuçları"), dialog.FileName);
             LogSuccess("External STEP Excel dosyası oluşturuldu: " + dialog.FileName);
             MessageBox.Show(this, "Excel dosyası oluşturuldu:\n" + dialog.FileName, "Excel’e Aktar",
                 MessageBoxButton.OK, MessageBoxImage.Information);
@@ -180,35 +180,6 @@ public partial class MainWindow
             MessageBox.Show(this, "Excel dosyası yazılamadı.\n" + exception.Message, "Excel’e Aktar",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
-    }
-
-    private static Rapor ExternalStepExcelRaporuHazirla(IEnumerable<GeometryLabStepProfileListItem> rows)
-    {
-        var rapor = new Rapor
-        {
-            SayfaAdi = "STEP Analiz Sonuçları",
-            TabloIlkSatirdanBaslar = true,
-            IlkSatiriDondur = true,
-            OtomatikFiltre = true
-        };
-        foreach ((string name, double width) in new[]
-        {
-            ("Durum", 1.25), ("STEP Dosyası", 2.4), ("Parça Türü", 1.8), ("Kesit", 1.7),
-            ("Boy", 1.35), ("Topoloji Bilgisi", 2.7), ("Açılı Kesim", 1.4),
-            ("İşlem Durumu", 1.5), ("Motor gerekçesi", 3.3), ("CATIA Adedi", 1.1),
-            ("CATIA Eşleşme Durumu", 1.8), ("CATIA Reference Title", 2.2), ("Karar Kaynağı", 1.5), ("Kullanıcı kararı", 2.8)
-        })
-            rapor.Sutunlar.Add(new RaporSutun { Ad = name, Genislik = width });
-
-        foreach (GeometryLabStepProfileListItem row in rows)
-            rapor.Satirlar.Add(new object?[]
-            {
-                row.AnalysisStatus, row.SourceFileName, row.EffectiveProfileTypeDisplay, row.SectionDisplay, row.LengthDisplay,
-                row.TopologyDisplay, row.CutDisplay, row.OperationDisplay, row.MotorGerekcesi,
-                row.CatiaQuantityDisplay, row.CatiaMatchDisplay, row.CatiaReferenceTitle,
-                row.DecisionSource == GeometryLabDecisionSource.User ? "Kullanıcı" : row.DecisionSource == GeometryLabDecisionSource.ThreeDScan ? "CATIA 3B tarama" : "Otomatik", row.KullaniciKarariMetni
-            });
-        return rapor;
     }
 
     private async void btnExternalStepProfilAnaliz_Click(object sender, RoutedEventArgs e)

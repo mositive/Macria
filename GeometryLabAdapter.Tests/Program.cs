@@ -38,6 +38,7 @@ internal static class Program
             AssemblyPartRows();
             KalinlikDuzeltmeTests();
             KararSutunlariTests();
+            SutunDuzeniTests();
             AssemblyProcessedProfilePart();
             AssemblyPartProfileGeometry();
             MotorDxfExport();
@@ -1242,6 +1243,43 @@ internal static class Program
         Check(((IAnalizSatiri)profil).Ayrintilar.Any(x => x.Key == "Motor gerekçesi" && x.Value == motor) &&
               ((IAnalizSatiri)sac).Ayrintilar.Any(x => x.Key == "Kullanıcı kararı"),
             "Seçili Parça shows both lines");
+    }
+
+    // (34) "Sütunlar": per tab visible columns and order, remembered; new
+    // columns of a later Macria join where they stand by default.
+    private static void SutunDuzeniTests()
+    {
+        AnalizSutunu S(string baslik, bool gorunur = true) => new(baslik, gorunur);
+        var varsayilan = new List<AnalizSutunu> { S("Durum"), S("Parça"), S("Adet"), S("Yeni"), S("STEP dosyası", false) };
+        List<AnalizSutunu> duzen = AnalizSutunDuzeni.Birlestir(
+            new List<AnalizSutunu> { S("Adet"), S("Durum", false), S("Eski"), S("Parça"), S("STEP dosyası", true) }, varsayilan);
+        Check(string.Join(",", duzen.Select(x => x.Baslik + (x.Gorunur ? "" : "-"))) == "Adet,Yeni,Durum-,Parça,STEP dosyası",
+            "saved order and visibility kept, an unknown saved column dropped, a new column after its neighbour: " +
+            string.Join(",", duzen.Select(x => x.Baslik + (x.Gorunur ? "" : "-"))));
+        Check(AnalizSutunDuzeni.Birlestir(null, varsayilan).SequenceEqual(varsayilan), "no saved layout: the default");
+        Check(AnalizSutunDuzeni.Birlestir(varsayilan.Select(x => x with { Gorunur = false }).ToList(), varsayilan).SequenceEqual(varsayilan),
+            "a layout with nothing visible falls back to the default");
+
+        string yol = Path.Combine(_root, "sutunlar", "analiz-sutunlari.txt");
+        var kayit = new Dictionary<AnalizSekmesi, List<AnalizSutunu>>
+        {
+            [AnalizSekmesi.Saclar] = new() { S("Parça"), S("Kalınlık (mm)"), S("Motor gerekçesi", false) },
+            [AnalizSekmesi.Tanimsiz] = new() { S("Durum", false), S("Parça") }
+        };
+        Check(AnalizSutunDuzeni.Yaz(yol, kayit) == null, "the layout is written");
+        Dictionary<AnalizSekmesi, List<AnalizSutunu>> okunan = AnalizSutunDuzeni.Oku(yol);
+        Check(okunan.Count == 2 && okunan[AnalizSekmesi.Saclar].SequenceEqual(kayit[AnalizSekmesi.Saclar]) &&
+              okunan[AnalizSekmesi.Tanimsiz].SequenceEqual(kayit[AnalizSekmesi.Tanimsiz]), "every tab's layout reads back");
+        Check(AnalizSutunDuzeni.Oku(Path.Combine(_root, "sutunlar", "yok.txt")).Count == 0, "no file: no saved layout");
+
+        // Excel values: the column's property, through IAnalizSatiri for explicit members.
+        GeometryLabAnalysisTransport analysis = AssemblyAnalysis();
+        MontajParcaSatiri sac = MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[1], "C:\\x.dxf", 20);
+        Check((string?)AnalizSutunDuzeni.Deger(sac, nameof(IAnalizSatiri.ParcaGosterimi)) == "Sac A" &&
+              (double?)AnalizSutunDuzeni.Deger(sac, nameof(MontajParcaSatiri.EtkinKalinlikMm)) == 20 &&
+              (int?)AnalizSutunDuzeni.Deger(sac, nameof(MontajParcaSatiri.Quantity)) == 2 &&
+              AnalizSutunDuzeni.Deger(sac, "YokBoyle") == null && AnalizSutunDuzeni.Deger(sac, null) == null,
+            "cell values come from the row's properties, explicit interface members included");
     }
 
     private static void AssemblyPartRows()
