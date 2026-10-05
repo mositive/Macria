@@ -1,0 +1,16 @@
+Open CASCADE Technology (OCCT) 8.0.1 (https://dev.opencascade.org)
+==============================================================================
+Dosyalar : TKBO, TKBRep, TKCAF, TKCDF, TKDE, TKDESTEP, TKG2d, TKG3d, TKGeomAlgo,
+           TKGeomBase, TKHLR, TKLCAF, TKMath, TKMesh, TKOpenGl, TKPrim, TKService,
+           TKShHealing, TKTopAlgo, TKV3d, TKVCAF, TKXCAF, TKXSBase, TKernel (.dll)
+           Resmî OCCT 8.0.1 vc14-64 derlemesi, değiştirilmeden.
+Lisans   : GNU Lesser General Public License 2.1 (LGPL-2.1.txt) ve
+           Open CASCADE exception 1.0 (OCCT-LGPL-EXCEPTION.txt).
+Copyright: (C) OPEN CASCADE SAS
+
+Macria.GeometryEngine.exe ve Macria.GeometryViewer.dll, Open CASCADE Technology
+yazılımının sağladığı olanakları kullanır (makes use of facilities provided by
+the Open CASCADE Technology software).
+
+Kaynak kodu (OCCT 8.0.1): [iş yeri paylaşım klasörü – Enes ekleyecek]
+Upstream: https://github.com/Open-Cascade-SAS/OCCT/releases/tag/V8_0_1

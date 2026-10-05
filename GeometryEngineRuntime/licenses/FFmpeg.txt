@@ -1,0 +1,17 @@
+FFmpeg 3.3.4 (https://ffmpeg.org)
+==============================================================================
+Dosyalar : avcodec-57.dll, avformat-57.dll, avutil-55.dll, swscale-4.dll
+Lisans   : GNU Lesser General Public License 2.1 or later (LGPL-2.1+).
+           Tam metin: LGPL-2.1.txt
+           Bu derleme GPL ya da "nonfree" bileşen içermez (DLL'lerin bildirdiği
+           lisans: "LGPL version 2.1 or later").
+Kaynak   : OCCT 8.0.1 3rdparty paketindeki hazır ikililer, değiştirilmeden.
+Yapılandırma (configure):
+  --enable-shared --disable-static --prefix=/d/build_ffmpeg/ffmpeg-3.3.4-64
+  --toolchain=msvc --arch=amd64 --disable-asm --disable-yasm --disable-swresample
+
+This software uses libraries from the FFmpeg project under the LGPLv2.1.
+FFmpeg is a trademark of Fabrice Bellard, originator of the FFmpeg project.
+
+Kaynak kodu (FFmpeg 3.3.4, ffmpeg-3.3.4.tar.xz): [iş yeri paylaşım klasörü – Enes ekleyecek]
+Upstream: https://ffmpeg.org/releases/ffmpeg-3.3.4.tar.xz

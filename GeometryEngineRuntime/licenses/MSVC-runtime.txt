@@ -1,0 +1,7 @@
+Microsoft Visual C++ çalışma zamanı 14.51 (Visual Studio 18)
+Dosyalar: MSVCP140.dll, VCRUNTIME140.dll, VCRUNTIME140_1.dll
+
+Bu dosyalar Microsoft Visual Studio lisans koşullarındaki "Distributable Code"
+(yeniden dağıtılabilir kod) kapsamında, uygulamanın yanında (app-local)
+dağıtılır. Telif hakkı: (c) Microsoft Corporation. Tüm hakları saklıdır.
+Ayrıca bir bildirim metni gerekmez; bu dosya yalnız bilgi içindir.
