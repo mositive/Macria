@@ -2359,7 +2359,10 @@
                                         </DataGridTemplateColumn>
                                         <DataGridTextColumn Header="Tespit edilen kalınlık" Binding="{Binding MotorKalinlikDisplay}" SortMemberPath="ThicknessMm" Width="Auto" MinWidth="96" ElementStyle="{StaticResource SayiHucre}" HeaderStyle="{StaticResource SayiBaslik}"/>
                                         <DataGridTextColumn Binding="{Binding AcinimOlcusuDisplay}" Width="165" ElementStyle="{StaticResource SayiHucre}" HeaderStyle="{StaticResource SayiBaslik}">
-                                            <DataGridTextColumn.Header><TextBlock Text="Açınım ölçüsü (en × boy)" ToolTip="Açınımı çevreleyen dikdörtgen"/></DataGridTextColumn.Header>
+                                            <DataGridTextColumn.Header><TextBlock Text="Açınım ölçüsü (en × boy)" ToolTip="Açınımı çevreleyen dikdörtgen (DXF yönünde)"/></DataGridTextColumn.Header>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding EnKucukDikdortgenDisplay}" Width="165" ElementStyle="{StaticResource SayiHucre}" HeaderStyle="{StaticResource SayiBaslik}">
+                                            <DataGridTextColumn.Header><TextBlock Text="En küçük çevreleyen dikdörtgen (en × boy)" ToolTip="Açınımı herhangi bir açıyla çevreleyen en küçük dikdörtgen: kısa × uzun kenar"/></DataGridTextColumn.Header>
                                         </DataGridTextColumn>
                                         <DataGridTextColumn Header="Grup" Binding="{Binding GroupDisplay}" Width="105" ElementStyle="{StaticResource KirpilanHucre}"/>
                                         <DataGridTextColumn Header="Büküm" Binding="{Binding BendCountDisplay}" Width="Auto" MinWidth="60" ElementStyle="{StaticResource SayiHucre}" HeaderStyle="{StaticResource SayiBaslik}"/>

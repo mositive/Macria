@@ -19,7 +19,10 @@ public partial class MainWindow
     };
 
     // Shown only when the user turns them on.
-    private static readonly HashSet<string> VarsayilanGizliSutunlar = new(StringComparer.Ordinal) { "STEP dosyası" };
+    private static readonly HashSet<string> VarsayilanGizliSutunlar = new(StringComparer.Ordinal)
+    {
+        "STEP dosyası", "En küçük çevreleyen dikdörtgen (en × boy)"
+    };
 
     private Dictionary<AnalizSekmesi, List<AnalizSutunu>> _analizSutunDuzeni = new();
     private readonly Dictionary<AnalizSekmesi, List<AnalizSutunu>> _analizVarsayilanSutunlari = new();
@@ -29,6 +32,11 @@ public partial class MainWindow
         [nameof(MontajParcaSatiri.AcinimOlcusuDisplay)] = new[]
         {
             ("Açınım eni (mm)", nameof(MontajParcaSatiri.AcinimEnMm)), ("Açınım boyu (mm)", nameof(MontajParcaSatiri.AcinimBoyMm))
+        },
+        [nameof(MontajParcaSatiri.EnKucukDikdortgenDisplay)] = new[]
+        {
+            ("En küçük dikdörtgen eni (mm)", nameof(MontajParcaSatiri.EnKucukDikdortgenEnMm)),
+            ("En küçük dikdörtgen boyu (mm)", nameof(MontajParcaSatiri.EnKucukDikdortgenBoyMm))
         }
     };
 

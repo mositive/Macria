@@ -52,6 +52,9 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
     /// <summary>Flat pattern size (width × height of the engine pattern), null without a flat pattern.</summary>
     public double? AcinimEnMm { get; init; }
     public double? AcinimBoyMm { get; init; }
+    /// <summary>Smallest rectangle around the flat pattern at any angle (short × long side), null for old engines.</summary>
+    public double? EnKucukDikdortgenEnMm { get; init; }
+    public double? EnKucukDikdortgenBoyMm { get; init; }
     /// <summary>The engine recognized the sheet (its bends are counted), with or without a flat pattern.</summary>
     public bool SheetRecognized { get; init; }
     public int BendCount { get; init; }
@@ -71,6 +74,10 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
     /// <summary>Editable thickness cell text (no unit).</summary>
     public string KalinlikMetni => EtkinKalinlikMm is double t ? FormatNumber(t) : "";
     public string MotorKalinlikDisplay => ThicknessMm is double t ? FormatNumber(t) + " mm" : "—";
+    /// <summary>"En küçük çevreleyen dikdörtgen (en × boy)": short × long side, at any angle.</summary>
+    public string EnKucukDikdortgenDisplay => EnKucukDikdortgenEnMm is double en && EnKucukDikdortgenBoyMm is double boy
+        ? FormatNumber(Math.Round(en, 1)) + " × " + FormatNumber(Math.Round(boy, 1)) + " mm"
+        : "—";
     /// <summary>"Açınım ölçüsü (en × boy)": the rectangle around the flat pattern.</summary>
     public string AcinimOlcusuDisplay => AcinimEnMm is double en && AcinimBoyMm is double boy
         ? FormatNumber(Math.Round(en, 1)) + " × " + FormatNumber(Math.Round(boy, 1)) + " mm"
@@ -193,6 +200,8 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
             MachiningPresent = part.MachiningPresent == true,
             AcinimEnMm = acinim?.WidthMm,
             AcinimBoyMm = acinim?.HeightMm,
+            EnKucukDikdortgenEnMm = acinim?.MinimumRectangle?.ShortMm,
+            EnKucukDikdortgenBoyMm = acinim?.MinimumRectangle?.LongMm,
             HoleSummary = solidId is null
                 ? "—"
                 : HoleSummaryFor(analysis.HoleFeatures.Where(x => x.SolidId?.LocalId == solidId)),
@@ -442,6 +451,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         new("Ham sac kalınlığı", ThicknessDisplay + (KalinlikDuzeltildi ? " (kullanıcı düzeltti)" : "")),
         new("Tespit edilen kalınlık", MotorKalinlikDisplay),
         new("Açınım ölçüsü (en × boy)", AcinimOlcusuDisplay),
+        new("En küçük çevreleyen dikdörtgen", EnKucukDikdortgenDisplay),
         new("Grup", GroupDisplay),
         new("Büküm", BendCountDisplay),
         new("Delikler", HoleSummary),

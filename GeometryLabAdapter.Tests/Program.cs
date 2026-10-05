@@ -1173,13 +1173,16 @@ internal static class Program
         GeometryLabAnalysisTransport analysis = AssemblyAnalysis() with
         {
             SheetMetalAnalyses = AssemblyAnalysis().SheetMetalAnalyses.Select(x => x.SolidId?.LocalId == 2
-                ? x with { FlatPattern = new GeometryLabFlatPatternTransport { Status = "Succeeded", WidthMm = 120.04, HeightMm = 60 } }
+                ? x with { FlatPattern = new GeometryLabFlatPatternTransport { Status = "Succeeded", WidthMm = 120.04, HeightMm = 60,
+                    MinimumRectangle = new GeometryLabFlatRectangleTransport { ShortMm = 54.96, LongMm = 118.04, AngleDegrees = 12 } } }
                 : x).ToArray()
         };
         MontajParcaSatiri Satir() => MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[1], "C:\\x.dxf", 20);
         MontajParcaSatiri sac = Satir();
         Check(sac.AcinimOlcusuDisplay == "120 × 60 mm" && sac.MotorKalinlikDisplay == "20 mm" && !sac.KalinlikDuzeltildi,
             "Açınım ölçüsü is the rectangle around the flat pattern: " + sac.AcinimOlcusuDisplay);
+        Check(sac.EnKucukDikdortgenDisplay == "55 × 118 mm" && sac.EnKucukDikdortgenEnMm == 54.96,
+            "the smallest rectangle (short × long) comes from the engine: " + sac.EnKucukDikdortgenDisplay);
         sac.KalinligiDuzelt(25);
         Check(sac.KalinlikDuzeltildi && sac.EtkinKalinlikMm == 25 && sac.ThicknessMm == 20 && sac.ThicknessDisplay == "25 mm" &&
               sac.MotorKalinlikDisplay == "20 mm" && sac.KalinlikMetni == "25",

@@ -212,6 +212,10 @@ public sealed record GeometryLabFlatPatternTransport
     [JsonPropertyName("heightMm")]
     public double? HeightMm { get; init; }
 
+    // Engine 2026.10.5.4+: smallest rectangle around the pattern at any angle.
+    [JsonPropertyName("minimumRectangle")]
+    public GeometryLabFlatRectangleTransport? MinimumRectangle { get; init; }
+
     [JsonPropertyName("holes")]
     public IReadOnlyList<GeometryLabFlatHoleTransport> Holes { get; init; } =
         Array.Empty<GeometryLabFlatHoleTransport>();
@@ -222,6 +226,18 @@ public sealed record GeometryLabFlatPatternTransport
 
     [JsonPropertyName("rejectionReason")]
     public string? RejectionReason { get; init; }
+}
+
+public sealed record GeometryLabFlatRectangleTransport
+{
+    [JsonPropertyName("shortMm")]
+    public double? ShortMm { get; init; }
+
+    [JsonPropertyName("longMm")]
+    public double? LongMm { get; init; }
+
+    [JsonPropertyName("angleDegrees")]
+    public double? AngleDegrees { get; init; }
 }
 
 public sealed record GeometryLabFlatHoleTransport
