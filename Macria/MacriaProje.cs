@@ -59,6 +59,27 @@ public sealed class MacriaProjeKaynagi
     public long Boyut { get; set; }
     public DateTime Degistirilme { get; set; }
     public MacriaProjeAnalizi Analiz { get; set; } = new();
+    /// <summary>
+    /// Schema 1.3: engine runs on selected parts of this STEP ("Yeniden Analiz
+    /// Et", "Profil / Sac olarak dene"); each is stored under ek/&lt;id&gt;/ and
+    /// used by the "Dene" decisions that name it.
+    /// </summary>
+    public List<MacriaEkAnaliz> EkAnalizler { get; set; } = new();
+}
+
+/// <summary>One engine run on selected parts of a source (schema 1.3).</summary>
+public sealed class MacriaEkAnaliz
+{
+    /// <summary>"e1", "e2" ... within the source.</summary>
+    public string Id { get; set; } = "";
+    /// <summary>MacriaProje.Deneme*: "yeniden", "profil" or "sac".</summary>
+    public string Mod { get; set; } = "";
+    /// <summary>The parts it analysed (localIds of the source's analysis).</summary>
+    public List<int> Parcalar { get; set; } = new();
+    public DateTime Zaman { get; set; }
+    public string? MotorSemaSurumu { get; set; }
+    public MacriaProjeMotoru? Motor { get; set; }
+    public double? SureSn { get; set; }
 }
 
 public sealed class MacriaProjeAnalizi
@@ -99,6 +120,9 @@ public sealed class MacriaProjeKarari
     public double? KalinlikMm { get; set; }
     /// <summary>Schema 1.2, "DxfDosyasi": a DXF DXF Üret wrote for the part row (renamed with its thickness).</summary>
     public string? DxfYolu { get; set; }
+    /// <summary>Schema 1.3, "Dene": the trial (MacriaProje.Deneme*) and the source's EkAnaliz that holds its result.</summary>
+    public string? DenemeModu { get; set; }
+    public string? EkAnaliz { get; set; }
 }
 
 public sealed record MacriaParcaKimligi
@@ -114,8 +138,12 @@ public sealed class MacriaElleProfil
     public string Kesit { get; set; } = "";
 }
 
-/// <summary>One source's stored content, for saving.</summary>
-public sealed record MacriaProjeKaynakIcerigi(string? AnalysisJson, string? DxfKlasoru);
+/// <summary>One source's stored content, for saving; `Ekler`: the selected-part runs by EkAnaliz id.</summary>
+public sealed record MacriaProjeKaynakIcerigi(string? AnalysisJson, string? DxfKlasoru,
+    IReadOnlyDictionary<string, MacriaEkIcerik>? Ekler = null);
+
+/// <summary>A selected-part run's engine output and the folder of its DXFs.</summary>
+public sealed record MacriaEkIcerik(string AnalysisJson, string? DxfKlasoru);
 
 /// <summary>An opened project: data, stored engine output and the folders its DXFs were extracted to.</summary>
 public sealed class MacriaProjeAcilisi
@@ -127,6 +155,9 @@ public sealed class MacriaProjeAcilisi
     public string? SaltOkunurNedeni { get; init; }
     public Dictionary<string, string> AnalysisJson { get; } = new(StringComparer.Ordinal);
     public Dictionary<string, string> DxfKlasoru { get; } = new(StringComparer.Ordinal);
+    /// <summary>Selected-part runs, key "k1/e1" (MacriaProje.EkAnahtari).</summary>
+    public Dictionary<string, string> EkAnalysisJson { get; } = new(StringComparer.Ordinal);
+    public Dictionary<string, string> EkDxfKlasoru { get; } = new(StringComparer.Ordinal);
 }
 
 public sealed class MacriaProjeHatasi : Exception
@@ -154,7 +185,8 @@ public static class MacriaProje
 {
     public const string Format = "macria-proje";
     // 1.2: "Kalinlik" decision (user thickness of a part row).
-    public const string SemaSurumu = "1.2";
+    // 1.3: selected-part runs (kaynaklar/<k>/ek/<e>/) and the "Dene" decision.
+    public const string SemaSurumu = "1.3";
     public const string Uzanti = ".macria";
 
     public const string HedefProfil = "profil";
@@ -171,6 +203,14 @@ public static class MacriaProje
     public const string KararKalinlik = "Kalinlik";
     // A DXF written for a part row (DxfYolu); one record per file.
     public const string KararDxfDosyasi = "DxfDosyasi";
+    // A part row taken from a selected-part run (DenemeModu, EkAnaliz).
+    public const string KararDene = "Dene";
+
+    public const string DenemeYeniden = "yeniden";
+    public const string DenemeProfil = "profil";
+    public const string DenemeSac = "sac";
+
+    public static string EkAnahtari(string kaynakId, string ekId) => kaynakId + "/" + ekId;
 
     private const string ManifestAdi = "manifest.json";
     private const string ProjeAdi = "proje.json";
@@ -180,6 +220,9 @@ public static class MacriaProje
 
     private static readonly Regex AnalizKaydi = new(@"^kaynaklar/(k[0-9]{1,6})/analysis\.json$", RegexOptions.CultureInvariant);
     private static readonly Regex DxfKaydi = new(@"^kaynaklar/(k[0-9]{1,6})/dxf/([^/\\:*?""<>|]+\.dxf)$",
+        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+    private static readonly Regex EkAnalizKaydi = new(@"^kaynaklar/(k[0-9]{1,6})/ek/(e[0-9]{1,6})/analysis\.json$", RegexOptions.CultureInvariant);
+    private static readonly Regex EkDxfKaydi = new(@"^kaynaklar/(k[0-9]{1,6})/ek/(e[0-9]{1,6})/dxf/([^/\\:*?""<>|]+\.dxf)$",
         RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
     public static readonly JsonSerializerOptions JsonAyarlari = new()
@@ -231,6 +274,15 @@ public static class MacriaProje
                     if (kaynakIcerigi.DxfKlasoru is string dxfKlasoru && Directory.Exists(dxfKlasoru))
                         foreach (string dxf in Directory.GetFiles(dxfKlasoru, "*.dxf").OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
                             zip.CreateEntryFromFile(dxf, "kaynaklar/" + kaynak.Id + "/dxf/" + Path.GetFileName(dxf), CompressionLevel.Optimal);
+                    foreach (MacriaEkAnaliz ek in kaynak.EkAnalizler)
+                    {
+                        if (kaynakIcerigi.Ekler?.GetValueOrDefault(ek.Id) is not MacriaEkIcerik ekIcerik) continue;
+                        string on = "kaynaklar/" + kaynak.Id + "/ek/" + ek.Id + "/";
+                        YaziEkle(zip, on + "analysis.json", ekIcerik.AnalysisJson);
+                        if (ekIcerik.DxfKlasoru is string ekDxf && Directory.Exists(ekDxf))
+                            foreach (string dxf in Directory.GetFiles(ekDxf, "*.dxf").OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
+                                zip.CreateEntryFromFile(dxf, on + "dxf/" + Path.GetFileName(dxf), CompressionLevel.Optimal);
+                    }
                 }
             }
             if (File.Exists(hedef)) File.Replace(gecici, hedef, null);
@@ -296,8 +348,30 @@ public static class MacriaProje
 
             var acilis = new MacriaProjeAcilisi { Yol = yol, Manifest = manifest, Veri = veri, SaltOkunurNedeni = saltOkunur };
             var kaynakIdleri = new HashSet<string>(veri.Kaynaklar.Select(x => x.Id), StringComparer.Ordinal);
+            var ekAnahtarlari = new HashSet<string>(veri.Kaynaklar.SelectMany(k => k.EkAnalizler.Select(e => EkAnahtari(k.Id, e.Id))),
+                StringComparer.Ordinal);
             foreach (ZipArchiveEntry kayit in zip.Entries)
             {
+                Match ekAnaliz = EkAnalizKaydi.Match(kayit.FullName);
+                if (ekAnaliz.Success && ekAnahtarlari.Contains(EkAnahtari(ekAnaliz.Groups[1].Value, ekAnaliz.Groups[2].Value)))
+                {
+                    acilis.EkAnalysisJson[EkAnahtari(ekAnaliz.Groups[1].Value, ekAnaliz.Groups[2].Value)] = MetinOku(kayit);
+                    continue;
+                }
+                Match ekDxf = EkDxfKaydi.Match(kayit.FullName);
+                if (ekDxf.Success)
+                {
+                    string anahtar = EkAnahtari(ekDxf.Groups[1].Value, ekDxf.Groups[2].Value);
+                    if (!ekAnahtarlari.Contains(anahtar)) continue;
+                    if (!acilis.EkDxfKlasoru.TryGetValue(anahtar, out string? ekKlasor))
+                    {
+                        ekKlasor = Path.Combine(dxfKokKlasoru, ekDxf.Groups[1].Value + "-" + ekDxf.Groups[2].Value);
+                        Directory.CreateDirectory(ekKlasor);
+                        acilis.EkDxfKlasoru[anahtar] = ekKlasor;
+                    }
+                    kayit.ExtractToFile(Path.Combine(ekKlasor, ekDxf.Groups[3].Value), true);
+                    continue;
+                }
                 Match analiz = AnalizKaydi.Match(kayit.FullName);
                 if (analiz.Success && kaynakIdleri.Contains(analiz.Groups[1].Value))
                 {
@@ -355,6 +429,11 @@ public static class MacriaProje
                 throw new MacriaProjeHatasi("Proje dosyasında geçersiz kaynak kimliği: " + kaynak.Id);
             if (string.IsNullOrWhiteSpace(kaynak.Yol))
                 throw new MacriaProjeHatasi("Proje dosyasında yolu olmayan kaynak: " + kaynak.Id);
+            kaynak.EkAnalizler ??= new List<MacriaEkAnaliz>();
+            var ekler = new HashSet<string>(StringComparer.Ordinal);
+            foreach (MacriaEkAnaliz ek in kaynak.EkAnalizler)
+                if (!Regex.IsMatch(ek.Id, @"^e[0-9]{1,6}$") || !ekler.Add(ek.Id))
+                    throw new MacriaProjeHatasi("Proje dosyasında geçersiz ek analiz kimliği: " + kaynak.Id + "/" + ek.Id);
         }
     }
 
@@ -420,13 +499,17 @@ public static class MacriaProje
         var kullanilan = new HashSet<(object, string)>();
         foreach (MacriaProjeKarari karar in kararlar)
         {
-            string bayrak = karar.Karar is KararListeDisi or KararKalinlik ? karar.Karar
+            string bayrak = karar.Karar is KararListeDisi or KararKalinlik or KararDene ? karar.Karar
                 : karar.Karar == KararDxfDosyasi ? karar.Karar + "|" + karar.DxfYolu
                 : "kategori";
             List<MacriaKararAdayi> ayniKaynak = adaylar
                 .Where(a => a.KaynakId == karar.Kaynak && !kullanilan.Contains((a.Satir, bayrak)))
                 .ToList();
-            List<MacriaKararAdayi> ayniHedef = ayniKaynak.Where(a => a.Hedef == karar.Hedef).ToList();
+            // A trial may turn a part row into a profile row: it is matched to
+            // the part in the source's analysis, whatever its row type there.
+            List<MacriaKararAdayi> ayniHedef = karar.Karar == KararDene
+                ? ayniKaynak
+                : ayniKaynak.Where(a => a.Hedef == karar.Hedef).ToList();
             MacriaKararAdayi? aday;
             if (karar.Parca is null)
                 // A file row; since schema 1.1 a single-part STEP is listed by

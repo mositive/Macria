@@ -239,6 +239,7 @@ public partial class MainWindow
             Kararlar = MacriaProjeSatirlari.KararlariTopla(_externalStepProfileRows, _montajParcaRows, ProjeKaynakId),
             EslenemeyenKararlar = _eslenemeyenKararlar.ToList()
         };
+        KullanilmayanEkleriAyikla(veri.Kararlar.Concat(veri.EslenemeyenKararlar));
         var sure = Stopwatch.StartNew();
         Mouse.OverrideCursor = Cursors.Wait;
         try
@@ -399,12 +400,13 @@ public partial class MainWindow
                 saltOkunur ??= "Bazı STEP dosyaları kaydedildikten sonra değişmiş ya da bulunamadı; kayıtlı sonuçlar salt-okunur açıldı.";
             string? json = acilis.AnalysisJson.GetValueOrDefault(kaynak.Id);
             string dxfKlasoru = acilis.DxfKlasoru.GetValueOrDefault(kaynak.Id) ?? Path.Combine(dxfKok, kaynak.Id);
-            GeometryLabProcessAdapterResult sonuc = KayitliSonuc(kaynak, json, dxfKlasoru);
+            // Only the STEP's own (automatic) analysis lists its rows; selected-part runs come with their decisions.
+            GeometryLabProcessAdapterResult sonuc = MacriaProjeSatirlari.AnaAnaliz(KayitliSonuc(kaynak, json, dxfKlasoru));
             var (profil, montaj) = MacriaProjeSatirlari.Kur(satirYolu, sonuc, _projeLazerMm);
             foreach (GeometryLabStepProfileListItem row in profil) _externalStepProfileRows.Add(row);
             foreach (MontajParcaSatiri row in montaj) _montajParcaRows.Add(row);
             _projeKaynaklari[satirYolu] = new ProjeKaynakKaydi(kaynak,
-                new MacriaProjeKaynakIcerigi(json, acilis.DxfKlasoru.GetValueOrDefault(kaynak.Id)));
+                new MacriaProjeKaynakIcerigi(json, acilis.DxfKlasoru.GetValueOrDefault(kaynak.Id), EkIcerikleri(acilis, kaynak)));
             if (sonuc.IsSuccess && denetim.BulunanYol != null) Step3BModelHazirlayici.Hazirla(satirYolu);
             ++taramasiz;
         }
@@ -426,9 +428,20 @@ public partial class MainWindow
         }
 
         // Decisions (and those not matched last time) go back to their rows.
+        // Runs on selected parts first: they replace rows the other decisions go to.
         List<MacriaProjeKarari> kararlar = acilis.Veri.Kararlar.Concat(acilis.Veri.EslenemeyenKararlar).ToList();
-        var (eslenen, eslenemeyen) = MacriaProje.KararlariEsle(kararlar,
+        List<MacriaProjeKarari> denemeler = kararlar.Where(k => k.Karar == MacriaProje.KararDene).ToList();
+        var (denemeEslenen, denemeEslenemeyen) = MacriaProje.KararlariEsle(denemeler,
             MacriaProjeSatirlari.Adaylar(_externalStepProfileRows, _montajParcaRows, ProjeKaynakId), taranan.Contains);
+        if (denemeEslenen.Count > 0)
+        {
+            _projeYukleniyor = true;
+            try { denemeEslenemeyen.AddRange(await DenemeleriUygulaAsync(denemeEslenen, acilis, taranan.Contains)); }
+            finally { _projeYukleniyor = false; }
+        }
+        var (eslenen, eslenemeyen) = MacriaProje.KararlariEsle(kararlar.Except(denemeler),
+            MacriaProjeSatirlari.Adaylar(_externalStepProfileRows, _montajParcaRows, ProjeKaynakId), taranan.Contains);
+        eslenemeyen.AddRange(denemeEslenemeyen);
         _projeYukleniyor = true;
         foreach ((MacriaProjeKarari karar, MacriaKararAdayi aday) in eslenen)
             if (!MacriaProjeSatirlari.Uygula(karar, aday.Satir)) eslenemeyen.Add(karar);

@@ -185,7 +185,8 @@ public partial class MainWindow
         if (btnAnalizExcel == null) return;
         AnalizSekmesi sekme = AktifSekme();
         AnalizAracDurumu durum = AnalizAracDurumu.Hesapla(sekme, SeciliAnalizSatirlari(), SekmedekiSatirSayisi(sekme) > 0,
-            SacGrubuSatirlari().Any(x => x.EffectiveCategory == MontajParcaKategorisi.Sac));
+            SacGrubuSatirlari().Any(x => x.EffectiveCategory == MontajParcaKategorisi.Sac),
+            _externalStepProfileAnalysisRunning || _projeIslemde);
         static Visibility Gorunur(bool gorunur) => gorunur ? Visibility.Visible : Visibility.Collapsed;
         btnAnalizExcel.IsEnabled = durum.ExcelEtkin;
         btnAnalizDosyayiAc.IsEnabled = durum.DosyayiAcEtkin;
@@ -203,6 +204,8 @@ public partial class MainWindow
         btnAnalizOtomatik.IsEnabled = durum.OtomatikEtkin;
         btnAnalizGeriAl.Visibility = Gorunur(durum.GeriAlGorunur);
         btnAnalizGeriAl.IsEnabled = durum.GeriAlEtkin;
+        btnAnalizYenidenAnaliz.Visibility = Gorunur(durum.YenidenAnalizGorunur);
+        btnAnalizYenidenAnaliz.IsEnabled = durum.YenidenAnalizEtkin;
     }
 
     // One right panel for every tab: the 3D view (in Saclar also the engine
@@ -295,8 +298,14 @@ public partial class MainWindow
     private void btnAnalizListeDisi_Click(object sender, RoutedEventArgs e) =>
         KararUygula(SeciliAnalizSatirlari(), satir => satir.ListeDisinaCikar());
 
-    private void btnAnalizOtomatik_Click(object sender, RoutedEventArgs e) =>
-        KararUygula(SeciliAnalizSatirlari().Where(x => x.HasUserDecision).ToList(), satir => satir.RestoreAutomaticDecision());
+    private void btnAnalizOtomatik_Click(object sender, RoutedEventArgs e)
+    {
+        List<IAnalizSatiri> secili = SeciliAnalizSatirlari();
+        // A row from a run on selected parts goes back to the STEP's own analysis.
+        List<IAnalizSatiri> denemeli = secili.Where(x => x.Deneme != null).ToList();
+        if (denemeli.Count > 0 && !ProjeSaltOkunurUyarisi()) DenemeleriKaldir(denemeli);
+        KararUygula(secili.Except(denemeli).Where(x => x.HasUserDecision).ToList(), satir => satir.RestoreAutomaticDecision());
+    }
 
     private void btnAnalizGeriAl_Click(object sender, RoutedEventArgs e) =>
         KararUygula(SeciliAnalizSatirlari(), satir => satir.ListeyeGeriAl());

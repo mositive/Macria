@@ -2186,8 +2186,10 @@
                                 ToolTip="Seçili satırları Kontrol gerekli sekmesine alır" Click="btnAnalizKontrole_Click"/>
                         <Button x:Name="btnAnalizListeDisi" Style="{StaticResource SecondaryButton}" Content="Liste Dışına Çıkar" Height="28" Padding="10,0" Margin="0,0,6,6"
                                 ToolTip="Seçili satırları bütün listelerden çıkarır; Liste dışı sekmesinde Geri Al ile döner" Click="btnAnalizListeDisi_Click"/>
+                        <Button x:Name="btnAnalizYenidenAnaliz" Style="{StaticResource SecondaryButton}" Content="Yeniden Analiz Et" Height="28" Padding="10,0" Margin="0,0,6,6"
+                                ToolTip="Seçili parçaları motorla süre sınırı olmadan yeniden analiz eder (otomatik kurallar); çoklu seçimde STEP başına tek çalıştırma" Click="btnAnalizYenidenAnaliz_Click"/>
                         <Button x:Name="btnAnalizOtomatik" Style="{StaticResource SecondaryButton}" Content="Otomatik Karara Dön" Height="28" Padding="10,0" Margin="0,0,6,6"
-                                ToolTip="Seçili satırlardaki kullanıcı kararını kaldırır" Click="btnAnalizOtomatik_Click"/>
+                                ToolTip="Seçili satırlardaki kullanıcı kararını ve yeniden analiz / deneme sonucunu kaldırır" Click="btnAnalizOtomatik_Click"/>
                         <Button x:Name="btnAnalizGeriAl" Style="{StaticResource SecondaryButton}" Content="Geri Al" Height="28" Padding="10,0" Margin="0,0,6,6"
                                 ToolTip="Seçili satırları geldikleri sekmeye döndürür" Click="btnAnalizGeriAl_Click"/>
                     </WrapPanel>
@@ -2243,8 +2245,8 @@
                                       FontSize="13" RowHeight="40"
                                       ToolTip="Haricî STEP sonuçları yalnız bu uygulama oturumunda tutulur.">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Durum" Binding="{Binding EffectiveStatusDisplay}" Width="140">
-                                        <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="TextTrimming" Value="CharacterEllipsis"/><Setter Property="ToolTip"><Setter.Value><StackPanel><TextBlock Text="{Binding EffectiveStatusDisplay}" FontWeight="SemiBold"/><TextBlock Text="{Binding DecisionToolTip}"/></StackPanel></Setter.Value></Setter></Style></DataGridTextColumn.ElementStyle>
+                                    <DataGridTextColumn Header="Durum" Binding="{Binding DurumEtiketi}" Width="140">
+                                        <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="TextTrimming" Value="CharacterEllipsis"/><Setter Property="ToolTip"><Setter.Value><StackPanel><TextBlock Text="{Binding DurumEtiketi}" FontWeight="SemiBold"/><TextBlock Text="{Binding DecisionToolTip}"/></StackPanel></Setter.Value></Setter></Style></DataGridTextColumn.ElementStyle>
                                     </DataGridTextColumn>
                                     <DataGridTextColumn Header="Parça" Binding="{Binding PartDisplay}" Width="180">
                                         <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="ToolTip" Value="{Binding SourceFileName}"/><Setter Property="TextTrimming" Value="CharacterEllipsis"/></Style></DataGridTextColumn.ElementStyle>

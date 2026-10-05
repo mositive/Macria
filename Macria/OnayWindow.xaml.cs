@@ -56,6 +56,7 @@ namespace Macria
                 dugme.Click += (s, e) => { secilen = indeks; pencere.DialogResult = true; };
                 panel.Children.Add(dugme);
             }
+            OtomasyonModu.Gizle(pencere);
             return pencere.ShowDialog() == true ? secilen : -1;
         }
 

@@ -11,6 +11,21 @@ public sealed record GeometryLabAnalysisTransport
     [JsonPropertyName("schemaVersion")]
     public string? SchemaVersion { get; init; }
 
+    /// <summary>
+    /// "Automatic" (every part, automatic rules), "Parts" (selected parts),
+    /// "TrialProfile" / "TrialSheet" (selected parts, one recognizer); null
+    /// from engines before 2026.10.6. Only an automatic output is a STEP's analysis.
+    /// </summary>
+    [JsonPropertyName("analysisMode")]
+    public string? AnalysisMode { get; init; }
+
+    [JsonPropertyName("selectedPartIds")]
+    public IReadOnlyList<int>? SelectedPartIds { get; init; }
+
+    /// <summary>The output of a whole-STEP analysis under the automatic rules.</summary>
+    [JsonIgnore]
+    public bool Otomatik => AnalysisMode is null or "Automatic";
+
     [JsonPropertyName("status")]
     public string? Status { get; init; }
 

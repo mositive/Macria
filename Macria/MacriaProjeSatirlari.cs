@@ -64,6 +64,33 @@ public static class MacriaProjeSatirlari
         return (profil, montaj);
     }
 
+    /// <summary>
+    /// Rows of the parts a run on selected parts analysed (`ek` holds only
+    /// them), marked with the run: they replace those parts' rows.
+    /// </summary>
+    public static (List<GeometryLabStepProfileListItem> Profil, List<MontajParcaSatiri> Montaj) EkSatirlari(
+        string stepPath, GeometryLabProcessAdapterResult ek, double laserMaximumMm, SatirDenemesi deneme)
+    {
+        if (!ParcaYolundan(ek)) return (new(), new());
+        var (profil, montaj) = MontajSatirlari(stepPath, ek, laserMaximumMm);
+        foreach (GeometryLabStepProfileListItem row in profil) row.DenemeyiIsaretle(deneme);
+        foreach (MontajParcaSatiri row in montaj) row.DenemeyiIsaretle(deneme);
+        return (profil, montaj);
+    }
+
+    /// <summary>
+    /// A STEP's stored or returned analysis as its rows' source: only an
+    /// automatic whole-STEP output; a run on selected parts is refused.
+    /// </summary>
+    public static GeometryLabProcessAdapterResult AnaAnaliz(GeometryLabProcessAdapterResult sonuc) =>
+        !sonuc.IsSuccess || sonuc.Analysis!.Otomatik
+            ? sonuc
+            : new GeometryLabProcessAdapterResult
+            {
+                Status = GeometryLabProcessAdapterStatus.InvalidJson,
+                Message = "Kayıtlı motor çıktısı STEP'in kendi analizi değil (" + sonuc.Analysis.AnalysisMode + ")."
+            };
+
     /// <summary>The user decisions in the rows; `kaynakId` maps a STEP path to its source id (null: not in the project).</summary>
     public static List<MacriaProjeKarari> KararlariTopla(IEnumerable<GeometryLabStepProfileListItem> profil,
         IEnumerable<MontajParcaSatiri> montaj, Func<string, string?> kaynakId)
@@ -72,6 +99,8 @@ public static class MacriaProjeSatirlari
         foreach (GeometryLabStepProfileListItem row in profil)
         {
             if (kaynakId(row.SourceStepPath) is not string id) continue;
+            if (row.Deneme is SatirDenemesi profilDenemesi)
+                kararlar.Add(DenemeKarari(id, ProfilKimligi(row), MacriaProje.HedefProfil, profilDenemesi));
             if (row.ListeDisi) kararlar.Add(ListeDisiKarari(id, ProfilKimligi(row), MacriaProje.HedefProfil, row.ListeDisiNotu));
             if (row.KullaniciKarari is not string karar) continue;
             kararlar.Add(new MacriaProjeKarari
@@ -89,6 +118,8 @@ public static class MacriaProjeSatirlari
         foreach (MontajParcaSatiri row in montaj)
         {
             if (kaynakId(row.SourceStepPath) is not string id) continue;
+            if (row.Deneme is SatirDenemesi montajDenemesi)
+                kararlar.Add(DenemeKarari(id, MontajKimligi(row), MacriaProje.HedefMontaj, montajDenemesi));
             if (row.ListeDisi) kararlar.Add(ListeDisiKarari(id, MontajKimligi(row), MacriaProje.HedefMontaj, row.ListeDisiNotu));
             foreach (string yol in row.YazilanDxfYollari)
                 kararlar.Add(new MacriaProjeKarari
@@ -119,6 +150,16 @@ public static class MacriaProjeSatirlari
         }
         return kararlar;
     }
+
+    private static MacriaProjeKarari DenemeKarari(string kaynak, MacriaParcaKimligi? parca, string hedef, SatirDenemesi deneme) => new()
+    {
+        Kaynak = kaynak,
+        Parca = parca,
+        Hedef = hedef,
+        Karar = MacriaProje.KararDene,
+        DenemeModu = deneme.Mod,
+        EkAnaliz = deneme.EkId
+    };
 
     private static MacriaProjeKarari ListeDisiKarari(string kaynak, MacriaParcaKimligi? parca, string hedef, string not) => new()
     {

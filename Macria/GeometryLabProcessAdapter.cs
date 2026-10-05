@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -31,6 +32,21 @@ public sealed record GeometryLabProcessAdapterOptions
 
     // Engine --is-parcacigi: worker threads, 0 = cores - 1; null = engine default.
     public int? ThreadCount { get; init; }
+
+    // Engine --parcalar: only these parts (localIds of the full analysis);
+    // null or empty = the whole STEP, the STEP's own analysis.
+    public IReadOnlyList<int>? SelectedPartIds { get; init; }
+
+    // Engine --deneme: "Profil / Sac olarak dene" on the selected parts only.
+    public MotorDenemesi Deneme { get; init; } = MotorDenemesi.Yok;
+}
+
+/// <summary>The engine's trial modes (--deneme); Yok runs the automatic rules.</summary>
+public enum MotorDenemesi
+{
+    Yok,
+    Profil,
+    Sac
 }
 
 /// <summary>
@@ -150,6 +166,10 @@ public sealed class GeometryLabProcessAdapter
         if (string.IsNullOrWhiteSpace(_options.EngineExecutablePath))
             return Result(GeometryLabProcessAdapterStatus.InvalidConfiguration,
                 "EngineExecutablePath is required.");
+        // A trial judges only parts the user selected, never a whole STEP.
+        if (_options.Deneme != MotorDenemesi.Yok && SeciliParcalar.Count == 0)
+            return Result(GeometryLabProcessAdapterStatus.InvalidConfiguration,
+                "Deneme (profil / sac olarak dene) yalnız seçili parçalarda çalışır.");
 
         string enginePath;
         string inputPath;
@@ -264,6 +284,16 @@ public sealed class GeometryLabProcessAdapter
             startInfo.ArgumentList.Add("--is-parcacigi");
             startInfo.ArgumentList.Add(Math.Max(0, threadCount).ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
+        if (SeciliParcalar.Count > 0)
+        {
+            startInfo.ArgumentList.Add("--parcalar");
+            startInfo.ArgumentList.Add(string.Join(",", SeciliParcalar.Select(id => id.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+        }
+        if (_options.Deneme != MotorDenemesi.Yok)
+        {
+            startInfo.ArgumentList.Add("--deneme");
+            startInfo.ArgumentList.Add(_options.Deneme == MotorDenemesi.Profil ? "profil" : "sac");
+        }
         Action<GeometryLabProgress>? progress = _options.ProgressChanged;
         if (progress is not null)
             startInfo.ArgumentList.Add("--ilerleme");
@@ -320,13 +350,21 @@ public sealed class GeometryLabProcessAdapter
         {
             return Result(GeometryLabProcessAdapterStatus.InvalidJson, exception.Message, stdout, stderr, process.ExitCode);
         }
-        return SonucuJsondanKur(json, partDxfDirectory) with
+        GeometryLabProcessAdapterResult sonuc = SonucuJsondanKur(json, partDxfDirectory) with
         {
             ExitCode = process.ExitCode,
             StandardOutput = stdout,
             StandardError = stderr
         };
+        // A whole-STEP run must come back as the STEP's own (automatic) analysis.
+        if (sonuc.IsSuccess && SeciliParcalar.Count == 0 && !sonuc.Analysis!.Otomatik)
+            return Result(GeometryLabProcessAdapterStatus.InvalidJson,
+                "Motor çıktısı otomatik analiz değil (" + sonuc.Analysis.AnalysisMode + ").", stdout, stderr, process.ExitCode);
+        return sonuc;
     }
+
+    private IReadOnlyList<int> SeciliParcalar =>
+        _options.SelectedPartIds?.Where(id => id > 0).Distinct().OrderBy(id => id).ToList() ?? (IReadOnlyList<int>)Array.Empty<int>();
 
     /// <summary>
     /// The result of an engine analysis.json: the live analysis and a .macria

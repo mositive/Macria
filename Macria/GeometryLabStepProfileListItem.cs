@@ -46,6 +46,16 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
     public bool PartMachiningPresent { get; init; }
     public IReadOnlyList<string> PartMachiningKinds { get; init; } = Array.Empty<string>();
     public string IslemeGosterimi => IslemeMetni.Kisa(PartMachiningPresent, PartMachiningKinds);
+    int? IAnalizSatiri.ParcaLocalId => PartLocalId;
+    /// <summary>Built from a run on selected parts (Yeniden Analiz Et, Profil olarak dene).</summary>
+    public SatirDenemesi? Deneme { get; private set; }
+
+    public void DenemeyiIsaretle(SatirDenemesi deneme)
+    {
+        Deneme = deneme;
+        foreach (string name in new[] { nameof(Deneme), nameof(KullaniciKarariMetni), nameof(DurumEtiketi) })
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
     public string SourceFileName => PartName is null
         ? System.IO.Path.GetFileName(SourceStepPath)
         : System.IO.Path.GetFileName(SourceStepPath) + " › " + PartName + " (" + PartQuantity + " adet)";
@@ -671,7 +681,7 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
     string IAnalizSatiri.AdetGosterimi => QuantityDisplay;
     string IAnalizSatiri.TurGosterimi => EffectiveProfileTypeDisplay == "—" ? "Profil?" : EffectiveProfileTypeDisplay;
     string IAnalizSatiri.OlcuGosterimi => SectionDisplay;
-    public string DurumEtiketi => EffectiveStatusDisplay;
+    public string DurumEtiketi => Deneme is { Deneme: true } ? EffectiveStatusDisplay + " (deneme)" : EffectiveStatusDisplay;
     public string KararGosterimi => DecisionSource switch
     {
         GeometryLabDecisionSource.User => "Kullanıcı",
@@ -697,6 +707,7 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
         get
         {
             var parcalar = new List<string>();
+            if (Deneme != null) parcalar.Add(Deneme.Metin);
             if (HasUserDecision)
                 parcalar.Add(_kullaniciKarariAciklamasi.TrimEnd('.') + (UserDecisionNote.Length > 0 ? " — " + UserDecisionNote : ""));
             if (ListeDisi)
@@ -708,7 +719,7 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
     IReadOnlyList<KeyValuePair<string, string>> IAnalizSatiri.Ayrintilar => new KeyValuePair<string, string>[]
     {
         new("STEP dosyası", SourceFileName),
-        new("Durum", EffectiveStatusDisplay),
+        new("Durum", DurumEtiketi),
         new("Parça türü", EffectiveProfileTypeDisplay),
         new("Kesit", SectionDisplay),
         new("Boy", LengthDisplay),

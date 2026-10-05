@@ -46,10 +46,32 @@ public interface IAnalizSatiri
     bool OnayBekliyor { get; }
     /// <summary>"Seçili Parça" lines of the right panel (label, value).</summary>
     IReadOnlyList<KeyValuePair<string, string>> Ayrintilar { get; }
+    /// <summary>The part's localId in its STEP's engine analysis; null for a file row (no engine parts).</summary>
+    int? ParcaLocalId { get; }
+    /// <summary>The row comes from a run on selected parts (Yeniden Analiz Et, Profil / Sac olarak dene), or null.</summary>
+    SatirDenemesi? Deneme { get; }
     void ListeDisinaCikar(string? not = null);
     void ListeyeGeriAl();
     void KontrolGerekliyeAl();
     void RestoreAutomaticDecision();
+}
+
+/// <summary>
+/// A row built from an engine run on selected parts (docs/YENIDEN_ANALIZ_VE_DENEME_PLANI.md):
+/// the run's mode (MacriaProje.Deneme*) and its id among the source's EkAnalizler.
+/// </summary>
+public sealed record SatirDenemesi(string Mod, string EkId)
+{
+    /// <summary>"Kullanıcı kararı" text of the row.</summary>
+    public string Metin => Mod switch
+    {
+        MacriaProje.DenemeProfil => "Profil olarak denendi",
+        MacriaProje.DenemeSac => "Sac olarak denendi",
+        _ => "Yeniden analiz edildi (süre sınırı yok)"
+    };
+
+    /// <summary>Shown after the status of a row a trial recognized ("Profil (deneme)").</summary>
+    public bool Deneme => Mod is MacriaProje.DenemeProfil or MacriaProje.DenemeSac;
 }
 
 /// <summary>Where the engine's classification puts a part (docs/SEKME_VE_ARAC_CUBUGU_PLANI.md).</summary>
@@ -107,15 +129,18 @@ public sealed record AnalizAracDurumu
     public bool OtomatikEtkin { get; init; }
     public bool GeriAlGorunur { get; init; }
     public bool GeriAlEtkin { get; init; }
+    public bool YenidenAnalizGorunur { get; init; }
+    public bool YenidenAnalizEtkin { get; init; }
     public bool DosyayiAcEtkin { get; init; }
     public bool ExcelEtkin { get; init; }
 
     /// <summary>
     /// `secili`: the selected rows of the open tab; `sekmedeSatirVar`: the tab
-    /// lists anything; `onayliSacVar`: the open Saclar sub-tab holds approved sheets.
+    /// lists anything; `onayliSacVar`: the open Saclar sub-tab holds approved
+    /// sheets; `motorMesgul`: an engine run is going on.
     /// </summary>
     public static AnalizAracDurumu Hesapla(AnalizSekmesi sekme, IReadOnlyCollection<IAnalizSatiri> secili,
-        bool sekmedeSatirVar, bool onayliSacVar)
+        bool sekmedeSatirVar, bool onayliSacVar, bool motorMesgul = false)
     {
         bool var = secili.Count > 0;
         bool listeDisi = sekme == AnalizSekmesi.ListeDisi;
@@ -137,9 +162,12 @@ public sealed record AnalizAracDurumu
             ListeDisiGorunur = !listeDisi,
             ListeDisiEtkin = var,
             OtomatikGorunur = !listeDisi,
-            OtomatikEtkin = secili.Any(x => x.HasUserDecision),
+            OtomatikEtkin = secili.Any(x => x.HasUserDecision || x.Deneme != null),
             GeriAlGorunur = listeDisi,
-            GeriAlEtkin = var
+            GeriAlEtkin = var,
+            // Parts of an analysed STEP; a file row has no part to select.
+            YenidenAnalizGorunur = sekme is AnalizSekmesi.KontrolGerekli or AnalizSekmesi.Tanimsiz,
+            YenidenAnalizEtkin = !motorMesgul && secili.Any(x => x.ParcaLocalId != null)
         };
     }
 }

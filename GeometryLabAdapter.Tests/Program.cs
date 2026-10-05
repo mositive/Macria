@@ -34,7 +34,10 @@ internal static class Program
             await UnsupportedSchemaAsync();
             await SheetMetalSchemaAsync();
             await PartsSchemaAsync();
+            await SeciliParcaAdaptoruAsync();
             await RealAssemblyEngineAsync();
+            DenemeModeliTests();
+            EkAnalizProjeTests();
             AssemblyPartRows();
             KalinlikDuzeltmeTests();
             KararSutunlariTests();
@@ -1042,6 +1045,32 @@ internal static class Program
             Console.WriteLine("REAL_ASSEMBLY_ENGINE: " + row.Name + " adet=" + part?.Quantity + " sinif=" + part?.Classification +
                 (dxf is null ? "" : " dxf=" + Path.GetFileName(dxf)));
         }
+        Check(result.Analysis.Otomatik && result.Analysis.AnalysisMode == "Automatic" && result.Analysis.SelectedPartIds is null,
+            "real assembly: the whole-STEP output is marked Automatic");
+
+        // Yeniden Analiz Et: the engine on one part, no time limit; the part
+        // keeps its id, name, quantity and class of the full analysis.
+        GeometryLabPartTransport secilen = parts.First(x => x.Classification == "ReviewRequired");
+        var tekParca = new GeometryLabProcessAdapter(new GeometryLabProcessAdapterOptions
+        {
+            EngineExecutablePath = engine,
+            Timeout = TimeSpan.FromMinutes(5),
+            TemporaryRootDirectory = Path.Combine(_root, "work"),
+            PartDxfRootDirectory = Path.Combine(_root, "assembly-dxf"),
+            PartTimeLimitSeconds = 0,
+            SelectedPartIds = new[] { secilen.LocalId }
+        });
+        GeometryLabProcessAdapterResult ek = await tekParca.AnalyzeAsync(steps[0]);
+        Check(ek.IsSuccess && ek.Analysis!.AnalysisMode == "Parts" && !ek.Analysis.Otomatik &&
+              ek.Analysis.SelectedPartIds?.SequenceEqual(new[] { secilen.LocalId }) == true && ek.Analysis.Parts.Count == 1,
+            "real selected-part run: one part, marked Parts: " + ek.Message);
+        GeometryLabPartTransport ekParca = ek.Analysis!.Parts[0];
+        Check(ekParca.LocalId == secilen.LocalId && ekParca.Name == secilen.Name && ekParca.Quantity == secilen.Quantity &&
+              ekParca.Classification == secilen.Classification && ekParca.ClassificationCode == secilen.ClassificationCode,
+            "real selected-part run: " + secilen.Name + " equals the full analysis (" + ekParca.Classification + ")");
+        var (_, ekMontaj) = MacriaProjeSatirlari.EkSatirlari(steps[0], ek, 20, new SatirDenemesi(MacriaProje.DenemeYeniden, "e1"));
+        Check(ekMontaj.Count == 1 && ekMontaj[0].PartLocalId == secilen.LocalId && ekMontaj[0].Deneme?.EkId == "e1",
+            "real selected-part run: the part's row is built from it and marked");
 
         // Profile rows: length, topology and cuts from the part's own solid,
         // the same as the part's single-part STEP when one is given.
@@ -2740,6 +2769,200 @@ internal static class Program
         Check(snapshot.Groups.All(x => x.TargetType == "Product" && x.TargetState == CatiaInventoryTargetState.Resolved) &&
               snapshot.Groups.Any(x => x.ParentGroupKey.Length == 0),
             "root is excluded as a coloring target and groups resolve as Product targets");
+    }
+
+    // Yeniden Analiz Et / deneme (docs/YENIDEN_ANALIZ_VE_DENEME_PLANI.md):
+    // --parcalar and --deneme reach the engine only when asked for; a trial
+    // without parts never starts; a whole-STEP run must come back Automatic.
+    private static async Task SeciliParcaAdaptoruAsync()
+    {
+        const string govde = "\"status\":\"Succeeded\",\"exitCode\":0,\"errors\":[],\"warnings\":[],\"profileRecognitions\":[],\"parts\":[]}";
+        string Json(string mod) => "{\"schemaVersion\":\"1.2\",\"analysisMode\":\"" + mod + "\",\"selectedPartIds\":[1,2]," + govde;
+        var deneme = new GeometryLabProcessAdapter(new GeometryLabProcessAdapterOptions
+        {
+            EngineExecutablePath = CreateEngine("parts-trial",
+                // cmd splits "1,2" at the comma (the engine gets one argument): %6 = 1, %7 = 2.
+                "if not \"%~5\"==\"--parcalar\" exit /b 5\r\nif not \"%~6\"==\"1\" exit /b 6\r\nif not \"%~7\"==\"2\" exit /b 7\r\n" +
+                "if not \"%~8\"==\"--deneme\" exit /b 8\r\nif not \"%~9\"==\"sac\" exit /b 9\r\n" +
+                "echo " + Json("TrialSheet") + ">\"%~4\"\r\nexit /b 0"),
+            Timeout = TimeSpan.FromSeconds(10),
+            TemporaryRootDirectory = Path.Combine(_root, "work"),
+            SelectedPartIds = new[] { 2, 1, 2, -3 },
+            Deneme = MotorDenemesi.Sac
+        });
+        GeometryLabProcessAdapterResult denendi = await deneme.AnalyzeAsync(_step);
+        Check(denendi.IsSuccess && denendi.Analysis!.AnalysisMode == "TrialSheet" && !denendi.Analysis.Otomatik &&
+              denendi.Analysis.SelectedPartIds!.SequenceEqual(new[] { 1, 2 }),
+            "--parcalar (sorted, unique, positive) and --deneme are passed; the trial output is read: " + denendi.Message);
+
+        var parcasiz = new GeometryLabProcessAdapter(new GeometryLabProcessAdapterOptions
+        {
+            EngineExecutablePath = CreateEngine("parts-trial-refused", "exit /b 9"),
+            TemporaryRootDirectory = Path.Combine(_root, "work"),
+            Deneme = MotorDenemesi.Profil
+        });
+        Check((await parcasiz.AnalyzeAsync(_step)).Status == GeometryLabProcessAdapterStatus.InvalidConfiguration,
+            "a trial without selected parts is refused before the engine starts");
+
+        // A whole-STEP run that comes back as a selected-part run is not the STEP's analysis.
+        GeometryLabProcessAdapterResult yanlis = await Adapter(CreateEngine("parts-not-automatic",
+            "if not \"%~5\"==\"\" exit /b 5\r\necho " + Json("Parts") + ">\"%~4\"\r\nexit /b 0")).AnalyzeAsync(_step);
+        Check(yanlis.Status == GeometryLabProcessAdapterStatus.InvalidJson, "a whole-STEP run must be Automatic: " + yanlis.Message);
+        GeometryLabProcessAdapterResult otomatik = await Adapter(CreateEngine("parts-automatic",
+            "echo " + Json("Automatic") + ">\"%~4\"\r\nexit /b 0")).AnalyzeAsync(_step);
+        GeometryLabProcessAdapterResult eski = await Adapter(CreateEngine("parts-old", ValidJsonScript())).AnalyzeAsync(_step);
+        Check(otomatik.IsSuccess && otomatik.Analysis!.Otomatik && eski.IsSuccess && eski.Analysis!.Otomatik &&
+              eski.Analysis.AnalysisMode is null,
+            "Automatic and an older engine without analysisMode are the STEP's analysis");
+    }
+
+    private static void DenemeModeliTests()
+    {
+        GeometryLabAnalysisTransport analysis = AssemblyAnalysis();
+        var ana = new GeometryLabProcessAdapterResult { Status = GeometryLabProcessAdapterStatus.Succeeded, Analysis = analysis };
+        GeometryLabProcessAdapterResult EkSonuc(params int[] idler) => new()
+        {
+            Status = GeometryLabProcessAdapterStatus.Succeeded,
+            Analysis = analysis with
+            {
+                AnalysisMode = "Parts", SelectedPartIds = idler,
+                Parts = analysis.Parts.Where(p => idler.Contains(p.LocalId)).ToArray()
+            }
+        };
+        Check(MacriaProjeSatirlari.AnaAnaliz(ana).IsSuccess && !MacriaProjeSatirlari.AnaAnaliz(EkSonuc(5)).IsSuccess,
+            "a selected-part run is never taken as a STEP's own analysis");
+
+        // Rows of a run: only its parts, marked; the decision text says what happened.
+        var (profil, montaj) = MacriaProjeSatirlari.EkSatirlari("C:\\m.stp", EkSonuc(1, 5), 20,
+            new SatirDenemesi(MacriaProje.DenemeYeniden, "e2"));
+        Check(profil.Count == 1 && montaj.Count == 1 && profil[0].PartLocalId == 1 && montaj[0].PartLocalId == 5 &&
+              profil[0].Deneme?.EkId == "e2" && montaj[0].Deneme?.Mod == MacriaProje.DenemeYeniden,
+            "a run's rows: one per analysed part, marked with the run");
+        Check(montaj[0].KullaniciKarariMetni == "Yeniden analiz edildi (süre sınırı yok)" && montaj[0].DurumEtiketi == montaj[0].StatusDisplay &&
+              !montaj[0].StatusDisplay.Contains("deneme") && ((IAnalizSatiri)profil[0]).ParcaLocalId == 1,
+            "Yeniden analiz: the user decision column says so; the status has no \"(deneme)\"");
+        var profilDenemesi = new GeometryLabStepProfileListItem { SourceStepPath = "C:\\m.stp", PartName = "Kutu", PartQuantity = 3, PartLocalId = 1 };
+        profilDenemesi.Apply(MontajParcaSatiri.ResultForPart(ana, analysis.Parts[0]));
+        profilDenemesi.DenemeyiIsaretle(new SatirDenemesi(MacriaProje.DenemeProfil, "e3"));
+        Check(profilDenemesi.DurumEtiketi.EndsWith(" (deneme)") && profilDenemesi.KullaniciKarariMetni.StartsWith("Profil olarak denendi") &&
+              ((IAnalizSatiri)profilDenemesi).Ayrintilar.Any(x => x.Key == "Durum" && x.Value.EndsWith(" (deneme)")),
+            "a trial shows \"(deneme)\" after the status, in Seçili Parça too");
+
+        // Decisions: a run is a "Dene" decision naming the run, with the part.
+        List<MacriaProjeKarari> kararlar = MacriaProjeSatirlari.KararlariTopla(profil, montaj, _ => "k1");
+        MacriaProjeKarari? dene = kararlar.FirstOrDefault(k => k.Karar == MacriaProje.KararDene && k.Parca?.LocalId == 5);
+        Check(kararlar.Count(k => k.Karar == MacriaProje.KararDene) == 2 && dene?.EkAnaliz == "e2" &&
+              dene.DenemeModu == MacriaProje.DenemeYeniden && dene.Parca?.Ad == "Mil",
+            "every run row gives a Dene decision with the run and the part");
+
+        // Matching: by localId on the same output, whatever the row type
+        // there; after a rescan by product id / name.
+        var anaSatirlar = MacriaProjeSatirlari.MontajSatirlari("C:\\m.stp", ana, 20);
+        List<MacriaKararAdayi> adaylar = MacriaProjeSatirlari.Adaylar(anaSatirlar.Profil, anaSatirlar.Montaj, _ => "k1");
+        var profilHedefli = new MacriaProjeKarari
+        {
+            Kaynak = "k1", Hedef = MacriaProje.HedefProfil, Karar = MacriaProje.KararDene, DenemeModu = MacriaProje.DenemeProfil,
+            EkAnaliz = "e3", Parca = new MacriaParcaKimligi { LocalId = 5, Ad = "Mil" }
+        };
+        var (eslenen, eslenemeyen) = MacriaProje.KararlariEsle(new[] { profilHedefli }, adaylar, _ => false);
+        Check(eslenen.Count == 1 && eslenemeyen.Count == 0 && ((IAnalizSatiri)eslenen[0].Aday.Satir).ParcaLocalId == 5 &&
+              eslenen[0].Aday.Hedef == MacriaProje.HedefMontaj,
+            "a Dene decision saved on a profile row finds the part row it was tried from");
+        var (yeniden, _) = MacriaProje.KararlariEsle(new[] { new MacriaProjeKarari
+        {
+            Kaynak = "k1", Hedef = MacriaProje.HedefMontaj, Karar = MacriaProje.KararDene, DenemeModu = MacriaProje.DenemeYeniden,
+            EkAnaliz = "e1", Parca = new MacriaParcaKimligi { LocalId = 99, Ad = "Mil" }
+        } }, adaylar, _ => true);
+        Check(yeniden.Count == 1 && ((IAnalizSatiri)yeniden[0].Aday.Satir).ParcaLocalId == 5,
+            "after a rescan a Dene decision follows the part's name");
+        Check(!MacriaProjeSatirlari.Uygula(profilHedefli, anaSatirlar.Montaj[0]),
+            "a Dene decision is not applied as a row decision");
+
+        // Toolbar: Yeniden Analiz Et on Kontrol gerekli and Tanımsız, for parts, not while the engine runs.
+        IAnalizSatiri[] secili = { montaj[0] };
+        AnalizAracDurumu kontrol = AnalizAracDurumu.Hesapla(AnalizSekmesi.KontrolGerekli, secili, true, false);
+        Check(kontrol.YenidenAnalizGorunur && kontrol.YenidenAnalizEtkin && kontrol.OtomatikEtkin &&
+              AnalizAracDurumu.Hesapla(AnalizSekmesi.Tanimsiz, secili, true, false).YenidenAnalizGorunur &&
+              !AnalizAracDurumu.Hesapla(AnalizSekmesi.Saclar, secili, true, false).YenidenAnalizGorunur &&
+              !AnalizAracDurumu.Hesapla(AnalizSekmesi.Profiller, secili, true, false).YenidenAnalizGorunur &&
+              !AnalizAracDurumu.Hesapla(AnalizSekmesi.KontrolGerekli, secili, true, false, motorMesgul: true).YenidenAnalizEtkin,
+            "Yeniden Analiz Et: Kontrol gerekli and Tanımsız only, off while the engine runs; Otomatik Karara Dön undoes it");
+        var dosyaSatiri = new GeometryLabStepProfileListItem { SourceStepPath = "C:\\eski.stp" };
+        Check(!AnalizAracDurumu.Hesapla(AnalizSekmesi.Tanimsiz, new IAnalizSatiri[] { dosyaSatiri }, true, false).YenidenAnalizEtkin,
+            "a file row without engine parts cannot be re-analysed by part");
+    }
+
+    // .macria 1.3: selected-part runs are stored under kaynaklar/<k>/ek/<e>/ and come back.
+    private static void EkAnalizProjeTests()
+    {
+        string klasor = Path.Combine(_root, "ek-proje");
+        Directory.CreateDirectory(klasor);
+        string step = Path.Combine(klasor, "Montaj.stp");
+        File.WriteAllText(step, "ISO-10303-21;");
+        string ekDxf = Path.Combine(klasor, "ek-dxf");
+        Directory.CreateDirectory(ekDxf);
+        File.WriteAllText(Path.Combine(ekDxf, "part-5.dxf"), "0\nEOF\n");
+        const string anaJson = "{\"schemaVersion\":\"1.2\",\"analysisMode\":\"Automatic\"}";
+        const string ekJson = "{\"schemaVersion\":\"1.2\",\"analysisMode\":\"Parts\",\"selectedPartIds\":[5]}";
+        MacriaProjeVerisi Veri() => new()
+        {
+            Kaynaklar =
+            {
+                new MacriaProjeKaynagi
+                {
+                    Id = "k1", Yol = step, Sha256 = GeometryLabMotorKimligi.DosyaSha256(step),
+                    Analiz = new MacriaProjeAnalizi { Durum = nameof(GeometryLabProcessAdapterStatus.Succeeded), MotorSemaSurumu = "1.2" },
+                    EkAnalizler =
+                    {
+                        new MacriaEkAnaliz { Id = "e1", Mod = MacriaProje.DenemeYeniden, Parcalar = { 5 }, SureSn = 3.2 },
+                        new MacriaEkAnaliz { Id = "e2", Mod = MacriaProje.DenemeProfil, Parcalar = { 7 } }
+                    }
+                }
+            },
+            Kararlar =
+            {
+                new MacriaProjeKarari { Kaynak = "k1", Hedef = MacriaProje.HedefMontaj, Karar = MacriaProje.KararDene,
+                    DenemeModu = MacriaProje.DenemeYeniden, EkAnaliz = "e1", Parca = new MacriaParcaKimligi { LocalId = 5, Ad = "Mil" } }
+            }
+        };
+        string proje = Path.Combine(klasor, "Montaj.macria");
+        // e2 has no stored output (as after Otomatik Karara Dön): only e1 is written.
+        MacriaProje.Kaydet(proje, Veri(), new Dictionary<string, MacriaProjeKaynakIcerigi>
+        {
+            ["k1"] = new(anaJson, null, new Dictionary<string, MacriaEkIcerik> { ["e1"] = new(ekJson, ekDxf) })
+        }, "Macria test");
+        MacriaProjeAcilisi acilis = MacriaProje.Ac(proje, Path.Combine(_root, "ek-acilan"));
+        Check(acilis.Manifest.SchemaVersion == "1.3" && acilis.SaltOkunurNedeni == null, "schema 1.3 is written and opens writable");
+        Check(acilis.EkAnalysisJson.TryGetValue("k1/e1", out string? okunan) && okunan == ekJson && !acilis.EkAnalysisJson.ContainsKey("k1/e2") &&
+              acilis.EkDxfKlasoru.TryGetValue("k1/e1", out string? dxfKlasoru) && File.Exists(Path.Combine(dxfKlasoru, "part-5.dxf")) &&
+              acilis.AnalysisJson["k1"] == anaJson,
+            "a run's output and DXFs come back next to the STEP's own analysis");
+        MacriaEkAnaliz ek = acilis.Veri.Kaynaklar[0].EkAnalizler[0];
+        MacriaProjeKarari dene = acilis.Veri.Kararlar[0];
+        Check(ek.Mod == MacriaProje.DenemeYeniden && ek.Parcalar.SequenceEqual(new[] { 5 }) && ek.SureSn == 3.2 &&
+              dene.Karar == MacriaProje.KararDene && dene.EkAnaliz == "e1" && dene.DenemeModu == MacriaProje.DenemeYeniden,
+            "the run record and the Dene decision round-trip");
+
+        // A 1.2 project (no runs) still opens; a run with a bad id is refused.
+        string eskiProje = Path.Combine(klasor, "Eski.macria");
+        using (var zip = System.IO.Compression.ZipFile.Open(eskiProje, System.IO.Compression.ZipArchiveMode.Create))
+        {
+            void Yaz(string ad, string metin)
+            {
+                using var akis = new StreamWriter(zip.CreateEntry(ad).Open(), new UTF8Encoding(false));
+                akis.Write(metin);
+            }
+            Yaz("manifest.json", "{\"format\":\"macria-proje\",\"schemaVersion\":\"1.2\"}");
+            Yaz("proje.json", "{\"kaynaklar\":[{\"id\":\"k1\",\"yol\":\"" + step.Replace("\\", "\\\\") + "\"}],\"kararlar\":[]}");
+        }
+        MacriaProjeAcilisi eskiAcilis = MacriaProje.Ac(eskiProje, Path.Combine(_root, "eski-acilan"));
+        Check(eskiAcilis.SaltOkunurNedeni == null && eskiAcilis.Veri.Kaynaklar[0].EkAnalizler.Count == 0,
+            "a schema 1.2 project opens writable without runs");
+        MacriaProjeVerisi bozuk = Veri();
+        bozuk.Kaynaklar[0].EkAnalizler[1].Id = "../x";
+        string bozukProje = Path.Combine(klasor, "Bozuk.macria");
+        MacriaProje.Kaydet(bozukProje, bozuk, new Dictionary<string, MacriaProjeKaynakIcerigi>(), "Macria test");
+        Check(Throws(() => MacriaProje.Ac(bozukProje, Path.Combine(_root, "bozuk-acilan"))), "a run id that is not e<n> is refused");
     }
 
     private static GeometryLabProcessAdapter Adapter(string engine, TimeSpan? timeout = null) => new(

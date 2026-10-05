@@ -88,6 +88,16 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
     /// <summary>"var (gravür)", "var (cep)" ...; "—" without machining (IslemeMetni).</summary>
     public string MachiningDisplay => IslemeMetni.Kisa(MachiningPresent, MachiningKinds);
     public string IslemeGosterimi => MachiningDisplay;
+    int? IAnalizSatiri.ParcaLocalId => PartLocalId;
+    /// <summary>Built from a run on selected parts (Yeniden Analiz Et, Sac olarak dene).</summary>
+    public SatirDenemesi? Deneme { get; private set; }
+
+    public void DenemeyiIsaretle(SatirDenemesi deneme)
+    {
+        Deneme = deneme;
+        foreach (string name in new[] { nameof(Deneme), nameof(KullaniciKarariMetni), nameof(DurumEtiketi), nameof(StatusDisplay) })
+            Raise(name);
+    }
     public string EngineReasonDisplay => EngineReasons.Count == 0 ? "" : string.Join(" ", EngineReasons);
 
     private double _laserMaximumMm = 20;
@@ -132,7 +142,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         ? DxfAdi.Uret(PartName, t, Quantity)
         : "açınım yok – CATIA'dan";
 
-    public string StatusDisplay => EffectiveCategory switch
+    public string StatusDisplay => (EffectiveCategory switch
     {
         MontajParcaKategorisi.Sac => "Sac",
         MontajParcaKategorisi.OnayGerekli => "Onay gerekli",
@@ -140,7 +150,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         MontajParcaKategorisi.Profil => "Profil",
         MontajParcaKategorisi.Tanimsiz => "Tanımsız",
         _ => "Kontrol gerekli"
-    };
+    }) + (Deneme is { Deneme: true } ? " (deneme)" : "");
 
     public string DecisionDisplay => DecisionSource switch
     {
@@ -433,6 +443,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         get
         {
             var parcalar = new List<string>();
+            if (Deneme != null) parcalar.Add(Deneme.Metin);
             if (HasUserDecision)
                 parcalar.Add(EffectiveCategory == MontajParcaKategorisi.Sac
                     ? "Sac olarak onaylandı" + (DxfSourcePath == null ? " (açınım yok, DXF CATIA'dan)" : "")
