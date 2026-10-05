@@ -198,6 +198,7 @@ public partial class MainWindow
         bool kalinOnce = satir.IsThickPlate;
         satir.KalinligiDuzelt(kalinlik);
         kutu.Text = satir.KalinlikMetni;
+        YazilanDxfleriYenidenAdlandir(satir);
         LogInfo(satir.KalinlikDuzeltildi
             ? "Ham sac kalınlığı düzeltildi: " + satir.PartName + " " + satir.ThicknessDisplay + " (tespit edilen " + satir.MotorKalinlikDisplay + ")."
             : "Ham sac kalınlığı tespit edilen değere döndü: " + satir.PartName + " " + satir.ThicknessDisplay + ".");
@@ -209,6 +210,37 @@ public partial class MainWindow
             AnalizSekmeleriniGuncelle();
             SagPaneliGuncelle();
         }), System.Windows.Threading.DispatcherPriority.Background);
+    }
+
+    /// <summary>
+    /// Toplu DXF's "Güncelle": DXFs DXF Üret wrote for the row get the name of
+    /// the new thickness in their folder; a file with that name is not replaced.
+    /// </summary>
+    private void YazilanDxfleriYenidenAdlandir(MontajParcaSatiri satir)
+    {
+        if (satir.YazilanDxfYollari.Count == 0 || satir.DxfDosyaAdi is not string yeniAd) return;
+        foreach (DxfAdlandirmaSonucu sonuc in MotorDxfAktarici.YenidenAdlandir(satir.YazilanDxfYollari.ToList(), yeniAd))
+        {
+            switch (sonuc.Durum)
+            {
+                case DxfAdlandirmaDurumu.Tasindi:
+                    satir.DxfYolunuDegistir(sonuc.Eski, sonuc.Yeni);
+                    LogSuccess("DXF yeniden adlandırıldı: " + Path.GetFileName(sonuc.Eski) + " → " + Path.GetFileName(sonuc.Yeni) +
+                               " (" + Path.GetDirectoryName(sonuc.Yeni) + ")");
+                    break;
+                case DxfAdlandirmaDurumu.DosyaYok:
+                    satir.DxfYolunuDegistir(sonuc.Eski, null);
+                    LogInfo("Daha önce yazılan DXF artık yok, unutuldu: " + sonuc.Eski);
+                    break;
+                case DxfAdlandirmaDurumu.HedefVar:
+                    LogError("DXF yeniden adlandırılamadı: " + sonuc.Yeni + " zaten var; " + Path.GetFileName(sonuc.Eski) +
+                             " eski adıyla kaldı.");
+                    break;
+                case DxfAdlandirmaDurumu.Hata:
+                    LogError("DXF yeniden adlandırılamadı: " + sonuc.Eski + " — " + sonuc.Neden);
+                    break;
+            }
+        }
     }
 
     /// <summary>
@@ -321,6 +353,15 @@ public partial class MainWindow
         MotorDxfAktarimSonucu sonuc = MotorDxfAktarici.Uygula(plan, hedef => DxfCakismaWindow.Sor(this, hedef));
 
         string klasor = Path.Combine(dialog.FolderName, MotorDxfAktarici.AltKlasor);
+        // The rows remember their DXFs (written, or already there) for a later thickness rename.
+        bool hatirlandi = false;
+        foreach (string path in sonuc.Yazilan.Concat(sonuc.Atlanan))
+            foreach (MotorDxfIsi is_ in plan.Where(x => x.Hedef == path && x.Satir != null))
+            {
+                is_.Satir!.DxfYazildi(path);
+                hatirlandi = true;
+            }
+        if (hatirlandi) ProjeDegisti();
         foreach (string path in sonuc.Yazilan) LogSuccess("Motor DXF yazıldı: " + path);
         foreach (string path in sonuc.Atlanan) LogInfo("Motor DXF atlandı (dosya zaten var): " + path);
         foreach ((string hedef, string neden) in sonuc.Hatali) LogError("Motor DXF yazılamadı: " + hedef + " — " + neden);

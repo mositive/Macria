@@ -97,6 +97,8 @@ public sealed class MacriaProjeKarari
     public MacriaElleProfil? ElleProfil { get; set; }
     /// <summary>Schema 1.2, decision "Kalinlik": the user's thickness of a part row.</summary>
     public double? KalinlikMm { get; set; }
+    /// <summary>Schema 1.2, "DxfDosyasi": a DXF DXF Üret wrote for the part row (renamed with its thickness).</summary>
+    public string? DxfYolu { get; set; }
 }
 
 public sealed record MacriaParcaKimligi
@@ -167,6 +169,8 @@ public static class MacriaProje
     public const string KararKontrole = "Kontrole";
     // A part row's thickness corrected by the user (KalinlikMm); alongside its other decisions.
     public const string KararKalinlik = "Kalinlik";
+    // A DXF written for a part row (DxfYolu); one record per file.
+    public const string KararDxfDosyasi = "DxfDosyasi";
 
     private const string ManifestAdi = "manifest.json";
     private const string ProjeAdi = "proje.json";
@@ -416,7 +420,9 @@ public static class MacriaProje
         var kullanilan = new HashSet<(object, string)>();
         foreach (MacriaProjeKarari karar in kararlar)
         {
-            string bayrak = karar.Karar is KararListeDisi or KararKalinlik ? karar.Karar : "kategori";
+            string bayrak = karar.Karar is KararListeDisi or KararKalinlik ? karar.Karar
+                : karar.Karar == KararDxfDosyasi ? karar.Karar + "|" + karar.DxfYolu
+                : "kategori";
             List<MacriaKararAdayi> ayniKaynak = adaylar
                 .Where(a => a.KaynakId == karar.Kaynak && !kullanilan.Contains((a.Satir, bayrak)))
                 .ToList();

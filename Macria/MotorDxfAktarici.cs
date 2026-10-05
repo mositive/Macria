@@ -12,7 +12,19 @@ public enum DxfCakismaSecimi
     Iptal
 }
 
-public sealed record MotorDxfIsi(string ParcaAdi, string Kaynak, string Hedef);
+/// <param name="Satir">The row the DXF is written for (it remembers the file), or null.</param>
+public sealed record MotorDxfIsi(string ParcaAdi, string Kaynak, string Hedef, MontajParcaSatiri? Satir = null);
+
+public enum DxfAdlandirmaDurumu
+{
+    Tasindi,   // renamed
+    AyniAd,    // the name did not change
+    DosyaYok,  // the file is no longer there
+    HedefVar,  // a file with the new name exists: not replaced
+    Hata
+}
+
+public sealed record DxfAdlandirmaSonucu(string Eski, string Yeni, DxfAdlandirmaDurumu Durum, string? Neden = null);
 
 public sealed class MotorDxfAktarimSonucu
 {
@@ -40,8 +52,41 @@ public static class MotorDxfAktarici
         return satirlar
             .Where(x => x.EffectiveCategory == MontajParcaKategorisi.Sac && x.DxfFor(bukumBilgisi) != null && x.EtkinKalinlikMm != null)
             .Select(x => new MotorDxfIsi(x.PartName, x.DxfFor(bukumBilgisi)!,
-                Path.Combine(klasor, DxfAdi.Uret(x.PartName, x.EtkinKalinlikMm!.Value, x.Quantity))))
+                Path.Combine(klasor, DxfAdi.Uret(x.PartName, x.EtkinKalinlikMm!.Value, x.Quantity)), x))
             .ToList();
+    }
+
+    /// <summary>
+    /// Toplu DXF's "Güncelle" for Saclar: DXFs written earlier under the old
+    /// thickness get the new name in their own folder. An existing file with
+    /// the new name is never replaced.
+    /// </summary>
+    public static List<DxfAdlandirmaSonucu> YenidenAdlandir(IEnumerable<string> yollar, string yeniAd)
+    {
+        var sonuclar = new List<DxfAdlandirmaSonucu>();
+        foreach (string eski in yollar)
+        {
+            string yeni = Path.Combine(Path.GetDirectoryName(eski) ?? "", yeniAd);
+            if (!File.Exists(eski))
+                sonuclar.Add(new(eski, yeni, DxfAdlandirmaDurumu.DosyaYok));
+            else if (string.Equals(Path.GetFullPath(eski), Path.GetFullPath(yeni), StringComparison.OrdinalIgnoreCase))
+                sonuclar.Add(new(eski, yeni, DxfAdlandirmaDurumu.AyniAd));
+            else if (File.Exists(yeni))
+                sonuclar.Add(new(eski, yeni, DxfAdlandirmaDurumu.HedefVar, "Bu adda bir dosya zaten var."));
+            else
+            {
+                try
+                {
+                    File.Move(eski, yeni);
+                    sonuclar.Add(new(eski, yeni, DxfAdlandirmaDurumu.Tasindi));
+                }
+                catch (Exception istisna) when (istisna is IOException or UnauthorizedAccessException)
+                {
+                    sonuclar.Add(new(eski, yeni, DxfAdlandirmaDurumu.Hata, istisna.Message));
+                }
+            }
+        }
+        return sonuclar;
     }
 
     /// <param name="sor">Asked for each existing target: the choice and whether it

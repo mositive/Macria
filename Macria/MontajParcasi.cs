@@ -236,6 +236,24 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         return true;
     }
 
+    private readonly List<string> _yazilanDxfYollari = new();
+    /// <summary>DXFs DXF Üret wrote (or found) for this row; renamed when the thickness changes. Saved in the project.</summary>
+    public IReadOnlyList<string> YazilanDxfYollari => _yazilanDxfYollari;
+    /// <summary>The DXF file name for the current thickness, or null without a thickness.</summary>
+    public string? DxfDosyaAdi => EtkinKalinlikMm is double t ? DxfAdi.Uret(PartName, t, Quantity) : null;
+
+    public void DxfYazildi(string yol)
+    {
+        if (!_yazilanDxfYollari.Contains(yol, StringComparer.OrdinalIgnoreCase)) _yazilanDxfYollari.Add(yol);
+    }
+
+    /// <summary>A remembered DXF moved (yeni) or is gone (null).</summary>
+    public void DxfYolunuDegistir(string eski, string? yeni)
+    {
+        _yazilanDxfYollari.RemoveAll(x => string.Equals(x, eski, StringComparison.OrdinalIgnoreCase));
+        if (yeni != null) DxfYazildi(yeni);
+    }
+
     public void SetLaserMaximum(double laserMaximumMm)
     {
         _laserMaximumMm = laserMaximumMm;

@@ -40,6 +40,7 @@ internal static class Program
             KararSutunlariTests();
             SutunDuzeniTests();
             AramaTests();
+            DxfYenidenAdlandirmaTests();
             AssemblyProcessedProfilePart();
             AssemblyPartProfileGeometry();
             MotorDxfExport();
@@ -1304,6 +1305,54 @@ internal static class Program
         var profil = new GeometryLabStepProfileListItem { SourceStepPath = "C:\\m.stp", PartName = "Kutu", PartQuantity = 3 };
         Check(SekmeKurallari.AramayaUyar(profil, "kutu") && SekmeKurallari.AramayaUyar(profil, "M.STP") &&
               !SekmeKurallari.AramayaUyar(profil, "sac"), "profile rows are searched by part and file name");
+    }
+
+    // Toplu DXF's "Güncelle" for Saclar: a DXF written under the old thickness
+    // gets the new name; an existing file with that name is not replaced.
+    private static void DxfYenidenAdlandirmaTests()
+    {
+        string klasor = Path.Combine(_root, "dxf-ad", "Motor-DXF");
+        Directory.CreateDirectory(klasor);
+        string Yaz(string ad) { string yol = Path.Combine(klasor, ad); File.WriteAllText(yol, ad); return yol; }
+        string tasinan = Yaz("Sac A_20mm_2adet.dxf");
+        string engelli = Yaz("Sac B_20mm_1adet.dxf");
+        Yaz("Sac B_25mm_1adet.dxf");
+        string yok = Path.Combine(klasor, "Sac C_20mm_1adet.dxf");
+        List<DxfAdlandirmaSonucu> sonuc = MotorDxfAktarici.YenidenAdlandir(new[] { tasinan }, "Sac A_25mm_2adet.dxf");
+        Check(sonuc.Single().Durum == DxfAdlandirmaDurumu.Tasindi && !File.Exists(tasinan) &&
+              File.ReadAllText(Path.Combine(klasor, "Sac A_25mm_2adet.dxf")) == "Sac A_20mm_2adet.dxf",
+            "the DXF is renamed to the new thickness in its folder, content kept");
+        sonuc = MotorDxfAktarici.YenidenAdlandir(new[] { engelli, yok, Path.Combine(klasor, "Sac A_25mm_2adet.dxf") }, "Sac B_25mm_1adet.dxf");
+        Check(sonuc[0].Durum == DxfAdlandirmaDurumu.HedefVar && File.Exists(engelli) &&
+              File.ReadAllText(Path.Combine(klasor, "Sac B_25mm_1adet.dxf")) == "Sac B_25mm_1adet.dxf",
+            "an existing file with the new name is not replaced");
+        Check(sonuc[1].Durum == DxfAdlandirmaDurumu.DosyaYok, "a file that is gone is reported");
+        Check(MotorDxfAktarici.YenidenAdlandir(new[] { engelli }, "Sac B_20mm_1adet.dxf").Single().Durum == DxfAdlandirmaDurumu.AyniAd,
+            "same name: nothing to do");
+
+        // DXF Üret's plan carries the row; the row remembers its files in the project.
+        GeometryLabAnalysisTransport analysis = AssemblyAnalysis();
+        MontajParcaSatiri sac = MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[1], "C:\\x.dxf", 20);
+        sac.ApproveAsSheet();
+        Check(MotorDxfAktarici.Planla(new[] { sac }, klasor).Single().Satir == sac, "the DXF Üret plan knows its row");
+        sac.DxfYazildi(Path.Combine(klasor, "Sac A_20mm_2adet.dxf"));
+        sac.DxfYazildi(Path.Combine(klasor, "sac a_20mm_2adet.DXF"));
+        sac.DxfYazildi(Path.Combine(_root, "baska", "Sac A_20mm_2adet.dxf"));
+        sac.KalinligiDuzelt(25);
+        Check(sac.YazilanDxfYollari.Count == 2 && sac.DxfDosyaAdi == "Sac A_25mm_2adet.dxf", "files are remembered once (case ignored)");
+        List<MacriaProjeKarari> kararlar = MacriaProjeSatirlari.KararlariTopla(Array.Empty<GeometryLabStepProfileListItem>(), new[] { sac }, _ => "k1");
+        Check(kararlar.Count(k => k.Karar == MacriaProje.KararDxfDosyasi) == 2, "every remembered DXF is saved");
+        MontajParcaSatiri yeni = MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[1], "C:\\x.dxf", 20);
+        var (eslenen, eslenemeyen) = MacriaProje.KararlariEsle(kararlar,
+            MacriaProjeSatirlari.Adaylar(Array.Empty<GeometryLabStepProfileListItem>(), new[] { yeni }, _ => "k1"), _ => false);
+        Check(eslenemeyen.Count == 0 && eslenen.All(x => MacriaProjeSatirlari.Uygula(x.Karar, x.Aday.Satir)) &&
+              yeni.YazilanDxfYollari.SequenceEqual(sac.YazilanDxfYollari) && yeni.EtkinKalinlikMm == 25 &&
+              yeni.EffectiveCategory == MontajParcaKategorisi.Sac,
+            "reopened: both DXF paths, the thickness and the approval");
+        yeni.DxfYolunuDegistir(yeni.YazilanDxfYollari[0], Path.Combine(klasor, "Sac A_25mm_2adet.dxf"));
+        yeni.DxfYolunuDegistir(yeni.YazilanDxfYollari[0], null);
+        Check(yeni.YazilanDxfYollari.SequenceEqual(new[] { Path.Combine(klasor, "Sac A_25mm_2adet.dxf") }),
+            "a renamed path replaces the old one; a missing one is forgotten");
     }
 
     private static void AssemblyPartRows()
