@@ -1,5 +1,10 @@
 # Macria Çalışma Kuralları
 
+## İletişim Dili
+
+- Kullanıcıya her zaman Türkçe yazılır: cevaplar, raporlar, elle deneme listeleri ve sorular dahil.
+- Kod, commit mesajları ve teknik terimler gerektiği gibi kalabilir.
+
 ## Kaynakların Rolü
 
 - Gerçek davranış için birincil kaynak mevcut Macria kaynak kodudur.
