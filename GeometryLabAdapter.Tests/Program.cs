@@ -1399,6 +1399,8 @@ internal static class Program
               acinimsiz.BendCountDisplay == "1" && acinimsiz.DxfDisplay == "açınım yok – CATIA'dan" &&
               acinimsiz.MachiningDisplay == "var" && !acinimsiz.CanApproveAsSheet,
             "no flat pattern: the measured thickness, bends and machining are shown, the DXF comes from CATIA");
+        Check(acinimsiz.GroupDisplay == "—" && ((IAnalizSatiri)acinimsiz).Ayrintilar.Any(x => x.Key == "Grup" && x.Value == "—"),
+            "a part that is not a sheet shows no Lazer / Şalama group");
         acinimsiz.ApproveAsSheet();
         Check(acinimsiz.Sekme == AnalizSekmesi.Saclar && acinimsiz.IsThickPlate && acinimsiz.GroupDisplay == "Şalama/Kütük",
             "approved without a flat pattern, a 30 mm part is listed under Şalama/Kütük by its measured thickness");

@@ -83,7 +83,10 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
     // The engine's thickness carries float noise (20.000000000038 or
     // 19.99999999999933 for a 20 mm plate); a plate at the limit is Lazer.
     private const double LaserLimitToleranceMm = 0.001;
-    public string GroupDisplay => EtkinKalinlikMm is null ? "—" : IsThickPlate ? "Şalama/Kütük" : "Lazer";
+    /// <summary>Lazer or Şalama/Kütük: only for sheets (Saclar); "—" for any other part.</summary>
+    public string GroupDisplay => EtkinKalinlikMm is null || EffectiveCategory is not (MontajParcaKategorisi.Sac or MontajParcaKategorisi.OnayGerekli)
+        ? "—"
+        : IsThickPlate ? "Şalama/Kütük" : "Lazer";
 
     /// <summary>
     /// Thicker than the laser maximum: listed under Şalama/Kütük. A sheet row
