@@ -143,6 +143,75 @@ public partial class MainWindow
         SagPaneliGuncelle();
     }
 
+    // ------------------------------------------------- thickness correction
+
+    // Focusing the thickness cell selects its row, as in Toplu DXF's Ham Sac.
+    private void SacKalinlik_GotKeyboardFocus(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
+    {
+        if (sender is not TextBox kutu || kutu.DataContext is not MontajParcaSatiri satir) return;
+        if (!gridSacParcalar.SelectedItems.Contains(satir)) gridSacParcalar.SelectedItem = satir;
+        kutu.Dispatcher.BeginInvoke(new Action(kutu.SelectAll), System.Windows.Threading.DispatcherPriority.Input);
+    }
+
+    private void SacKalinlik_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (sender is not TextBox kutu) return;
+        if (e.Key == System.Windows.Input.Key.Enter)
+        {
+            KalinlikGirdisiniUygula(kutu);
+            kutu.SelectAll();
+            e.Handled = true;
+        }
+        else if (e.Key == System.Windows.Input.Key.Escape && kutu.DataContext is MontajParcaSatiri satir)
+        {
+            kutu.Text = satir.KalinlikMetni;
+            kutu.SelectAll();
+            e.Handled = true;
+        }
+    }
+
+    private void SacKalinlik_LostKeyboardFocus(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
+    {
+        if (sender is TextBox kutu) KalinlikGirdisiniUygula(kutu);
+    }
+
+    /// <summary>
+    /// The typed thickness becomes the row's user thickness (empty: back to
+    /// the engine value). It renames the DXF, may move the row between Lazer
+    /// and Şalama/Kütük and is a project decision.
+    /// </summary>
+    private void KalinlikGirdisiniUygula(TextBox kutu)
+    {
+        if (kutu.DataContext is not MontajParcaSatiri satir) return;
+        if (kutu.Text.Trim() == satir.KalinlikMetni) return;
+        if (!MontajParcaSatiri.KalinlikGirdisiniOku(kutu.Text, out double? kalinlik))
+        {
+            LogError("Kalınlık okunamadı: \"" + kutu.Text.Trim() + "\" (" + satir.PartName + "). 0,05–1000 mm arası bir sayı girin.");
+            kutu.Text = satir.KalinlikMetni;
+            return;
+        }
+        if (ProjeSaltOkunurUyarisi())
+        {
+            kutu.Text = satir.KalinlikMetni;
+            return;
+        }
+        bool kalinOnce = satir.IsThickPlate;
+        satir.KalinligiDuzelt(kalinlik);
+        kutu.Text = satir.KalinlikMetni;
+        LogInfo(satir.KalinlikDuzeltildi
+            ? "Kalınlık düzeltildi: " + satir.PartName + " " + satir.ThicknessDisplay + " (motor " + satir.MotorKalinlikDisplay + ")."
+            : "Kalınlık motor değerine döndü: " + satir.PartName + " " + satir.ThicknessDisplay + ".");
+        if (satir.IsThickPlate != kalinOnce)
+            LogInfo(satir.PartName + " " + (satir.IsThickPlate ? "Şalama/Kütük" : "Lazer") + " alt sekmesine geçti.");
+        ProjeDegisti();
+        // The row may leave the open sub-tab; refresh after the focus change is done.
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            AnalizSekmeleriniGuncelle();
+            SagPaneliGuncelle();
+        }), System.Windows.Threading.DispatcherPriority.Background);
+    }
+
     // Saclar: "Açınım (2B) | 3B" in the shared right panel; back in 2D the
     // 3D model is cleared to give the memory back.
     private bool _sac3BModu;
@@ -194,7 +263,7 @@ public partial class MainWindow
             if (sacOnizlemeCizim != null) { sacOnizlemeCizim.Data = drawing.Geometri(); sacOnizlemeCizim.Visibility = Visibility.Visible; }
             if (txtSacOnizlemeMesaj != null) txtSacOnizlemeMesaj.Visibility = Visibility.Collapsed;
             if (txtSacOnizlemeDosya != null)
-                txtSacOnizlemeDosya.Text = row.ThicknessMm is double t ? DxfAdi.Uret(row.PartName, t, row.Quantity) : row.PartName;
+                txtSacOnizlemeDosya.Text = row.EtkinKalinlikMm is double t ? DxfAdi.Uret(row.PartName, t, row.Quantity) : row.PartName;
             if (txtSacOnizlemeOlcu != null)
                 txtSacOnizlemeOlcu.Text = $"{drawing.Genislik:N1} × {drawing.Yukseklik:N1} mm · {drawing.NesneSayisi} nesne";
         }
@@ -295,7 +364,8 @@ public partial class MainWindow
         };
         foreach ((string name, double width) in new[]
         {
-            ("Durum", 2.0), ("Parça", 2.2), ("Adet", 0.8), ("Kalınlık (mm)", 1.1), ("Grup", 1.3), ("Büküm", 0.8),
+            ("Durum", 2.0), ("Parça", 2.2), ("Adet", 0.8), ("Kalınlık (mm)", 1.1), ("Motor kalınlığı (mm)", 1.3),
+            ("Ham sac ölçüsü (mm)", 1.6), ("Grup", 1.3), ("Büküm", 0.8),
             ("Delikler", 3.4), ("İşleme", 0.9), ("DXF Adı", 3.0), ("CATIA Adedi", 1.1), ("CATIA Eşleşme", 1.9), ("Karar", 1.3),
             ("Açıklama", 3.3), ("STEP Dosyası", 2.2)
         })
@@ -303,9 +373,10 @@ public partial class MainWindow
         foreach (MontajParcaSatiri row in rows)
             rapor.Satirlar.Add(new object?[]
             {
-                row.StatusDisplay, row.PartName, row.Quantity, row.ThicknessMm, row.GroupDisplay,
+                row.StatusDisplay, row.PartName, row.Quantity, row.EtkinKalinlikMm, row.ThicknessMm,
+                row.HamSacOlcusuDisplay == "—" ? "" : row.HamSacOlcusuDisplay.Replace(" mm", ""), row.GroupDisplay,
                 row.SheetRecognized ? row.BendCount : null, row.HoleSummary, row.MachiningPresent ? "var" : "",
-                row.DxfSourcePath != null && row.ThicknessMm is double t ? DxfAdi.Uret(row.PartName, t, row.Quantity) : "",
+                row.DxfSourcePath != null && row.EtkinKalinlikMm is double t ? DxfAdi.Uret(row.PartName, t, row.Quantity) : "",
                 row.CatiaQuantityDisplay, row.CatiaMatchDisplay, row.DecisionDisplay, row.ExplanationDisplay, row.SourceFileName
             });
         return rapor;

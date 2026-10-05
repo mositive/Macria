@@ -93,6 +93,8 @@ public sealed class MacriaProjeKarari
     public string Karar { get; set; } = "";
     public string? Not { get; set; }
     public MacriaElleProfil? ElleProfil { get; set; }
+    /// <summary>Schema 1.2, decision "Kalinlik": the user's thickness of a part row.</summary>
+    public double? KalinlikMm { get; set; }
 }
 
 public sealed record MacriaParcaKimligi
@@ -147,7 +149,8 @@ public sealed record MacriaKararAdayi(string KaynakId, string Hedef, MacriaParca
 public static class MacriaProje
 {
     public const string Format = "macria-proje";
-    public const string SemaSurumu = "1.1";
+    // 1.2: "Kalinlik" decision (user thickness of a part row).
+    public const string SemaSurumu = "1.2";
     public const string Uzanti = ".macria";
 
     public const string HedefProfil = "profil";
@@ -160,6 +163,8 @@ public static class MacriaProje
     public const string KararListeDisi = "ListeDisi";
     public const string KararSacOnayla = "SacOnayla";
     public const string KararKontrole = "Kontrole";
+    // A part row's thickness corrected by the user (KalinlikMm); alongside its other decisions.
+    public const string KararKalinlik = "Kalinlik";
 
     private const string ManifestAdi = "manifest.json";
     private const string ProjeAdi = "proje.json";
@@ -405,11 +410,11 @@ public static class MacriaProje
     {
         var eslenen = new List<(MacriaProjeKarari, MacriaKararAdayi)>();
         var eslenemeyen = new List<MacriaProjeKarari>();
-        // A row takes one category decision and one "Liste dışı" flag.
-        var kullanilan = new HashSet<(object, bool)>();
+        // A row takes one category decision, one "Liste dışı" flag and one thickness.
+        var kullanilan = new HashSet<(object, string)>();
         foreach (MacriaProjeKarari karar in kararlar)
         {
-            bool bayrak = karar.Karar == KararListeDisi;
+            string bayrak = karar.Karar is KararListeDisi or KararKalinlik ? karar.Karar : "kategori";
             List<MacriaKararAdayi> ayniKaynak = adaylar
                 .Where(a => a.KaynakId == karar.Kaynak && !kullanilan.Contains((a.Satir, bayrak)))
                 .ToList();

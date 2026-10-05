@@ -38,9 +38,9 @@ public static class MotorDxfAktarici
     {
         string klasor = Path.Combine(Path.GetFullPath(hedefKlasor), AltKlasor);
         return satirlar
-            .Where(x => x.EffectiveCategory == MontajParcaKategorisi.Sac && x.DxfFor(bukumBilgisi) != null && x.ThicknessMm != null)
+            .Where(x => x.EffectiveCategory == MontajParcaKategorisi.Sac && x.DxfFor(bukumBilgisi) != null && x.EtkinKalinlikMm != null)
             .Select(x => new MotorDxfIsi(x.PartName, x.DxfFor(bukumBilgisi)!,
-                Path.Combine(klasor, DxfAdi.Uret(x.PartName, x.ThicknessMm!.Value, x.Quantity))))
+                Path.Combine(klasor, DxfAdi.Uret(x.PartName, x.EtkinKalinlikMm!.Value, x.Quantity))))
             .ToList();
     }
 

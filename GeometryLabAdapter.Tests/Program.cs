@@ -36,6 +36,7 @@ internal static class Program
             await PartsSchemaAsync();
             await RealAssemblyEngineAsync();
             AssemblyPartRows();
+            KalinlikDuzeltmeTests();
             AssemblyProcessedProfilePart();
             AssemblyPartProfileGeometry();
             MotorDxfExport();
@@ -1151,6 +1152,62 @@ internal static class Program
         ProfileCandidate = profile, DxfFile = dxf, ClassificationReasons = new[] { "gerekçe " + id },
         SolidIds = new[] { new GeometryLabLocalIdTransport { LocalId = id } }
     };
+
+    // (33) Saclar: the user corrects a thickness (raw plate); it names the
+    // DXF, picks Lazer / Şalama, is saved in the project; the engine value stays.
+    private static void KalinlikDuzeltmeTests()
+    {
+        foreach ((string metin, bool gecerli, double? deger) in new (string, bool, double?)[]
+                 {
+                     ("16", true, 16), ("16,5", true, 16.5), ("16.5", true, 16.5), (" 12 mm ", true, 12), ("", true, null),
+                     ("abc", false, null), ("0", false, null), ("-3", false, null), ("2000", false, null)
+                 })
+            Check(MontajParcaSatiri.KalinlikGirdisiniOku(metin, out double? okunan) == gecerli && (!gecerli || okunan == deger),
+                "thickness input \"" + metin + "\" is " + (gecerli ? "read as " + deger : "rejected"));
+
+        GeometryLabAnalysisTransport analysis = AssemblyAnalysis() with
+        {
+            SheetMetalAnalyses = AssemblyAnalysis().SheetMetalAnalyses.Select(x => x.SolidId?.LocalId == 2
+                ? x with { FlatPattern = new GeometryLabFlatPatternTransport { Status = "Succeeded", WidthMm = 120.04, HeightMm = 60 } }
+                : x).ToArray()
+        };
+        MontajParcaSatiri Satir() => MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[1], "C:\\x.dxf", 20);
+        MontajParcaSatiri sac = Satir();
+        Check(sac.HamSacOlcusuDisplay == "120 × 60 mm" && sac.MotorKalinlikDisplay == "20 mm" && !sac.KalinlikDuzeltildi,
+            "raw sheet size is the flat pattern width × height: " + sac.HamSacOlcusuDisplay);
+        sac.KalinligiDuzelt(25);
+        Check(sac.KalinlikDuzeltildi && sac.EtkinKalinlikMm == 25 && sac.ThicknessMm == 20 && sac.ThicknessDisplay == "25 mm" &&
+              sac.MotorKalinlikDisplay == "20 mm" && sac.KalinlikMetni == "25",
+            "the corrected thickness is shown; the engine value stays apart");
+        Check(sac.IsThickPlate && sac.GroupDisplay == "Şalama/Kütük" && sac.DxfDisplay == "Sac A_25mm_2adet.dxf",
+            "the corrected thickness picks Şalama/Kütük and names the DXF: " + sac.DxfDisplay);
+        Check(((IAnalizSatiri)sac).OlcuGosterimi == "t = 25 mm (motor 20)", "the mixed tabs show both thicknesses");
+        sac.ApproveAsSheet();
+        IReadOnlyList<MotorDxfIsi> plan = MotorDxfAktarici.Planla(new[] { sac }, "C:\\hedef");
+        Check(plan.Count == 1 && Path.GetFileName(plan[0].Hedef) == "Sac A_25mm_2adet.dxf", "DXF Üret writes the corrected name");
+
+        // Project: the thickness is a decision of its own, next to Sac onayı and Liste dışı.
+        sac.ListeDisinaCikar("fason");
+        List<MacriaProjeKarari> kararlar = MacriaProjeSatirlari.KararlariTopla(
+            Array.Empty<GeometryLabStepProfileListItem>(), new[] { sac }, _ => "k1");
+        Check(kararlar.Count == 3 && kararlar.Any(k => k.Karar == MacriaProje.KararKalinlik && k.KalinlikMm == 25),
+            "the project keeps the thickness, the approval and the Liste dışı flag");
+        MontajParcaSatiri yeni = Satir();
+        var (eslenen, eslenemeyen) = MacriaProje.KararlariEsle(kararlar,
+            MacriaProjeSatirlari.Adaylar(Array.Empty<GeometryLabStepProfileListItem>(), new[] { yeni }, _ => "k1"), _ => false);
+        Check(eslenemeyen.Count == 0 && eslenen.All(x => MacriaProjeSatirlari.Uygula(x.Karar, x.Aday.Satir)),
+            "all three decisions map to the reopened row");
+        Check(yeni.EtkinKalinlikMm == 25 && yeni.EffectiveCategory == MontajParcaKategorisi.Sac && yeni.ListeDisi,
+            "reopened: thickness 25, approved, Liste dışı");
+
+        yeni.KalinligiDuzelt(20);
+        Check(!yeni.KalinlikDuzeltildi && yeni.EtkinKalinlikMm == 20 && !yeni.IsThickPlate,
+            "typing the engine value back clears the correction");
+        yeni.KalinligiDuzelt(null);
+        Check(MacriaProjeSatirlari.KararlariTopla(Array.Empty<GeometryLabStepProfileListItem>(), new[] { yeni }, _ => "k1")
+                  .All(k => k.Karar != MacriaProje.KararKalinlik),
+            "without a correction no thickness decision is saved");
+    }
 
     private static void AssemblyPartRows()
     {

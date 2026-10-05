@@ -239,6 +239,7 @@ catia/tarama.json                     CATIA karşılaştırma anlık görüntüs
   - **Ara sürüm:** Yalnız alan ekler; eski okuyucu bilinmeyen alanı yok sayar ama dosyayı salt-okunur açar (§7.1).
   - **Ana sürüm:** Uyumsuz değişiklik demektir.
 - Okuyucu, eski sürümleri adım adım geçiş fonksiyonlarıyla (`1.0→1.1`) güncel modele çevirir. Kaydetme her zaman güncel sürümde yapılır.
+- Şema `1.2` (2026-10-05): montaj satırına `Kalinlik` kararı (`kalinlikMm`): kullanıcının düzelttiği kalınlık. Satırın kategori kararı ve Liste dışı bayrağıyla yan yana durur; DXF adını ve Lazer / Şalama ayrımını belirler. 1.1 dosyaları değişmeden okunur; 1.1 Macria 1.2 dosyasını salt-okunur açar.
 - Her şema sürümü için `GeometryLabAdapter.Tests`'te örnek bir proje dosyası tutulur ve okunması test edilir.
 - Motor şeması ayrıdır; kaynak başına `motorSemaSurumu` olarak tutulur ve `IsSupportedSchemaVersion` ile denetlenir.
 

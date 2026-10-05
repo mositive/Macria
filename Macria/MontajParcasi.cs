@@ -44,6 +44,14 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
     /// could not unfold the part or did not take it for a sheet.
     /// </summary>
     public double? ThicknessMm { get; init; }
+    /// <summary>The user's corrected thickness (e.g. the raw plate), or null: the engine value is used.</summary>
+    public double? KullaniciKalinlikMm { get; private set; }
+    /// <summary>The thickness Macria works with: the user's correction, otherwise the engine's.</summary>
+    public double? EtkinKalinlikMm => KullaniciKalinlikMm ?? ThicknessMm;
+    public bool KalinlikDuzeltildi => KullaniciKalinlikMm != null;
+    /// <summary>Flat pattern size (width × height of the engine pattern), null without a flat pattern.</summary>
+    public double? AcinimEnMm { get; init; }
+    public double? AcinimBoyMm { get; init; }
     /// <summary>The engine recognized the sheet (its bends are counted), with or without a flat pattern.</summary>
     public bool SheetRecognized { get; init; }
     public int BendCount { get; init; }
@@ -59,7 +67,14 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
     public string? DxfFor(bool bendInfo) => bendInfo ? DxfSourcePath : DxfCutOnlySourcePath;
 
     public string SourceFileName => System.IO.Path.GetFileName(SourceStepPath);
-    public string ThicknessDisplay => ThicknessMm is double t ? FormatNumber(t) + " mm" : "—";
+    public string ThicknessDisplay => EtkinKalinlikMm is double t ? FormatNumber(t) + " mm" : "—";
+    /// <summary>Editable thickness cell text (no unit).</summary>
+    public string KalinlikMetni => EtkinKalinlikMm is double t ? FormatNumber(t) : "";
+    public string MotorKalinlikDisplay => ThicknessMm is double t ? FormatNumber(t) + " mm" : "—";
+    /// <summary>"Ham sac ölçüsü": flat pattern width × height.</summary>
+    public string HamSacOlcusuDisplay => AcinimEnMm is double en && AcinimBoyMm is double boy
+        ? FormatNumber(Math.Round(en, 1)) + " × " + FormatNumber(Math.Round(boy, 1)) + " mm"
+        : "—";
     public string BendCountDisplay => SheetRecognized ? BendCount.ToString(CultureInfo.InvariantCulture) : "—";
     public string MachiningDisplay => MachiningPresent ? "var" : "—";
     public string EngineReasonDisplay => EngineReasons.Count == 0 ? "" : string.Join(" ", EngineReasons);
@@ -68,13 +83,13 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
     // The engine's thickness carries float noise (20.000000000038 or
     // 19.99999999999933 for a 20 mm plate); a plate at the limit is Lazer.
     private const double LaserLimitToleranceMm = 0.001;
-    public string GroupDisplay => ThicknessMm is null ? "—" : IsThickPlate ? "Şalama/Kütük" : "Lazer";
+    public string GroupDisplay => EtkinKalinlikMm is null ? "—" : IsThickPlate ? "Şalama/Kütük" : "Lazer";
 
     /// <summary>
     /// Thicker than the laser maximum: listed under Şalama/Kütük. A sheet row
     /// without a thickness stays under Lazer, where its "—" group shows.
     /// </summary>
-    public bool IsThickPlate => ThicknessMm is double t && t > _laserMaximumMm + LaserLimitToleranceMm;
+    public bool IsThickPlate => EtkinKalinlikMm is double t && t > _laserMaximumMm + LaserLimitToleranceMm;
 
     /// <summary>null: no CATIA comparison or no single match.</summary>
     public bool? CatiaSheetMetalFeature { get; private set; }
@@ -99,7 +114,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
     public string ListeDisiNotu { get; private set; } = "";
 
     /// <summary>"DXF" column: the file DXF Üret writes, or why there is none.</summary>
-    public string DxfDisplay => DxfSourcePath != null && ThicknessMm is double t
+    public string DxfDisplay => DxfSourcePath != null && EtkinKalinlikMm is double t
         ? DxfAdi.Uret(PartName, t, Quantity)
         : "açınım yok – CATIA'dan";
 
@@ -154,6 +169,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
             ? null
             : analysis.SheetMetalAnalyses.FirstOrDefault(x => x.SolidId?.LocalId == solidId);
         bool recognized = sheet?.Status == "Recognized";
+        GeometryLabFlatPatternTransport? acinim = sheet?.FlatPattern?.Status == "Succeeded" ? sheet.FlatPattern : null;
         (string kod, bool kanit) = MotorSinifKodu.Belirle(analysis, part);
         var row = new MontajParcaSatiri
         {
@@ -172,6 +188,8 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
             SheetRecognized = recognized,
             BendCount = recognized ? sheet!.Bends.Count : 0,
             MachiningPresent = part.MachiningPresent == true,
+            AcinimEnMm = acinim?.WidthMm,
+            AcinimBoyMm = acinim?.HeightMm,
             HoleSummary = solidId is null
                 ? "—"
                 : HoleSummaryFor(analysis.HoleFeatures.Where(x => x.SolidId?.LocalId == solidId)),
@@ -181,6 +199,38 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         row._laserMaximumMm = laserMaximumMm;
         row.Recalculate();
         return row;
+    }
+
+    /// <summary>
+    /// The user's thickness (null or the engine value: back to the engine's).
+    /// It names the DXF, picks Lazer or Şalama/Kütük and is saved in the project.
+    /// </summary>
+    public void KalinligiDuzelt(double? kalinlikMm)
+    {
+        KullaniciKalinlikMm = kalinlikMm is double k && !(ThicknessMm is double motor && Math.Abs(k - motor) < KalinlikToleransiMm)
+            ? k
+            : null;
+        RaiseAll();
+    }
+
+    private const double KalinlikToleransiMm = 0.0001;
+
+    /// <summary>
+    /// A thickness typed into the cell: "16", "16,5", "16.5" or "16 mm"
+    /// (0,05–1000 mm). Empty text means "back to the engine value" (null).
+    /// False for anything else.
+    /// </summary>
+    public static bool KalinlikGirdisiniOku(string? metin, out double? kalinlikMm)
+    {
+        kalinlikMm = null;
+        string temiz = (metin ?? "").Trim();
+        if (temiz.EndsWith("mm", StringComparison.OrdinalIgnoreCase)) temiz = temiz[..^2].Trim();
+        if (temiz.Length == 0) return true;
+        if (!double.TryParse(temiz.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out double deger) ||
+            double.IsNaN(deger) || deger < 0.05 || deger > 1000)
+            return false;
+        kalinlikMm = deger;
+        return true;
     }
 
     public void SetLaserMaximum(double laserMaximumMm)
@@ -308,7 +358,9 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
             nameof(StatusDisplay), nameof(DecisionDisplay), nameof(ExplanationDisplay), nameof(IsInSheetTab),
             nameof(IsInReviewTab), nameof(CatiaMatchDisplay), nameof(CatiaQuantityDisplay), nameof(CatiaReferenceTitle),
             nameof(CatiaSheetMetalFeature), nameof(GroupDisplay), nameof(ListeDisi), nameof(Sekme),
-            nameof(DurumEtiketi), nameof(KararGosterimi), nameof(AciklamaGosterimi), nameof(IsThickPlate)
+            nameof(DurumEtiketi), nameof(KararGosterimi), nameof(AciklamaGosterimi), nameof(IsThickPlate),
+            nameof(KullaniciKalinlikMm), nameof(EtkinKalinlikMm), nameof(KalinlikDuzeltildi), nameof(ThicknessDisplay),
+            nameof(KalinlikMetni), nameof(DxfDisplay), nameof(OlcuGosterimiMetni)
         })
             Raise(name);
     }
@@ -334,7 +386,10 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         MontajParcaKategorisi.Diger => "Diğer",
         _ => ProfileCandidate != null ? "Sac / profil" : SheetCandidate || ThicknessMm != null ? "Sac?" : "—"
     };
-    string IAnalizSatiri.OlcuGosterimi => ThicknessMm is double t ? "t = " + FormatNumber(t) + " mm" : "—";
+    string IAnalizSatiri.OlcuGosterimi => OlcuGosterimiMetni;
+    public string OlcuGosterimiMetni => EtkinKalinlikMm is double t
+        ? "t = " + FormatNumber(t) + " mm" + (KalinlikDuzeltildi && ThicknessMm is double m ? " (motor " + FormatNumber(m) + ")" : "")
+        : "—";
     public string DurumEtiketi => StatusDisplay;
     public string KararGosterimi => DecisionDisplay;
     public string AciklamaGosterimi => ListeDisi && ListeDisiNotu.Length > 0
@@ -346,7 +401,8 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         new("STEP dosyası", SourceFileName),
         new("Parça", PartName + " (" + Quantity.ToString(CultureInfo.InvariantCulture) + " adet)"),
         new("Durum", StatusDisplay),
-        new("Kalınlık", ThicknessDisplay),
+        new("Kalınlık", ThicknessDisplay + (KalinlikDuzeltildi ? " (kullanıcı; motor " + MotorKalinlikDisplay + ")" : "")),
+        new("Ham sac ölçüsü", HamSacOlcusuDisplay),
         new("Grup", GroupDisplay),
         new("Büküm", BendCountDisplay),
         new("Delikler", HoleSummary),

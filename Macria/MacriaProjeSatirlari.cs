@@ -88,6 +88,15 @@ public static class MacriaProjeSatirlari
         {
             if (kaynakId(row.SourceStepPath) is not string id) continue;
             if (row.ListeDisi) kararlar.Add(ListeDisiKarari(id, MontajKimligi(row), MacriaProje.HedefMontaj, row.ListeDisiNotu));
+            if (row.KullaniciKalinlikMm is double kalinlik)
+                kararlar.Add(new MacriaProjeKarari
+                {
+                    Kaynak = id,
+                    Parca = MontajKimligi(row),
+                    Hedef = MacriaProje.HedefMontaj,
+                    Karar = MacriaProje.KararKalinlik,
+                    KalinlikMm = kalinlik
+                });
             if (row.KullaniciKarari is not string karar) continue;
             kararlar.Add(new MacriaProjeKarari
             {
@@ -142,6 +151,10 @@ public static class MacriaProjeSatirlari
                     default: return false;
                 }
                 return profil.KullaniciKarari == (karar.Karar == MacriaProje.KararIncelemeye ? MacriaProje.KararKontrole : karar.Karar);
+            case MontajParcaSatiri montaj when karar.Karar == MacriaProje.KararKalinlik:
+                if (karar.KalinlikMm is not double kalinlik) return false;
+                montaj.KalinligiDuzelt(kalinlik);
+                return montaj.KullaniciKalinlikMm == kalinlik;
             case MontajParcaSatiri montaj:
                 switch (karar.Karar)
                 {
