@@ -37,6 +37,8 @@ public sealed class MacriaProjeAyarlari
     // Project settings: applied to this project when it is opened.
     public double LazerAzamiKalinlikMm { get; set; } = 20;
     public bool BukumBilgisiDxf { get; set; } = true;
+    // Schema 1.2: "Bu proje için bir daha gösterme" of the Lazer ↔ Şalama/Kütük warning.
+    public bool GrupGecisUyarisiKapali { get; set; }
     // Record only: what the last analysis ran with.
     public MacriaProjeAnalizAyarlari Analiz { get; set; } = new();
 }

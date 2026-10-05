@@ -201,15 +201,32 @@ public partial class MainWindow
         LogInfo(satir.KalinlikDuzeltildi
             ? "Ham sac kalınlığı düzeltildi: " + satir.PartName + " " + satir.ThicknessDisplay + " (tespit edilen " + satir.MotorKalinlikDisplay + ")."
             : "Ham sac kalınlığı tespit edilen değere döndü: " + satir.PartName + " " + satir.ThicknessDisplay + ".");
-        if (satir.IsThickPlate != kalinOnce)
-            LogInfo(satir.PartName + " " + (satir.IsThickPlate ? "Şalama/Kütük" : "Lazer") + " alt sekmesine geçti.");
         ProjeDegisti();
+        if (satir.IsThickPlate != kalinOnce) GrupGecisiniBildir(satir);
         // The row may leave the open sub-tab; refresh after the focus change is done.
         Dispatcher.BeginInvoke(new Action(() =>
         {
             AnalizSekmeleriniGuncelle();
             SagPaneliGuncelle();
         }), System.Windows.Threading.DispatcherPriority.Background);
+    }
+
+    /// <summary>
+    /// The thickness moved the part between Lazer and Şalama/Kütük: logged, and
+    /// told in a window unless the project says "Bu proje için bir daha gösterme".
+    /// </summary>
+    private void GrupGecisiniBildir(MontajParcaSatiri satir)
+    {
+        string yeni = satir.IsThickPlate ? "Şalama/Kütük" : "Lazer";
+        string mesaj = satir.PartName + " artık " + yeni + " alt sekmesinde: ham sac kalınlığı " + satir.ThicknessDisplay +
+                       ", lazer sınırı " + MontajParcaSatiri.FormatNumber(_projeLazerMm) + " mm.";
+        LogInfo(mesaj);
+        // No windows in automation mode (tests, hidden runs).
+        if (_projeGrupGecisUyarisiKapali || OtomasyonModu.Acik) return;
+        if (!OnayWindow.Bilgi(this, "Lazer / Şalama/Kütük değişti", mesaj, "Bu proje için bir daha gösterme")) return;
+        _projeGrupGecisUyarisiKapali = true;
+        ProjeDegisti();
+        LogInfo("Lazer / Şalama/Kütük geçiş uyarısı bu proje için kapatıldı.");
     }
 
     // Saclar: "Açınım (2B) | 3B" in the shared right panel; back in 2D the

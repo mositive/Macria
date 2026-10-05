@@ -32,6 +32,8 @@ public partial class MainWindow
     // The project's laser limit: the rows are grouped with it (Ayarlar when no project is open).
     private double _projeLazerMm = 20;
     private MacriaProjeAnalizAyarlari _projeAnalizAyarlari = new();
+    // "Bu proje için bir daha gösterme" of the Lazer ↔ Şalama/Kütük warning.
+    private bool _projeGrupGecisUyarisiKapali;
 
     private void ProjeKur()
     {
@@ -74,6 +76,7 @@ public partial class MainWindow
         _projeSaltOkunurNedeni = null;
         _projeOlusturulma = null;
         _projeLazerMm = Ayarlar.LazerAzamiKalinlikMm;
+        _projeGrupGecisUyarisiKapali = false;
         _projeAnalizAyarlari = new MacriaProjeAnalizAyarlari
         {
             ParcaSureSiniriSaniye = Ayarlar.ParcaSureSiniriSaniye,
@@ -229,6 +232,7 @@ public partial class MainWindow
             {
                 LazerAzamiKalinlikMm = _projeLazerMm,
                 BukumBilgisiDxf = Ayarlar.BukumBilgisiDxf,
+                GrupGecisUyarisiKapali = _projeGrupGecisUyarisiKapali,
                 Analiz = _projeAnalizAyarlari
             },
             Kaynaklar = kaynaklar.Select(x => x.Kaynak).ToList(),
@@ -366,6 +370,7 @@ public partial class MainWindow
         _projeYukleniyor = true;
         _projeLazerMm = acilis.Veri.Ayarlar.LazerAzamiKalinlikMm;
         _projeAnalizAyarlari = acilis.Veri.Ayarlar.Analiz;
+        _projeGrupGecisUyarisiKapali = acilis.Veri.Ayarlar.GrupGecisUyarisiKapali;
         _projeOlusturulma = acilis.Manifest.Olusturulma;
         string? saltOkunur = acilis.SaltOkunurNedeni;
         bool yolDegisti = false;

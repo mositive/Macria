@@ -58,6 +58,30 @@ namespace Macria
             return pencere.ShowDialog() == true ? secilen : -1;
         }
 
+        /// <summary>
+        /// A notice with one button and a check box under the message (e.g.
+        /// "Bu proje için bir daha gösterme"); returns whether it was ticked.
+        /// </summary>
+        public static bool Bilgi(Window sahip, string baslik, string mesaj, string kutuMetni, string tamamMetni = "Tamam")
+        {
+            var pencere = new OnayWindow(baslik, mesaj, tamamMetni, "") { Owner = sahip };
+            pencere.btnVazgec.Visibility = Visibility.Collapsed;
+            pencere.btnOnay.IsDefault = true;
+            var izgara = (System.Windows.Controls.Grid)pencere.txtMesaj.Parent;
+            int sira = izgara.Children.IndexOf(pencere.txtMesaj);
+            izgara.Children.Remove(pencere.txtMesaj);
+            var panel = new System.Windows.Controls.StackPanel { Margin = pencere.txtMesaj.Margin };
+            System.Windows.Controls.Grid.SetRow(panel, 1);
+            pencere.txtMesaj.Margin = new Thickness(0);
+            var kutu = new System.Windows.Controls.CheckBox { Content = kutuMetni, Margin = new Thickness(0, 12, 0, 0) };
+            panel.Children.Add(pencere.txtMesaj);
+            panel.Children.Add(kutu);
+            izgara.Children.Insert(sira, panel);
+            OtomasyonModu.Gizle(pencere);
+            pencere.ShowDialog();
+            return kutu.IsChecked == true;
+        }
+
         private void btnOnay_Click(object sender, RoutedEventArgs e)
         {
             DialogResult = true;

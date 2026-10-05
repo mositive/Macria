@@ -254,7 +254,7 @@ internal static class Program
 
         MacriaProjeVerisi Veri() => new()
         {
-            Ayarlar = new MacriaProjeAyarlari { LazerAzamiKalinlikMm = 12.5, BukumBilgisiDxf = false },
+            Ayarlar = new MacriaProjeAyarlari { LazerAzamiKalinlikMm = 12.5, BukumBilgisiDxf = false, GrupGecisUyarisiKapali = true },
             Kaynaklar =
             {
                 new MacriaProjeKaynagi
@@ -291,7 +291,8 @@ internal static class Program
               File.Exists(Path.Combine(acilanDxf, "part-3-kesim.dxf")),
             "part DXFs are extracted into the source's folder");
         MacriaProjeVerisi okunan = acilis.Veri;
-        Check(okunan.Ayarlar.LazerAzamiKalinlikMm == 12.5 && !okunan.Ayarlar.BukumBilgisiDxf, "project settings round-trip");
+        Check(okunan.Ayarlar.LazerAzamiKalinlikMm == 12.5 && !okunan.Ayarlar.BukumBilgisiDxf && okunan.Ayarlar.GrupGecisUyarisiKapali,
+            "project settings round-trip, the Lazer / Şalama warning switch included");
         Check(okunan.Kararlar.Count == 2 && okunan.Kararlar[1].Not == "kaynak parçası" &&
               okunan.Kararlar[0].Parca?.ProductId == "U3", "decisions round-trip with note and part identity");
         Check(okunan.Kaynaklar[0].GoreliYol == "Montaj A.stp", "the STEP path relative to the project is stored");
