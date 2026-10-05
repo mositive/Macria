@@ -1,6 +1,6 @@
 # Yeniden Analiz Et ve Sac/Profil Olarak Dene — Plan
 
-Durum: plan, kabul bekliyor (2026-10-05). Bu adımda kod değişmedi. Onaydan sonra aşamalar sırayla uygulanır; her aşama ayrı commit(ler), elle deneme listesiyle durulur.
+Durum: plan kabul edildi (2026-10-05). Durma noktaları: Aşama 1–3 birlikte, sonra 4 ve 5 birlikte, en son 6; her aşama ayrı commit(ler), elle deneme listesiyle durulur.
 
 Bağlı notlar (Obsidian `99 - Yapılacaklar.md`): 29 ve 42 (236948), 41 (Baskı Kolu açınımı), Sekme Düzeni Aşama 6 (Yeniden analiz et).
 
@@ -189,7 +189,14 @@ Bağlı notlar (Obsidian `99 - Yapılacaklar.md`): 29 ve 42 (236948), 41 (Baskı
 - **R4 — CATIA DXF kabul testi:** 9 / 9 korunur (Aşama 6'da yeni örneklerle).
 - **R5 — Macria testleri:** `GeometryLabAdapter.Tests` (gerçek motorlu durumlar dahil), `DxfEdit.Tests`. Eski projeler (`WGRV004423 A.macria`, `B-Rep Calisma A.macria`) açılır, satır dağılımı aynı kalır.
 
-## Karar noktaları (Karar Bekliyor)
+## Karar noktaları (kullanıcı kararları, 2026-10-05)
+
+1. Sac denemesiyle tanınan parça **onaylı** sayılır, "(deneme)" etiketiyle.
+2. G3 kabulden sonra **ayrı bir adımda** otomatik taramaya da alınır.
+3. "Kesiti tutarlı içi boş tek eksen" kuralı şimdilik **yalnız denemede** kalır; WGRV deneme tablosundan sonra yeniden karar verilir.
+4. İşleme alanı sınırı Aşama 5'in başında örneklerle önerilecek.
+
+Planı yazarken sunulan seçenekler:
 
 1. **Sac denemesinin onay durumu:** Kullanıcı "Sac olarak dene" dedi ve motor tanıdıysa satır Saclar'da hangi durumda olmalı?
    - Önerim: onaylı ("Sac (deneme)", DXF Üret'e girer), çünkü deneme zaten kullanıcının kararı.
