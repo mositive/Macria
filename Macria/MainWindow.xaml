@@ -2358,7 +2358,9 @@
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
                                         <DataGridTextColumn Header="Tespit edilen kalınlık" Binding="{Binding MotorKalinlikDisplay}" SortMemberPath="ThicknessMm" Width="Auto" MinWidth="96" ElementStyle="{StaticResource SayiHucre}" HeaderStyle="{StaticResource SayiBaslik}"/>
-                                        <DataGridTextColumn Header="Ham sac ölçüsü" Binding="{Binding HamSacOlcusuDisplay}" Width="Auto" MinWidth="120" ElementStyle="{StaticResource SayiHucre}" HeaderStyle="{StaticResource SayiBaslik}"/>
+                                        <DataGridTextColumn Binding="{Binding AcinimOlcusuDisplay}" Width="Auto" MinWidth="160" ElementStyle="{StaticResource SayiHucre}" HeaderStyle="{StaticResource SayiBaslik}">
+                                            <DataGridTextColumn.Header><TextBlock Text="Açınım ölçüsü (en × boy)" ToolTip="Açınımı çevreleyen dikdörtgen"/></DataGridTextColumn.Header>
+                                        </DataGridTextColumn>
                                         <DataGridTextColumn Header="Grup" Binding="{Binding GroupDisplay}" Width="105" ElementStyle="{StaticResource KirpilanHucre}"/>
                                         <DataGridTextColumn Header="Büküm" Binding="{Binding BendCountDisplay}" Width="Auto" MinWidth="60" ElementStyle="{StaticResource SayiHucre}" HeaderStyle="{StaticResource SayiBaslik}"/>
                                         <DataGridTextColumn Header="Delikler" Binding="{Binding HoleSummary}" Width="220" ElementStyle="{StaticResource KirpilanHucre}"/>

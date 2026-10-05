@@ -1177,8 +1177,8 @@ internal static class Program
         };
         MontajParcaSatiri Satir() => MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[1], "C:\\x.dxf", 20);
         MontajParcaSatiri sac = Satir();
-        Check(sac.HamSacOlcusuDisplay == "120 × 60 mm" && sac.MotorKalinlikDisplay == "20 mm" && !sac.KalinlikDuzeltildi,
-            "raw sheet size is the flat pattern width × height: " + sac.HamSacOlcusuDisplay);
+        Check(sac.AcinimOlcusuDisplay == "120 × 60 mm" && sac.MotorKalinlikDisplay == "20 mm" && !sac.KalinlikDuzeltildi,
+            "Açınım ölçüsü is the rectangle around the flat pattern: " + sac.AcinimOlcusuDisplay);
         sac.KalinligiDuzelt(25);
         Check(sac.KalinlikDuzeltildi && sac.EtkinKalinlikMm == 25 && sac.ThicknessMm == 20 && sac.ThicknessDisplay == "25 mm" &&
               sac.MotorKalinlikDisplay == "20 mm" && sac.KalinlikMetni == "25",

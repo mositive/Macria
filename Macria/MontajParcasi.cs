@@ -71,8 +71,8 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
     /// <summary>Editable thickness cell text (no unit).</summary>
     public string KalinlikMetni => EtkinKalinlikMm is double t ? FormatNumber(t) : "";
     public string MotorKalinlikDisplay => ThicknessMm is double t ? FormatNumber(t) + " mm" : "—";
-    /// <summary>"Ham sac ölçüsü": flat pattern width × height.</summary>
-    public string HamSacOlcusuDisplay => AcinimEnMm is double en && AcinimBoyMm is double boy
+    /// <summary>"Açınım ölçüsü (en × boy)": the rectangle around the flat pattern.</summary>
+    public string AcinimOlcusuDisplay => AcinimEnMm is double en && AcinimBoyMm is double boy
         ? FormatNumber(Math.Round(en, 1)) + " × " + FormatNumber(Math.Round(boy, 1)) + " mm"
         : "—";
     public string BendCountDisplay => SheetRecognized ? BendCount.ToString(CultureInfo.InvariantCulture) : "—";
@@ -420,7 +420,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         new("Durum", StatusDisplay),
         new("Ham sac kalınlığı", ThicknessDisplay + (KalinlikDuzeltildi ? " (kullanıcı düzeltti)" : "")),
         new("Tespit edilen kalınlık", MotorKalinlikDisplay),
-        new("Ham sac ölçüsü", HamSacOlcusuDisplay),
+        new("Açınım ölçüsü (en × boy)", AcinimOlcusuDisplay),
         new("Grup", GroupDisplay),
         new("Büküm", BendCountDisplay),
         new("Delikler", HoleSummary),

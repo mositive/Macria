@@ -50,7 +50,8 @@ public static class AnalizSutunDuzeni
     public static readonly IReadOnlyDictionary<string, string> EskiAdlar = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["Kalınlık (mm)"] = "Ham sac kalınlığı (mm)",
-        ["Motor kalınlığı"] = "Tespit edilen kalınlık"
+        ["Motor kalınlığı"] = "Tespit edilen kalınlık",
+        ["Ham sac ölçüsü"] = "Açınım ölçüsü (en × boy)"
     };
 
     public static Dictionary<AnalizSekmesi, List<AnalizSutunu>> Oku(string yol)
