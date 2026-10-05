@@ -23,6 +23,15 @@ public partial class MainWindow
 
     private Dictionary<AnalizSekmesi, List<AnalizSutunu>> _analizSutunDuzeni = new();
     private readonly Dictionary<AnalizSekmesi, List<AnalizSutunu>> _analizVarsayilanSutunlari = new();
+    // A size column ("en × boy") goes to Excel as two number columns.
+    private static readonly Dictionary<string, (string Baslik, string Ozellik)[]> ExcelBolunenSutunlar = new()
+    {
+        [nameof(MontajParcaSatiri.AcinimOlcusuDisplay)] = new[]
+        {
+            ("Açınım eni (mm)", nameof(MontajParcaSatiri.AcinimEnMm)), ("Açınım boyu (mm)", nameof(MontajParcaSatiri.AcinimBoyMm))
+        }
+    };
+
     // Columns built in code bind through IAnalizSatiri: the property a cell shows.
     private readonly Dictionary<DataGridColumn, string> _sutunOzellikleri = new();
 
@@ -100,16 +109,25 @@ public partial class MainWindow
     private Rapor TabloRaporu(DataGrid grid, string sayfaAdi)
     {
         var rapor = new Rapor { SayfaAdi = sayfaAdi, TabloIlkSatirdanBaslar = true, IlkSatiriDondur = true, OtomatikFiltre = true };
-        List<DataGridColumn> sutunlar = grid.Columns.Where(c => c.Visibility == Visibility.Visible).OrderBy(c => c.DisplayIndex).ToList();
+        // (header, property, width) of every Excel column, a size column split in two.
+        var sutunlar = new List<(string Baslik, string? Ozellik, double Genislik)>();
+        foreach (DataGridColumn sutun in grid.Columns.Where(c => c.Visibility == Visibility.Visible).OrderBy(c => c.DisplayIndex))
+        {
+            string? ozellik = SutunOzelligi(sutun);
+            if (ozellik != null && ExcelBolunenSutunlar.TryGetValue(ozellik, out var parcalar))
+                sutunlar.AddRange(parcalar.Select(p => (p.Baslik, (string?)p.Ozellik, 1.3)));
+            else
+                sutunlar.Add((SutunBasligi(sutun), ozellik, Math.Clamp(sutun.ActualWidth / 65.0, 0.8, 5.0)));
+        }
         List<object> satirlar = grid.Items.Cast<object>().Where(x => x != CollectionView.NewItemPlaceholder).ToList();
-        var degerler = satirlar.Select(satir => sutunlar.Select(sutun => ExcelDegeri(AnalizSutunDuzeni.Deger(satir, SutunOzelligi(sutun)))).ToArray()).ToList();
+        var degerler = satirlar.Select(satir => sutunlar.Select(sutun => ExcelDegeri(AnalizSutunDuzeni.Deger(satir, sutun.Ozellik))).ToArray()).ToList();
         for (int i = 0; i < sutunlar.Count; ++i)
         {
             List<double> sayilar = degerler.Select(d => d[i]).OfType<double>().ToList();
             rapor.Sutunlar.Add(new RaporSutun
             {
-                Ad = SutunBasligi(sutunlar[i]),
-                Genislik = Math.Clamp(sutunlar[i].ActualWidth / 65.0, 0.8, 5.0),
+                Ad = sutunlar[i].Baslik,
+                Genislik = sutunlar[i].Genislik,
                 Sayi = sayilar.Count > 0 && degerler.All(d => d[i] is null or double),
                 Ondalik = sayilar.Count == 0 ? 0 : sayilar.Max(OndalikBasamagi)
             });

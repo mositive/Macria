@@ -817,8 +817,12 @@
         </DataTemplate>
 
         <!-- Sayi sutunlari saga yaslanir; toplam sutunu vurgulu yazilir -->
+        <!-- Sayi hucresi saga yasli; sigmazsa soldan sessizce kesilmesin: "…" ile
+             kisalir, ipucunda tam deger gorunur. -->
         <Style x:Key="SayiHucre" TargetType="TextBlock">
             <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Setter Property="ToolTip" Value="{Binding Text, RelativeSource={RelativeSource Self}}"/>
         </Style>
 
         <Style x:Key="VurguHucre" TargetType="TextBlock" BasedOn="{StaticResource SayiHucre}">
