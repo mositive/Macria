@@ -92,6 +92,7 @@ public partial class MainWindow
                      ("Adet", nameof(IAnalizSatiri.AdetGosterimi), DataGridLength.Auto),
                      ("Tür", nameof(IAnalizSatiri.TurGosterimi), new DataGridLength(120)),
                      ("Ölçü", nameof(IAnalizSatiri.OlcuGosterimi), new DataGridLength(140)),
+                     ("İşleme", nameof(IAnalizSatiri.IslemeGosterimi), new DataGridLength(120)),
                      ("CATIA Adedi", nameof(IAnalizSatiri.CatiaQuantityDisplay), DataGridLength.Auto),
                      ("Eşleşme", nameof(IAnalizSatiri.CatiaMatchDisplay), new DataGridLength(130)),
                      ("Karar", nameof(IAnalizSatiri.KararGosterimi), new DataGridLength(100)),

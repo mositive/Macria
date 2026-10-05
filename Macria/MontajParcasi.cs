@@ -85,24 +85,9 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         ? FormatNumber(Math.Round(en, 1)) + " × " + FormatNumber(Math.Round(boy, 1)) + " mm"
         : "—";
     public string BendCountDisplay => SheetRecognized ? BendCount.ToString(CultureInfo.InvariantCulture) : "—";
-    /// <summary>"var", or with engraving / embossing "var (gravür)"; "—" without machining.</summary>
-    public string MachiningDisplay => !MachiningPresent ? "—"
-        : MarkingNames().Count == 0 ? "var" : "var (" + string.Join(", ", MarkingNames()) + ")";
-
-    private string IslemeAyrintisi()
-    {
-        var adlar = MachiningKinds.Select(kind => kind switch
-        {
-            "Engraving" => "gravür",
-            "Embossing" => "kabartma",
-            _ => "cep, basamak, havşa / imbus başı"
-        }).Distinct().ToList();
-        return "var (" + (adlar.Count == 0 ? "cep, basamak, havşa / imbus başı" : string.Join(", ", adlar)) + ")";
-    }
-
-    private List<string> MarkingNames() => MachiningKinds
-        .Select(kind => kind switch { "Engraving" => "gravür", "Embossing" => "kabartma", _ => null })
-        .OfType<string>().ToList();
+    /// <summary>"var (gravür)", "var (cep)" ...; "—" without machining (IslemeMetni).</summary>
+    public string MachiningDisplay => IslemeMetni.Kisa(MachiningPresent, MachiningKinds);
+    public string IslemeGosterimi => MachiningDisplay;
     public string EngineReasonDisplay => EngineReasons.Count == 0 ? "" : string.Join(" ", EngineReasons);
 
     private double _laserMaximumMm = 20;
@@ -475,7 +460,8 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         new("Grup", GroupDisplay),
         new("Büküm", BendCountDisplay),
         new("Delikler", HoleSummary),
-        new("İşleme", MachiningPresent ? IslemeAyrintisi() + "; DXF'te yok" : "yok"),
+        new("İşleme", IslemeMetni.Ayrinti(MachiningPresent, MachiningKinds,
+            sac: EffectiveCategory is MontajParcaKategorisi.Sac or MontajParcaKategorisi.OnayGerekli)),
         new("DXF", DxfDisplay),
         new("CATIA adedi", CatiaQuantityDisplay),
         new("Eşleşme", CatiaMatchDisplay),

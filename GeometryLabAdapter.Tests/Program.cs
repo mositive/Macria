@@ -1249,6 +1249,19 @@ internal static class Program
         Check(((IAnalizSatiri)profil).Ayrintilar.Any(x => x.Key == "Motor gerekçesi" && x.Value == motor) &&
               ((IAnalizSatiri)sac).Ayrintilar.Any(x => x.Key == "Kullanıcı kararı"),
             "Seçili Parça shows both lines");
+
+        // A profile part carries its machining into the profile row (mixed tabs and Seçili Parça).
+        GeometryLabAnalysisTransport islenmis = analysis with
+        {
+            Parts = analysis.Parts.Select((p, i) => i == 0 ? p with { MachiningPresent = true, MachiningKinds = new[] { "Engraving" } } : p).ToArray()
+        };
+        var (profilSatirlari, _) = MacriaProjeSatirlari.MontajSatirlari("C:\\m.stp",
+            new GeometryLabProcessAdapterResult { Status = GeometryLabProcessAdapterStatus.Succeeded, Analysis = islenmis }, 20);
+        IAnalizSatiri gravurluProfil = profilSatirlari.Single(r => r.PartLocalId == islenmis.Parts[0].LocalId);
+        Check(gravurluProfil.IslemeGosterimi == "var (gravür)" &&
+              gravurluProfil.Ayrintilar.Any(x => x.Key == "İşleme" && x.Value == "var (gravür)") &&
+              ((IAnalizSatiri)profil).IslemeGosterimi == "—",
+            "a profile row shows its part's machining, without the sheet's DXF note; a row without it shows \"—\"");
     }
 
     // (34) "Sütunlar": per tab visible columns and order, remembered; new
@@ -1473,9 +1486,29 @@ internal static class Program
         {
             MachiningPresent = true, MachiningKinds = new[] { "Engraving", "Pocket" }
         }, null, 20);
-        Check(gravurlu.MachiningDisplay == "var (gravür)" &&
-              ((IAnalizSatiri)gravurlu).Ayrintilar.Any(x => x.Key == "İşleme" && x.Value == "var (gravür, cep, basamak, havşa / imbus başı); DXF'te yok"),
-            "engraving shows as \"var (gravür)\": " + gravurlu.MachiningDisplay);
+        Check(gravurlu.MachiningDisplay == "var (gravür, cep)" && ((IAnalizSatiri)gravurlu).IslemeGosterimi == "var (gravür, cep)" &&
+              ((IAnalizSatiri)gravurlu).Ayrintilar.Any(x => x.Key == "İşleme" && x.Value == "var (gravür, cep, basamak, havşa / imbus başı)"),
+            "engraving and a pocket show as \"var (gravür, cep)\": " + gravurlu.MachiningDisplay);
+        MontajParcaSatiri gravurluSac = MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[1] with
+        {
+            MachiningPresent = true, MachiningKinds = new[] { "Engraving" }
+        }, null, 20);
+        Check(gravurluSac.Sekme == AnalizSekmesi.Saclar &&
+              ((IAnalizSatiri)gravurluSac).Ayrintilar.Any(x => x.Key == "İşleme" && x.Value == "var (gravür); DXF'te yok"),
+            "a sheet says its machining is not in its DXF");
+        // Machining on every tab: a part that is no sheet shows it without the DXF note.
+        MontajParcaSatiri cepliDiger = MontajParcaSatiri.Olustur("C:\\m.stp", olculen, analysis.Parts[4] with
+        {
+            ClassificationCode = MotorSinifKodu.NotRecognized, RecognitionEvidence = true,
+            MachiningPresent = true, MachiningKinds = new[] { "Pocket" }
+        }, null, 20);
+        Check(cepliDiger.Sekme == AnalizSekmesi.KontrolGerekli && ((IAnalizSatiri)cepliDiger).IslemeGosterimi == "var (cep)" &&
+              ((IAnalizSatiri)cepliDiger).Ayrintilar.Any(x => x.Key == "İşleme" && x.Value == "var (cep, basamak, havşa / imbus başı)"),
+            "Kontrol gerekli shows the machining of a part that is not a sheet, without \"DXF'te yok\"");
+        Check(IslemeMetni.Kisa(false, Array.Empty<string>()) == "—" && IslemeMetni.Kisa(true, Array.Empty<string>()) == "var" &&
+              IslemeMetni.Kisa(true, new[] { "Embossing", "Engraving", "Embossing" }) == "var (kabartma, gravür)" &&
+              IslemeMetni.Kisa(true, new[] { "Yeni" }) == "var" && IslemeMetni.Ayrinti(false, Array.Empty<string>(), sac: true) == "yok",
+            "machining text: none, present without kinds (older output), repeated and unknown kinds");
         acinimsiz.ApproveAsSheet();
         Check(acinimsiz.Sekme == AnalizSekmesi.Saclar && acinimsiz.IsThickPlate && acinimsiz.GroupDisplay == "Şalama/Kütük",
             "approved without a flat pattern, a 30 mm part is listed under Şalama/Kütük by its measured thickness");

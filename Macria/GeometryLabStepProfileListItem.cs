@@ -42,6 +42,10 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
     // Engine identity of that part (localId, productId), for .macria decisions.
     public int? PartLocalId { get; init; }
     public string? PartProductId { get; init; }
+    // The part's machining features (engraving, pockets ...), shown on every tab.
+    public bool PartMachiningPresent { get; init; }
+    public IReadOnlyList<string> PartMachiningKinds { get; init; } = Array.Empty<string>();
+    public string IslemeGosterimi => IslemeMetni.Kisa(PartMachiningPresent, PartMachiningKinds);
     public string SourceFileName => PartName is null
         ? System.IO.Path.GetFileName(SourceStepPath)
         : System.IO.Path.GetFileName(SourceStepPath) + " › " + PartName + " (" + PartQuantity + " adet)";
@@ -711,6 +715,7 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
         new("Topoloji bilgisi", TopologyDisplay),
         new("Açılı kesim", CutDisplay),
         new("İşlem durumu", OperationDisplay),
+        new("İşleme", IslemeMetni.Ayrinti(PartMachiningPresent, PartMachiningKinds, sac: false)),
         new("CATIA adedi", CatiaQuantityDisplay),
         new("Eşleşme", CatiaMatchDisplay),
         new("Karar", KararGosterimi),

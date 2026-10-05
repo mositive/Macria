@@ -29,6 +29,8 @@ public interface IAnalizSatiri
     string AdetGosterimi { get; }
     string TurGosterimi { get; }
     string OlcuGosterimi { get; }
+    /// <summary>The engine's machining features: "—", "var (gravür)", "var (cep)" ... (IslemeMetni).</summary>
+    string IslemeGosterimi { get; }
     string DurumEtiketi { get; }
     string KararGosterimi { get; }
     string AciklamaGosterimi { get; }
