@@ -37,6 +37,7 @@ internal static class Program
             await RealAssemblyEngineAsync();
             AssemblyPartRows();
             KalinlikDuzeltmeTests();
+            KararSutunlariTests();
             AssemblyProcessedProfilePart();
             AssemblyPartProfileGeometry();
             MotorDxfExport();
@@ -1207,6 +1208,40 @@ internal static class Program
         Check(MacriaProjeSatirlari.KararlariTopla(Array.Empty<GeometryLabStepProfileListItem>(), new[] { yeni }, _ => "k1")
                   .All(k => k.Karar != MacriaProje.KararKalinlik),
             "without a correction no thickness decision is saved");
+    }
+
+    // (31) A user decision does not wipe the engine's reason: "Motor gerekçesi"
+    // and "Kullanıcı kararı" are separate columns.
+    private static void KararSutunlariTests()
+    {
+        GeometryLabAnalysisTransport analysis = AssemblyAnalysis();
+        MontajParcaSatiri sac = MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[1], "C:\\x.dxf", 20);
+        Check(sac.MotorGerekcesi == "gerekçe 2" && sac.KullaniciKarariMetni == "—", "no decision: engine reason, user column empty");
+        sac.ApproveAsSheet();
+        sac.KalinligiDuzelt(25);
+        sac.ListeDisinaCikar("fason");
+        Check(sac.MotorGerekcesi == "gerekçe 2", "the engine reason stays after the user's decisions");
+        Check(sac.KullaniciKarariMetni == "Sac olarak onaylandı; Kalınlık 25 mm (motor 20 mm); Liste dışı: fason",
+            "the user column lists every decision: " + sac.KullaniciKarariMetni);
+        sac.RestoreAutomaticDecision();
+        Check(sac.KullaniciKarariMetni == "Kalınlık 25 mm (motor 20 mm); Liste dışı: fason",
+            "Otomatik Karara Dön drops the category decision only: " + sac.KullaniciKarariMetni);
+        MontajParcaSatiri acinimsiz = MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[4], null, 20);
+        acinimsiz.ApproveAsSheet();
+        Check(acinimsiz.KullaniciKarariMetni == "Sac olarak onaylandı (açınım yok, DXF CATIA'dan)" && acinimsiz.MotorGerekcesi == "gerekçe 5",
+            "an approved part without a flat pattern says where its DXF comes from");
+
+        var full = new GeometryLabProcessAdapterResult { Status = GeometryLabProcessAdapterStatus.Succeeded, Analysis = analysis };
+        var profil = new GeometryLabStepProfileListItem { SourceStepPath = "C:\\m.stp", PartName = "Kutu", PartQuantity = 3 };
+        profil.Apply(MontajParcaSatiri.ResultForPart(full, analysis.Parts[0]));
+        string motor = profil.MotorGerekcesi;
+        Check(motor != "—" && profil.KullaniciKarariMetni == "—", "a profile row shows its automatic reason: " + motor);
+        profil.MoveToReview("ölçü şüpheli");
+        Check(profil.MotorGerekcesi == motor && profil.KullaniciKarariMetni == "Kullanıcı kararıyla kontrol gerekliye alındı — ölçü şüpheli",
+            "a profile decision keeps the automatic reason: " + profil.KullaniciKarariMetni);
+        Check(((IAnalizSatiri)profil).Ayrintilar.Any(x => x.Key == "Motor gerekçesi" && x.Value == motor) &&
+              ((IAnalizSatiri)sac).Ayrintilar.Any(x => x.Key == "Kullanıcı kararı"),
+            "Seçili Parça shows both lines");
     }
 
     private static void AssemblyPartRows()

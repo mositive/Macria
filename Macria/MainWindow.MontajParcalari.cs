@@ -367,7 +367,7 @@ public partial class MainWindow
             ("Durum", 2.0), ("Parça", 2.2), ("Adet", 0.8), ("Kalınlık (mm)", 1.1), ("Motor kalınlığı (mm)", 1.3),
             ("Ham sac ölçüsü (mm)", 1.6), ("Grup", 1.3), ("Büküm", 0.8),
             ("Delikler", 3.4), ("İşleme", 0.9), ("DXF Adı", 3.0), ("CATIA Adedi", 1.1), ("CATIA Eşleşme", 1.9), ("Karar", 1.3),
-            ("Açıklama", 3.3), ("STEP Dosyası", 2.2)
+            ("Kullanıcı kararı", 2.8), ("Motor gerekçesi", 3.3), ("STEP Dosyası", 2.2)
         })
             rapor.Sutunlar.Add(new RaporSutun { Ad = name, Genislik = width });
         foreach (MontajParcaSatiri row in rows)
@@ -377,7 +377,7 @@ public partial class MainWindow
                 row.HamSacOlcusuDisplay == "—" ? "" : row.HamSacOlcusuDisplay.Replace(" mm", ""), row.GroupDisplay,
                 row.SheetRecognized ? row.BendCount : null, row.HoleSummary, row.MachiningPresent ? "var" : "",
                 row.DxfSourcePath != null && row.EtkinKalinlikMm is double t ? DxfAdi.Uret(row.PartName, t, row.Quantity) : "",
-                row.CatiaQuantityDisplay, row.CatiaMatchDisplay, row.DecisionDisplay, row.ExplanationDisplay, row.SourceFileName
+                row.CatiaQuantityDisplay, row.CatiaMatchDisplay, row.DecisionDisplay, row.KullaniciKarariMetni, row.MotorGerekcesi, row.SourceFileName
             });
         return rapor;
     }

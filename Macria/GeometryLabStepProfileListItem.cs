@@ -334,6 +334,7 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
         SetEffectiveCategory(category);
         DecisionSource = GeometryLabDecisionSource.User;
         KullaniciKarari = kullaniciKarari;
+        _kullaniciKarariAciklamasi = explanation;
         UserDecisionNote = note?.Trim() ?? "";
         AnalysisStatus = status;
         FailureReason = explanation;
@@ -642,7 +643,8 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(EffectiveProfileTypeDisplay)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DecisionToolTip)));
         foreach (string name in new[] { nameof(ListeDisi), nameof(Sekme), nameof(DurumEtiketi), nameof(KararGosterimi),
-                                         nameof(AciklamaGosterimi), nameof(EffectiveStatusDisplay), nameof(KullaniciKarari) })
+                                         nameof(AciklamaGosterimi), nameof(EffectiveStatusDisplay), nameof(KullaniciKarari),
+                                         nameof(MotorGerekcesi), nameof(KullaniciKarariMetni) })
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
@@ -675,6 +677,29 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
     public string AciklamaGosterimi => ListeDisi && ListeDisiNotu.Length > 0
         ? ExplanationDisplay + " (Liste dışı: " + ListeDisiNotu + ")"
         : ExplanationDisplay;
+    private string _kullaniciKarariAciklamasi = "";
+    /// <summary>The automatic explanation, kept when a user decision replaces ExplanationDisplay.</summary>
+    public string MotorGerekcesi
+    {
+        get
+        {
+            if (_automaticPresentation is not { } p) return string.IsNullOrWhiteSpace(ExplanationDisplay) ? "—" : ExplanationDisplay;
+            string metin = string.IsNullOrWhiteSpace(p.FailureReason) ? p.EvidenceStatus : p.FailureReason;
+            return string.IsNullOrWhiteSpace(metin) ? "—" : metin;
+        }
+    }
+    public string KullaniciKarariMetni
+    {
+        get
+        {
+            var parcalar = new List<string>();
+            if (HasUserDecision)
+                parcalar.Add(_kullaniciKarariAciklamasi.TrimEnd('.') + (UserDecisionNote.Length > 0 ? " — " + UserDecisionNote : ""));
+            if (ListeDisi)
+                parcalar.Add("Liste dışı" + (ListeDisiNotu.Length > 0 ? ": " + ListeDisiNotu : ""));
+            return parcalar.Count == 0 ? "—" : string.Join("; ", parcalar);
+        }
+    }
     bool IAnalizSatiri.OnayBekliyor => false;
     IReadOnlyList<KeyValuePair<string, string>> IAnalizSatiri.Ayrintilar => new KeyValuePair<string, string>[]
     {
@@ -689,7 +714,8 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
         new("CATIA adedi", CatiaQuantityDisplay),
         new("Eşleşme", CatiaMatchDisplay),
         new("Karar", KararGosterimi),
-        new("Açıklama", AciklamaGosterimi)
+        new("Motor gerekçesi", MotorGerekcesi),
+        new("Kullanıcı kararı", KullaniciKarariMetni)
     };
     void IAnalizSatiri.KontrolGerekliyeAl() => MoveToReview();
 }

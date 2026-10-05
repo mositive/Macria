@@ -360,7 +360,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
             nameof(CatiaSheetMetalFeature), nameof(GroupDisplay), nameof(ListeDisi), nameof(Sekme),
             nameof(DurumEtiketi), nameof(KararGosterimi), nameof(AciklamaGosterimi), nameof(IsThickPlate),
             nameof(KullaniciKalinlikMm), nameof(EtkinKalinlikMm), nameof(KalinlikDuzeltildi), nameof(ThicknessDisplay),
-            nameof(KalinlikMetni), nameof(DxfDisplay), nameof(OlcuGosterimiMetni)
+            nameof(KalinlikMetni), nameof(DxfDisplay), nameof(OlcuGosterimiMetni), nameof(KullaniciKarariMetni)
         })
             Raise(name);
     }
@@ -392,6 +392,23 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         : "—";
     public string DurumEtiketi => StatusDisplay;
     public string KararGosterimi => DecisionDisplay;
+    public string MotorGerekcesi => EngineReasonDisplay.Length == 0 ? "—" : EngineReasonDisplay;
+    public string KullaniciKarariMetni
+    {
+        get
+        {
+            var parcalar = new List<string>();
+            if (HasUserDecision)
+                parcalar.Add(EffectiveCategory == MontajParcaKategorisi.Sac
+                    ? "Sac olarak onaylandı" + (DxfSourcePath == null ? " (açınım yok, DXF CATIA'dan)" : "")
+                    : "Kontrol gerekliye alındı");
+            if (KullaniciKalinlikMm is double k)
+                parcalar.Add("Kalınlık " + FormatNumber(k) + " mm" + (ThicknessMm is double m ? " (motor " + FormatNumber(m) + " mm)" : ""));
+            if (ListeDisi)
+                parcalar.Add("Liste dışı" + (ListeDisiNotu.Length > 0 ? ": " + ListeDisiNotu : ""));
+            return parcalar.Count == 0 ? "—" : string.Join("; ", parcalar);
+        }
+    }
     public string AciklamaGosterimi => ListeDisi && ListeDisiNotu.Length > 0
         ? ExplanationDisplay + " (Liste dışı: " + ListeDisiNotu + ")"
         : ExplanationDisplay;
@@ -411,7 +428,8 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         new("CATIA adedi", CatiaQuantityDisplay),
         new("Eşleşme", CatiaMatchDisplay),
         new("Karar", DecisionDisplay),
-        new("Açıklama", AciklamaGosterimi)
+        new("Motor gerekçesi", MotorGerekcesi),
+        new("Kullanıcı kararı", KullaniciKarariMetni)
     };
     void IAnalizSatiri.KontrolGerekliyeAl() => MoveToReview();
 

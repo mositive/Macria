@@ -195,8 +195,8 @@ public partial class MainWindow
         {
             ("Durum", 1.25), ("STEP Dosyası", 2.4), ("Parça Türü", 1.8), ("Kesit", 1.7),
             ("Boy", 1.35), ("Topoloji Bilgisi", 2.7), ("Açılı Kesim", 1.4),
-            ("İşlem Durumu", 1.5), ("Kanıt / Açıklama", 3.3), ("CATIA Adedi", 1.1),
-            ("CATIA Eşleşme Durumu", 1.8), ("CATIA Reference Title", 2.2), ("Karar Kaynağı", 1.5), ("Karar Notu", 2.3)
+            ("İşlem Durumu", 1.5), ("Motor gerekçesi", 3.3), ("CATIA Adedi", 1.1),
+            ("CATIA Eşleşme Durumu", 1.8), ("CATIA Reference Title", 2.2), ("Karar Kaynağı", 1.5), ("Kullanıcı kararı", 2.8)
         })
             rapor.Sutunlar.Add(new RaporSutun { Ad = name, Genislik = width });
 
@@ -204,9 +204,9 @@ public partial class MainWindow
             rapor.Satirlar.Add(new object?[]
             {
                 row.AnalysisStatus, row.SourceFileName, row.EffectiveProfileTypeDisplay, row.SectionDisplay, row.LengthDisplay,
-                row.TopologyDisplay, row.CutDisplay, row.OperationDisplay, row.ExplanationDisplay,
+                row.TopologyDisplay, row.CutDisplay, row.OperationDisplay, row.MotorGerekcesi,
                 row.CatiaQuantityDisplay, row.CatiaMatchDisplay, row.CatiaReferenceTitle,
-                row.DecisionSource == GeometryLabDecisionSource.User ? "Kullanıcı" : row.DecisionSource == GeometryLabDecisionSource.ThreeDScan ? "CATIA 3B tarama" : "Otomatik", row.UserDecisionNote
+                row.DecisionSource == GeometryLabDecisionSource.User ? "Kullanıcı" : row.DecisionSource == GeometryLabDecisionSource.ThreeDScan ? "CATIA 3B tarama" : "Otomatik", row.KullaniciKarariMetni
             });
         return rapor;
     }

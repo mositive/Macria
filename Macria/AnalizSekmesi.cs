@@ -32,6 +32,10 @@ public interface IAnalizSatiri
     string DurumEtiketi { get; }
     string KararGosterimi { get; }
     string AciklamaGosterimi { get; }
+    /// <summary>Why the engine (or its automatic rules) put the row where it is; a user decision does not change it.</summary>
+    string MotorGerekcesi { get; }
+    /// <summary>The user's decisions on the row (category, thickness, Liste dışı, notes), or "—".</summary>
+    string KullaniciKarariMetni { get; }
     string CatiaQuantityDisplay { get; }
     string CatiaMatchDisplay { get; }
     bool HasUserDecision { get; }

@@ -70,7 +70,8 @@ public partial class MainWindow
                      ("CATIA Adedi", nameof(IAnalizSatiri.CatiaQuantityDisplay), DataGridLength.Auto),
                      ("Eşleşme", nameof(IAnalizSatiri.CatiaMatchDisplay), new DataGridLength(130)),
                      ("Karar", nameof(IAnalizSatiri.KararGosterimi), new DataGridLength(100)),
-                     ("Açıklama", nameof(IAnalizSatiri.AciklamaGosterimi), new DataGridLength(1, DataGridLengthUnitType.Star))
+                     ("Kullanıcı kararı", nameof(IAnalizSatiri.KullaniciKarariMetni), new DataGridLength(200)),
+                     ("Motor gerekçesi", nameof(IAnalizSatiri.MotorGerekcesi), new DataGridLength(1, DataGridLengthUnitType.Star))
                  })
         {
             var yol = new PropertyPath("(0)", typeof(IAnalizSatiri).GetProperty(ozellik)!);
@@ -81,7 +82,7 @@ public partial class MainWindow
                 Header = baslik,
                 Binding = new Binding { Path = yol, Mode = BindingMode.OneWay },
                 Width = genislik,
-                MinWidth = baslik == "Açıklama" ? 200 : 50,
+                MinWidth = baslik == "Motor gerekçesi" ? 200 : 50,
                 ElementStyle = stil
             });
         }
@@ -325,14 +326,14 @@ public partial class MainWindow
         foreach ((string sutun, double genislik) in new[]
                  {
                      ("Durum", 2.0), ("Parça", 2.6), ("Adet", 0.8), ("Tür", 1.4), ("Ölçü", 1.6), ("CATIA Adedi", 1.1),
-                     ("CATIA Eşleşme", 1.9), ("Karar", 1.3), ("Açıklama", 4.0), ("STEP Dosyası", 2.2)
+                     ("CATIA Eşleşme", 1.9), ("Karar", 1.3), ("Kullanıcı kararı", 2.8), ("Motor gerekçesi", 4.0), ("STEP Dosyası", 2.2)
                  })
             rapor.Sutunlar.Add(new RaporSutun { Ad = sutun, Genislik = genislik });
         foreach (IAnalizSatiri satir in satirlar)
             rapor.Satirlar.Add(new object?[]
             {
                 satir.DurumEtiketi, satir.ParcaGosterimi, satir.AdetGosterimi, satir.TurGosterimi, satir.OlcuGosterimi,
-                satir.CatiaQuantityDisplay, satir.CatiaMatchDisplay, satir.KararGosterimi, satir.AciklamaGosterimi,
+                satir.CatiaQuantityDisplay, satir.CatiaMatchDisplay, satir.KararGosterimi, satir.KullaniciKarariMetni, satir.MotorGerekcesi,
                 Path.GetFileName(satir.KaynakYolu)
             });
         try
