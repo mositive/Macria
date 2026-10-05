@@ -96,7 +96,7 @@ public partial class MainWindow
                      ("Eşleşme", nameof(IAnalizSatiri.CatiaMatchDisplay), new DataGridLength(130)),
                      ("Karar", nameof(IAnalizSatiri.KararGosterimi), new DataGridLength(100)),
                      ("Kullanıcı kararı", nameof(IAnalizSatiri.KullaniciKarariMetni), new DataGridLength(200)),
-                     ("Motor gerekçesi", nameof(IAnalizSatiri.MotorGerekcesi), new DataGridLength(1, DataGridLengthUnitType.Star)),
+                     ("Motor gerekçesi", nameof(IAnalizSatiri.MotorGerekcesi), new DataGridLength(360)),
                      ("STEP dosyası", nameof(IAnalizSatiri.KaynakYolu), new DataGridLength(260))
                  })
         {
@@ -108,7 +108,7 @@ public partial class MainWindow
                 Header = baslik,
                 Binding = new Binding { Path = yol, Mode = BindingMode.OneWay },
                 Width = genislik,
-                MinWidth = baslik == "Motor gerekçesi" ? 200 : 50,
+                MinWidth = 50,
                 ElementStyle = stil
             };
             _sutunOzellikleri[sutun] = ozellik;

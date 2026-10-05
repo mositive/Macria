@@ -38,10 +38,11 @@ internal static class TabloSutunGenisligi
             if (sutun.Header is not string baslik || baslik.Length == 0) continue;
             var olcu = new FormattedText(baslik, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
                 yaziTipi, tablo.FontSize, Brushes.Black, pikselBasinaNokta);
+            // Only the header decides the minimum: a minimum pinned to the
+            // designed width (2026-10-04, Aşama 2b) kept the user from
+            // dragging any column wider or narrower. The result grids have no
+            // star column any more, so nothing squeezes the others.
             sutun.MinWidth = Math.Max(sutun.MinWidth, Math.Ceiling(olcu.Width + BaslikPayi));
-            // A fixed-width column keeps its designed width: the star column
-            // (Açıklama) would otherwise squeeze it down to its header.
-            if (sutun.Width.IsAbsolute) sutun.MinWidth = Math.Max(sutun.MinWidth, sutun.Width.Value);
         }
     }
 }

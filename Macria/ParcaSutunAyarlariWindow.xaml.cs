@@ -67,6 +67,9 @@ namespace Macria
                 _sutunlar.Move(index, index + 1);
         }
 
+        /// <summary>"Varsayılan" was pressed: the caller resets what the list does not hold (column widths).</summary>
+        internal bool VarsayilanaDonuldu { get; private set; }
+
         private void btnVarsayilan_Click(object sender, RoutedEventArgs e)
         {
             if (!OnayWindow.Sor(this, "Varsayılan Sütun Düzeni",
@@ -75,6 +78,7 @@ namespace Macria
                 return;
 
             Yukle(_varsayilanlar?.Invoke() ?? ParcaSutunDeposu.Varsayilanlar());
+            VarsayilanaDonuldu = true;
             txtDurum.Text = "";
         }
 

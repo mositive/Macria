@@ -2,15 +2,18 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Threading;
 
 namespace Macria;
 
 // STEP / STP Analizi: "Sütunlar" of the common toolbar. Every tab keeps its
-// own visible columns and order (AnalizSutunDuzeni); Excel'e Aktar writes the
-// open tab's visible columns in that order, the rows as the tab shows them.
+// own visible columns, order and the widths the user dragged the headers to
+// (AnalizSutunDuzeni); Excel'e Aktar writes the open tab's visible columns in
+// that order, the rows as the tab shows them.
 public partial class MainWindow
 {
     private static readonly AnalizSekmesi[] SutunluSekmeler =
@@ -26,6 +29,12 @@ public partial class MainWindow
 
     private Dictionary<AnalizSekmesi, List<AnalizSutunu>> _analizSutunDuzeni = new();
     private readonly Dictionary<AnalizSekmesi, List<AnalizSutunu>> _analizVarsayilanSutunlari = new();
+    // The designed width of every column, restored by "Varsayılan".
+    private readonly Dictionary<DataGridColumn, DataGridLength> _sutunVarsayilanGenisligi = new();
+    // A drag or reorder is saved once the mouse has settled; not while a layout is being applied.
+    private readonly HashSet<AnalizSekmesi> _kaydedilecekSekmeler = new();
+    private DispatcherTimer? _sutunKayitZamanlayici;
+    private bool _sutunDuzeniUygulaniyor;
     // A size column ("en × boy") goes to Excel as two number columns.
     private static readonly Dictionary<string, (string Baslik, string Ozellik)[]> ExcelBolunenSutunlar = new()
     {
@@ -45,14 +54,75 @@ public partial class MainWindow
 
     private void AnalizSutunlariniKur()
     {
-        _analizSutunDuzeni = AnalizSutunDuzeni.Oku(AnalizSutunDuzeni.VarsayilanYol);
+        _analizSutunDuzeni = AnalizSutunDuzeni.Oku(AnalizSutunDuzeni.Yol);
+        var genislikIzleyici = DependencyPropertyDescriptor.FromProperty(DataGridColumn.WidthProperty, typeof(DataGridColumn));
         foreach (AnalizSekmesi sekme in SutunluSekmeler)
         {
             DataGrid grid = SekmeTablosu(sekme)!;
             _analizVarsayilanSutunlari[sekme] = grid.Columns
                 .Select(c => new AnalizSutunu(SutunBasligi(c), !VarsayilanGizliSutunlar.Contains(SutunBasligi(c)))).ToList();
+            foreach (DataGridColumn sutun in grid.Columns)
+            {
+                _sutunVarsayilanGenisligi[sutun] = sutun.Width;
+                AnalizSekmesi sahibi = sekme;
+                genislikIzleyici.AddValueChanged(sutun, (_, _) => SutunDuzeniDegisti(sahibi));
+            }
+            grid.ColumnReordered += (_, _) => SutunDuzeniDegisti(sekme);
             SutunDuzeniniUygula(sekme);
         }
+        // A drag right before closing is not lost to the save delay.
+        Closed += (_, _) =>
+        {
+            _sutunKayitZamanlayici?.Stop();
+            SutunDuzeniniKaydet();
+        };
+    }
+
+    private void SutunDuzeniDegisti(AnalizSekmesi sekme)
+    {
+        if (_sutunDuzeniUygulaniyor) return;
+        _kaydedilecekSekmeler.Add(sekme);
+        if (_sutunKayitZamanlayici == null)
+        {
+            _sutunKayitZamanlayici = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
+            _sutunKayitZamanlayici.Tick += (_, _) =>
+            {
+                _sutunKayitZamanlayici.Stop();
+                SutunDuzeniniKaydet();
+            };
+        }
+        _sutunKayitZamanlayici.Stop();
+        _sutunKayitZamanlayici.Start();
+    }
+
+    /// <summary>The changed tabs' grids as they stand (order, visibility, dragged widths) go to the layout file.</summary>
+    private void SutunDuzeniniKaydet()
+    {
+        bool degisti = false;
+        foreach (AnalizSekmesi sekme in _kaydedilecekSekmeler)
+        {
+            List<AnalizSutunu> yeni = SekmeTablosu(sekme)!.Columns.OrderBy(c => c.DisplayIndex)
+                .Select(c => new AnalizSutunu(SutunBasligi(c), c.Visibility == Visibility.Visible, AyarlanmisGenislik(c))).ToList();
+            // Layout passes re-fire Width with the same value: no write then.
+            if (yeni.SequenceEqual(SekmeSutunDuzeni(sekme))) continue;
+            _analizSutunDuzeni[sekme] = yeni;
+            degisti = true;
+        }
+        _kaydedilecekSekmeler.Clear();
+        if (degisti && AnalizSutunDuzeni.Yaz(AnalizSutunDuzeni.Yol, _analizSutunDuzeni) is string hata)
+            LogError("Sütun genişlikleri kaydedilemedi: " + hata);
+    }
+
+    /// <summary>The width the user dragged the column to; null while it has its designed width.</summary>
+    private double? AyarlanmisGenislik(DataGridColumn sutun)
+    {
+        DataGridLength varsayilan = _sutunVarsayilanGenisligi.GetValueOrDefault(sutun, sutun.Width);
+        // Not DataGridLength's ==: that also compares the display width, which layout keeps changing.
+        // A designed width below the header's minimum shows at that minimum: dragged back there, it is the default.
+        if (!sutun.Width.IsAbsolute ||
+            varsayilan.IsAbsolute && Math.Abs(sutun.Width.Value - Math.Max(varsayilan.Value, sutun.MinWidth)) < 0.5)
+            return null;
+        return Math.Round(sutun.Width.Value, 1);
     }
 
     private static string SutunBasligi(DataGridColumn sutun) =>
@@ -66,11 +136,24 @@ public partial class MainWindow
         DataGrid grid = SekmeTablosu(sekme)!;
         List<AnalizSutunu> duzen = SekmeSutunDuzeni(sekme);
         var sutunlar = duzen.Select(s => grid.Columns.First(c => SutunBasligi(c) == s.Baslik)).ToList();
-        for (int sira = 0; sira < duzen.Count; ++sira)
-            sutunlar[sira].Visibility = duzen[sira].Gorunur ? Visibility.Visible : Visibility.Collapsed;
-        // WPF shifts the others when DisplayIndex is set; left to right gives the saved order.
-        for (int sira = 0; sira < sutunlar.Count; ++sira)
-            sutunlar[sira].DisplayIndex = sira;
+        _sutunDuzeniUygulaniyor = true;
+        try
+        {
+            for (int sira = 0; sira < duzen.Count; ++sira)
+            {
+                sutunlar[sira].Visibility = duzen[sira].Gorunur ? Visibility.Visible : Visibility.Collapsed;
+                sutunlar[sira].Width = duzen[sira].Genislik is double genislik
+                    ? new DataGridLength(genislik)
+                    : _sutunVarsayilanGenisligi.GetValueOrDefault(sutunlar[sira], sutunlar[sira].Width);
+            }
+            // WPF shifts the others when DisplayIndex is set; left to right gives the saved order.
+            for (int sira = 0; sira < sutunlar.Count; ++sira)
+                sutunlar[sira].DisplayIndex = sira;
+        }
+        finally
+        {
+            _sutunDuzeniUygulaniyor = false;
+        }
     }
 
     private static string SekmeAdi(AnalizSekmesi sekme) => sekme switch
@@ -87,19 +170,30 @@ public partial class MainWindow
         AnalizSekmesi sekme = AktifSekme();
         static List<ParcaSutunTanimi> Tanimlar(IEnumerable<AnalizSutunu> sutunlar) => sutunlar
             .Select(s => new ParcaSutunTanimi { Anahtar = s.Baslik, Baslik = s.Baslik, Gorunur = s.Gorunur }).ToList();
-        var pencere = new ParcaSutunAyarlariWindow(
+        // A drag still waiting for its save is part of the layout shown here.
+        _sutunKayitZamanlayici?.Stop();
+        SutunDuzeniniKaydet();
+        ParcaSutunAyarlariWindow? pencere = null;
+        pencere = new ParcaSutunAyarlariWindow(
             SekmeAdi(sekme) + " — Sütunlar",
             "Görünür sütunlar ve sıra yalnız bu sekmeye uygulanır" +
             (sekme == AnalizSekmesi.Saclar ? " (Lazer ve Şalama/Kütük birlikte)" : "") +
-            ". Excel'e Aktar görünen sütunları bu sırayla yazar.",
+            ". Excel'e Aktar görünen sütunları bu sırayla yazar. Genişlikler başlık kenarından sürüklenerek ayarlanır; " +
+            "Varsayılan onları da sıfırlar.",
             Tanimlar(SekmeSutunDuzeni(sekme)),
             () => Tanimlar(_analizVarsayilanSutunlari[sekme]),
             tanimlar =>
             {
-                _analizSutunDuzeni[sekme] = tanimlar.Select(t => new AnalizSutunu(t.Anahtar, t.Gorunur)).ToList();
-                return AnalizSutunDuzeni.Yaz(AnalizSutunDuzeni.VarsayilanYol, _analizSutunDuzeni);
+                // Widths are not in the list: kept, unless "Varsayılan" was pressed.
+                Dictionary<string, double?> genislikler = pencere?.VarsayilanaDonuldu == true
+                    ? new()
+                    : SekmeSutunDuzeni(sekme).ToDictionary(s => s.Baslik, s => s.Genislik);
+                _analizSutunDuzeni[sekme] = tanimlar
+                    .Select(t => new AnalizSutunu(t.Anahtar, t.Gorunur, genislikler.GetValueOrDefault(t.Anahtar))).ToList();
+                return AnalizSutunDuzeni.Yaz(AnalizSutunDuzeni.Yol, _analizSutunDuzeni);
             })
         { Owner = this };
+        OtomasyonModu.Gizle(pencere);
         if (pencere.ShowDialog() != true) return;
         SutunDuzeniniUygula(sekme);
         LogSuccess(SekmeAdi(sekme) + " sütunları güncellendi — görünür: " + SekmeSutunDuzeni(sekme).Count(s => s.Gorunur) + ".");

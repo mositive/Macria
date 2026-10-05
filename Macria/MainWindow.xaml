@@ -2134,7 +2134,7 @@
                             <DataGridTextColumn Header="Tür" Binding="{Binding FileType}" Width="55"/>
                             <DataGridTextColumn Header="CATIA Adedi" Binding="{Binding CatiaQuantity}" Width="85"/>
                             <DataGridTextColumn Header="Eşleşme" Binding="{Binding StatusDisplay}" Width="120"/>
-                            <DataGridTextColumn Header="Açıklama" Binding="{Binding Explanation}" Width="*"/>
+                            <DataGridTextColumn Header="Açıklama" Binding="{Binding Explanation}" Width="420"/>
                         </DataGrid.Columns>
                     </DataGrid>
                     <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="{StaticResource BorderBrush}"/>
@@ -2263,7 +2263,7 @@
                                     <DataGridTemplateColumn Header="Kullanıcı kararı" Width="200" SortMemberPath="KullaniciKarariMetni">
                                         <DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding KullaniciKarariMetni}" ToolTip="{Binding KullaniciKarariMetni}" Style="{StaticResource KirpilanHucre}"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
-                                    <DataGridTemplateColumn Header="Motor gerekçesi" Width="*" MinWidth="200" SortMemberPath="MotorGerekcesi">
+                                    <DataGridTemplateColumn Header="Motor gerekçesi" Width="360" SortMemberPath="MotorGerekcesi">
                                         <DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding MotorGerekcesi}" ToolTip="{Binding MotorGerekcesi}" Style="{StaticResource KirpilanHucre}"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
                                     <DataGridTextColumn Header="STEP dosyası" Binding="{Binding SourceStepPath}" Width="260" ElementStyle="{StaticResource KirpilanHucre}"/>
@@ -2375,7 +2375,7 @@
                                         <DataGridTemplateColumn Header="Kullanıcı kararı" Width="200" SortMemberPath="KullaniciKarariMetni">
                                             <DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding KullaniciKarariMetni}" ToolTip="{Binding KullaniciKarariMetni}" TextTrimming="CharacterEllipsis"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
-                                        <DataGridTemplateColumn Header="Motor gerekçesi" Width="*" MinWidth="200" SortMemberPath="MotorGerekcesi">
+                                        <DataGridTemplateColumn Header="Motor gerekçesi" Width="360" SortMemberPath="MotorGerekcesi">
                                             <DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding MotorGerekcesi}" ToolTip="{Binding MotorGerekcesi}" TextTrimming="CharacterEllipsis"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
                                         <DataGridTextColumn Header="STEP dosyası" Binding="{Binding SourceStepPath}" Width="260" ElementStyle="{StaticResource KirpilanHucre}"/>

@@ -25,6 +25,7 @@ namespace Macria
                                string onayMetni, string redMetni = "Vazgeç")
         {
             var pencere = new OnayWindow(baslik, mesaj, onayMetni, redMetni) { Owner = sahip };
+            OtomasyonModu.Gizle(pencere);
             return pencere.ShowDialog() == true;
         }
 

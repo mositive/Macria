@@ -1282,6 +1282,22 @@ internal static class Program
         Check(AnalizSutunDuzeni.Oku(eski)[AnalizSekmesi.Saclar].Select(x => x.Baslik + (x.Gorunur ? "" : "-")).SequenceEqual(
                   new[] { "Tespit edilen kalınlık-", "Ham sac kalınlığı (mm)", "Parça" }),
             "a layout saved under the old column names keeps working after the rename");
+        // Dragged widths go with the layout; a three-field line (no width) still reads.
+        var genislikli = new Dictionary<AnalizSekmesi, List<AnalizSutunu>>
+        {
+            [AnalizSekmesi.Profiller] = new() { new("Parça", true, 212.5), S("Adet"), new("Motor gerekçesi", false, 480) }
+        };
+        string genislikYolu = Path.Combine(_root, "sutunlar", "genislik.txt");
+        Check(AnalizSutunDuzeni.Yaz(genislikYolu, genislikli) == null &&
+              AnalizSutunDuzeni.Oku(genislikYolu)[AnalizSekmesi.Profiller].SequenceEqual(genislikli[AnalizSekmesi.Profiller]) &&
+              File.ReadAllLines(genislikYolu)[0] == "Profiller|Parça|1|212.5" && File.ReadAllLines(genislikYolu)[1] == "Profiller|Adet|1",
+            "column widths are written as a fourth field (invariant culture) and read back; a default width writes no field");
+        File.WriteAllLines(genislikYolu, new[] { "Profiller|Parça|1|abc", "Profiller|Adet|1|-5", "Profiller|Durum|1|90|x" });
+        Check(AnalizSutunDuzeni.Oku(genislikYolu)[AnalizSekmesi.Profiller].SequenceEqual(new[] { S("Parça"), S("Adet") }),
+            "an unreadable or negative width is the default width; a line with extra fields is skipped");
+        Check(AnalizSutunDuzeni.Birlestir(genislikli[AnalizSekmesi.Profiller], new List<AnalizSutunu> { S("Parça"), S("Adet"), S("Motor gerekçesi") })
+                  .Select(x => x.Genislik).SequenceEqual(new double?[] { 212.5, null, 480 }),
+            "the merged layout keeps the saved widths");
 
         // Excel values: the column's property, through IAnalizSatiri for explicit members.
         GeometryLabAnalysisTransport analysis = AssemblyAnalysis();
