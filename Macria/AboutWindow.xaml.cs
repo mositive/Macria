@@ -1,4 +1,6 @@
 using System;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -29,6 +31,8 @@ namespace Macria
                 : RuntimeInformation.ProcessArchitecture.ToString();
 
             txtCopyright.Text = TelifMetni();
+            txtOcctBildirimi.Text = UcuncuTarafBildirimleri.OcctBildirimi;
+            txtUcuncuTarafOzet.Text = UcuncuTarafBildirimleri.Ozet;
 
             _kopyalandiZamanlayici.Tick += (s, e) =>
             {
@@ -94,6 +98,34 @@ namespace Macria
 
             _kopyalandiZamanlayici.Stop();
             _kopyalandiZamanlayici.Start();
+        }
+
+        // THIRD_PARTY_NOTICES.txt next to Macria.exe, in the default text viewer.
+        private void btnLisanslar_Click(object sender, RoutedEventArgs e)
+        {
+            string? dosya = UcuncuTarafBildirimleri.BildirimDosyasi(AppContext.BaseDirectory);
+            if (dosya == null)
+            {
+                MessageBox.Show(this, UcuncuTarafBildirimleri.DosyaAdi + " bulunamadı: " + AppContext.BaseDirectory,
+                    "Lisanslar", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            try
+            {
+                Process.Start(new ProcessStartInfo(dosya) { UseShellExecute = true });
+            }
+            catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+            {
+                MessageBox.Show(this, "Lisans dosyası açılamadı: " + dosya + Environment.NewLine + ex.Message,
+                    "Lisanslar", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        // Where the LGPL/FIPL source code is kept (Ctrl+C copies the message).
+        private void btnKaynakKodu_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show(this, UcuncuTarafBildirimleri.KaynakKoduMetni, "Kaynak kodu",
+                MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void btnClose_Click(object sender, RoutedEventArgs e)

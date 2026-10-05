@@ -59,6 +59,7 @@ internal static class Program
             MotorKimligiTests();
             MacriaProjeTests();
             SekmeKurallariTests();
+            UcuncuTarafBildirimleriTests();
             await RealProjectRoundTripAsync();
             await RealSinglePartPathAsync();
             RealOldProjectsTests();
@@ -459,6 +460,42 @@ internal static class Program
             Console.WriteLine(string.Create(System.Globalization.CultureInfo.InvariantCulture,
                 $"REAL_PROJECT: {Path.GetFileName(step)} parça={result.Analysis.Parts.Count} satır={profil.Count + montaj.Count} karar={kararlar.Count} analiz={analizSn:0.0}s kaydet={kaydetSn:0.00}s aç(hash+satır+karar)={acSn:0.00}s proje={new FileInfo(proje).Length / 1024.0:0}KB"));
         }
+    }
+
+    // Repository root: the folder holding Macria.slnx above the test output.
+    private static string RepoKoku()
+    {
+        for (DirectoryInfo? klasor = new(AppContext.BaseDirectory); klasor != null; klasor = klasor.Parent)
+            if (File.Exists(Path.Combine(klasor.FullName, "Macria.slnx")))
+                return klasor.FullName;
+        throw new InvalidOperationException("Macria.slnx bulunamadı: " + AppContext.BaseDirectory);
+    }
+
+    // THIRD_PARTY_NOTICES.txt and the Hakkında window tell the same source
+    // code location and carry the notices the licenses ask for.
+    private static void UcuncuTarafBildirimleriTests()
+    {
+        string macria = Path.Combine(RepoKoku(), "Macria");
+        string? dosya = UcuncuTarafBildirimleri.BildirimDosyasi(macria);
+        Check(dosya != null, "THIRD_PARTY_NOTICES.txt is in the Macria project folder");
+        string metin = File.ReadAllText(dosya!);
+        Check(metin.Contains(UcuncuTarafBildirimleri.KaynakKoduYeri) &&
+              UcuncuTarafBildirimleri.KaynakKoduMetni.Contains(UcuncuTarafBildirimleri.KaynakKoduYeri),
+            "the notices file and the Hakkında window name the same source code location");
+        string tekSatir = metin.Replace("\r", "").Replace("\n", " ");
+        foreach (string bildirim in new[]
+                 {
+                     "make use of facilities provided by the Open CASCADE Technology software",
+                     "libraries from the FFmpeg project under the LGPLv2.1",
+                     "FreeImage is used under the FIPL",
+                     "work of the Independent JPEG Group",
+                     "The FreeType Project"
+                 })
+            Check(tekSatir.Contains(bildirim), "required notice: " + bildirim);
+        Check(UcuncuTarafBildirimleri.OcctBildirimi.Contains("Open CASCADE Technology"),
+            "the Hakkında window shows the OCCT notice");
+        Check(UcuncuTarafBildirimleri.BildirimDosyasi(Path.Combine(macria, "yok-boyle-klasor")) == null,
+            "a missing notices file is reported as null");
     }
 
     private static void SekmeKurallariTests()
