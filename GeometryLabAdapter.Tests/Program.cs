@@ -1184,7 +1184,7 @@ internal static class Program
             "the corrected thickness is shown; the engine value stays apart");
         Check(sac.IsThickPlate && sac.GroupDisplay == "Şalama/Kütük" && sac.DxfDisplay == "Sac A_25mm_2adet.dxf",
             "the corrected thickness picks Şalama/Kütük and names the DXF: " + sac.DxfDisplay);
-        Check(((IAnalizSatiri)sac).OlcuGosterimi == "t = 25 mm (motor 20)", "the mixed tabs show both thicknesses");
+        Check(((IAnalizSatiri)sac).OlcuGosterimi == "t = 25 mm (tespit edilen 20)", "the mixed tabs show both thicknesses");
         sac.ApproveAsSheet();
         IReadOnlyList<MotorDxfIsi> plan = MotorDxfAktarici.Planla(new[] { sac }, "C:\\hedef");
         Check(plan.Count == 1 && Path.GetFileName(plan[0].Hedef) == "Sac A_25mm_2adet.dxf", "DXF Üret writes the corrected name");
@@ -1223,10 +1223,10 @@ internal static class Program
         sac.KalinligiDuzelt(25);
         sac.ListeDisinaCikar("fason");
         Check(sac.MotorGerekcesi == "gerekçe 2", "the engine reason stays after the user's decisions");
-        Check(sac.KullaniciKarariMetni == "Sac olarak onaylandı; Kalınlık 25 mm (motor 20 mm); Liste dışı: fason",
+        Check(sac.KullaniciKarariMetni == "Sac olarak onaylandı; Ham sac kalınlığı 25 mm (tespit edilen 20 mm); Liste dışı: fason",
             "the user column lists every decision: " + sac.KullaniciKarariMetni);
         sac.RestoreAutomaticDecision();
-        Check(sac.KullaniciKarariMetni == "Kalınlık 25 mm (motor 20 mm); Liste dışı: fason",
+        Check(sac.KullaniciKarariMetni == "Ham sac kalınlığı 25 mm (tespit edilen 20 mm); Liste dışı: fason",
             "Otomatik Karara Dön drops the category decision only: " + sac.KullaniciKarariMetni);
         MontajParcaSatiri acinimsiz = MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[4], null, 20);
         acinimsiz.ApproveAsSheet();
@@ -1264,7 +1264,7 @@ internal static class Program
         string yol = Path.Combine(_root, "sutunlar", "analiz-sutunlari.txt");
         var kayit = new Dictionary<AnalizSekmesi, List<AnalizSutunu>>
         {
-            [AnalizSekmesi.Saclar] = new() { S("Parça"), S("Kalınlık (mm)"), S("Motor gerekçesi", false) },
+            [AnalizSekmesi.Saclar] = new() { S("Parça"), S("Ham sac kalınlığı (mm)"), S("Motor gerekçesi", false) },
             [AnalizSekmesi.Tanimsiz] = new() { S("Durum", false), S("Parça") }
         };
         Check(AnalizSutunDuzeni.Yaz(yol, kayit) == null, "the layout is written");
@@ -1272,6 +1272,11 @@ internal static class Program
         Check(okunan.Count == 2 && okunan[AnalizSekmesi.Saclar].SequenceEqual(kayit[AnalizSekmesi.Saclar]) &&
               okunan[AnalizSekmesi.Tanimsiz].SequenceEqual(kayit[AnalizSekmesi.Tanimsiz]), "every tab's layout reads back");
         Check(AnalizSutunDuzeni.Oku(Path.Combine(_root, "sutunlar", "yok.txt")).Count == 0, "no file: no saved layout");
+        string eski = Path.Combine(_root, "sutunlar", "eski-adlar.txt");
+        File.WriteAllLines(eski, new[] { "Saclar|Motor kalınlığı|0", "Saclar|Kalınlık (mm)|1", "Saclar|Parça|1" });
+        Check(AnalizSutunDuzeni.Oku(eski)[AnalizSekmesi.Saclar].Select(x => x.Baslik + (x.Gorunur ? "" : "-")).SequenceEqual(
+                  new[] { "Tespit edilen kalınlık-", "Ham sac kalınlığı (mm)", "Parça" }),
+            "a layout saved under the old column names keeps working after the rename");
 
         // Excel values: the column's property, through IAnalizSatiri for explicit members.
         GeometryLabAnalysisTransport analysis = AssemblyAnalysis();

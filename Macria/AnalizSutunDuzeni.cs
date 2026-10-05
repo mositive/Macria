@@ -46,6 +46,13 @@ public static class AnalizSutunDuzeni
         return sonuc;
     }
 
+    /// <summary>Columns renamed since their layout was saved: old header → new.</summary>
+    public static readonly IReadOnlyDictionary<string, string> EskiAdlar = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["Kalınlık (mm)"] = "Ham sac kalınlığı (mm)",
+        ["Motor kalınlığı"] = "Tespit edilen kalınlık"
+    };
+
     public static Dictionary<AnalizSekmesi, List<AnalizSutunu>> Oku(string yol)
     {
         var duzen = new Dictionary<AnalizSekmesi, List<AnalizSutunu>>();
@@ -57,7 +64,7 @@ public static class AnalizSutunDuzeni
                 string[] alanlar = satir.Split('|');
                 if (alanlar.Length != 3 || !Enum.TryParse(alanlar[0], out AnalizSekmesi sekme) || alanlar[1].Length == 0) continue;
                 if (!duzen.TryGetValue(sekme, out List<AnalizSutunu>? liste)) duzen[sekme] = liste = new();
-                liste.Add(new AnalizSutunu(alanlar[1], alanlar[2] == "1"));
+                liste.Add(new AnalizSutunu(EskiAdlar.GetValueOrDefault(alanlar[1], alanlar[1]), alanlar[2] == "1"));
             }
         }
         catch (Exception istisna) when (istisna is IOException or UnauthorizedAccessException)

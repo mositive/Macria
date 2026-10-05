@@ -388,7 +388,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
     };
     string IAnalizSatiri.OlcuGosterimi => OlcuGosterimiMetni;
     public string OlcuGosterimiMetni => EtkinKalinlikMm is double t
-        ? "t = " + FormatNumber(t) + " mm" + (KalinlikDuzeltildi && ThicknessMm is double m ? " (motor " + FormatNumber(m) + ")" : "")
+        ? "t = " + FormatNumber(t) + " mm" + (KalinlikDuzeltildi && ThicknessMm is double m ? " (tespit edilen " + FormatNumber(m) + ")" : "")
         : "—";
     public string DurumEtiketi => StatusDisplay;
     public string KararGosterimi => DecisionDisplay;
@@ -403,7 +403,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
                     ? "Sac olarak onaylandı" + (DxfSourcePath == null ? " (açınım yok, DXF CATIA'dan)" : "")
                     : "Kontrol gerekliye alındı");
             if (KullaniciKalinlikMm is double k)
-                parcalar.Add("Kalınlık " + FormatNumber(k) + " mm" + (ThicknessMm is double m ? " (motor " + FormatNumber(m) + " mm)" : ""));
+                parcalar.Add("Ham sac kalınlığı " + FormatNumber(k) + " mm" + (ThicknessMm is double m ? " (tespit edilen " + FormatNumber(m) + " mm)" : ""));
             if (ListeDisi)
                 parcalar.Add("Liste dışı" + (ListeDisiNotu.Length > 0 ? ": " + ListeDisiNotu : ""));
             return parcalar.Count == 0 ? "—" : string.Join("; ", parcalar);
@@ -418,7 +418,8 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         new("STEP dosyası", SourceFileName),
         new("Parça", PartName + " (" + Quantity.ToString(CultureInfo.InvariantCulture) + " adet)"),
         new("Durum", StatusDisplay),
-        new("Kalınlık", ThicknessDisplay + (KalinlikDuzeltildi ? " (kullanıcı; motor " + MotorKalinlikDisplay + ")" : "")),
+        new("Ham sac kalınlığı", ThicknessDisplay + (KalinlikDuzeltildi ? " (kullanıcı düzeltti)" : "")),
+        new("Tespit edilen kalınlık", MotorKalinlikDisplay),
         new("Ham sac ölçüsü", HamSacOlcusuDisplay),
         new("Grup", GroupDisplay),
         new("Büküm", BendCountDisplay),

@@ -2334,7 +2334,7 @@
                                         </DataGridTextColumn>
                                         <DataGridTextColumn Header="Adet" Binding="{Binding Quantity}" Width="Auto" MinWidth="50" ElementStyle="{StaticResource SayiHucre}" HeaderStyle="{StaticResource SayiBaslik}"/>
                                         <!-- Kalinlik elle duzeltilebilir (ham levha); bos birakilirsa motor degerine doner -->
-                                        <DataGridTemplateColumn Header="Kalınlık (mm)" Width="96" MinWidth="90" SortMemberPath="EtkinKalinlikMm">
+                                        <DataGridTemplateColumn Header="Ham sac kalınlığı (mm)" Width="Auto" MinWidth="150" SortMemberPath="EtkinKalinlikMm">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <TextBox Text="{Binding KalinlikMetni, Mode=OneWay}" Height="26" MaxLength="10"
@@ -2342,7 +2342,7 @@
                                                              GotKeyboardFocus="SacKalinlik_GotKeyboardFocus"
                                                              LostKeyboardFocus="SacKalinlik_LostKeyboardFocus"
                                                              KeyDown="SacKalinlik_KeyDown"
-                                                             ToolTip="Kalınlığı düzeltin (ör. ham sac 16). Boş bırakılırsa motorun ölçtüğü değer kullanılır.">
+                                                             ToolTip="Ham sac kalınlığını yazın (ör. 16). Boş bırakılırsa tespit edilen kalınlık kullanılır.">
                                                         <TextBox.Style>
                                                             <Style TargetType="TextBox" BasedOn="{StaticResource FieldBox}">
                                                                 <Style.Triggers>
@@ -2357,7 +2357,7 @@
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
-                                        <DataGridTextColumn Header="Motor kalınlığı" Binding="{Binding MotorKalinlikDisplay}" SortMemberPath="ThicknessMm" Width="Auto" MinWidth="96" ElementStyle="{StaticResource SayiHucre}" HeaderStyle="{StaticResource SayiBaslik}"/>
+                                        <DataGridTextColumn Header="Tespit edilen kalınlık" Binding="{Binding MotorKalinlikDisplay}" SortMemberPath="ThicknessMm" Width="Auto" MinWidth="96" ElementStyle="{StaticResource SayiHucre}" HeaderStyle="{StaticResource SayiBaslik}"/>
                                         <DataGridTextColumn Header="Ham sac ölçüsü" Binding="{Binding HamSacOlcusuDisplay}" Width="Auto" MinWidth="120" ElementStyle="{StaticResource SayiHucre}" HeaderStyle="{StaticResource SayiBaslik}"/>
                                         <DataGridTextColumn Header="Grup" Binding="{Binding GroupDisplay}" Width="105" ElementStyle="{StaticResource KirpilanHucre}"/>
                                         <DataGridTextColumn Header="Büküm" Binding="{Binding BendCountDisplay}" Width="Auto" MinWidth="60" ElementStyle="{StaticResource SayiHucre}" HeaderStyle="{StaticResource SayiBaslik}"/>

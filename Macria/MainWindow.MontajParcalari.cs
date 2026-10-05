@@ -186,7 +186,7 @@ public partial class MainWindow
         if (kutu.Text.Trim() == satir.KalinlikMetni) return;
         if (!MontajParcaSatiri.KalinlikGirdisiniOku(kutu.Text, out double? kalinlik))
         {
-            LogError("Kalınlık okunamadı: \"" + kutu.Text.Trim() + "\" (" + satir.PartName + "). 0,05–1000 mm arası bir sayı girin.");
+            LogError("Ham sac kalınlığı okunamadı: \"" + kutu.Text.Trim() + "\" (" + satir.PartName + "). 0,05–1000 mm arası bir sayı girin.");
             kutu.Text = satir.KalinlikMetni;
             return;
         }
@@ -199,8 +199,8 @@ public partial class MainWindow
         satir.KalinligiDuzelt(kalinlik);
         kutu.Text = satir.KalinlikMetni;
         LogInfo(satir.KalinlikDuzeltildi
-            ? "Kalınlık düzeltildi: " + satir.PartName + " " + satir.ThicknessDisplay + " (motor " + satir.MotorKalinlikDisplay + ")."
-            : "Kalınlık motor değerine döndü: " + satir.PartName + " " + satir.ThicknessDisplay + ".");
+            ? "Ham sac kalınlığı düzeltildi: " + satir.PartName + " " + satir.ThicknessDisplay + " (tespit edilen " + satir.MotorKalinlikDisplay + ")."
+            : "Ham sac kalınlığı tespit edilen değere döndü: " + satir.PartName + " " + satir.ThicknessDisplay + ".");
         if (satir.IsThickPlate != kalinOnce)
             LogInfo(satir.PartName + " " + (satir.IsThickPlate ? "Şalama/Kütük" : "Lazer") + " alt sekmesine geçti.");
         ProjeDegisti();
