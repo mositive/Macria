@@ -60,6 +60,8 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
     public int BendCount { get; init; }
     /// <summary>Machined plate: pockets, steps, counterbores; not cut in the DXF.</summary>
     public bool MachiningPresent { get; init; }
+    /// <summary>The engine's machining kinds (Pocket, Engraving, Embossing); empty for old engines.</summary>
+    public IReadOnlyList<string> MachiningKinds { get; init; } = Array.Empty<string>();
     public string HoleSummary { get; init; } = "—";
     /// <summary>Engine DXF (part-&lt;id&gt;.dxf in the analysis' DXF folder), or null.</summary>
     public string? DxfSourcePath { get; init; }
@@ -83,7 +85,24 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         ? FormatNumber(Math.Round(en, 1)) + " × " + FormatNumber(Math.Round(boy, 1)) + " mm"
         : "—";
     public string BendCountDisplay => SheetRecognized ? BendCount.ToString(CultureInfo.InvariantCulture) : "—";
-    public string MachiningDisplay => MachiningPresent ? "var" : "—";
+    /// <summary>"var", or with engraving / embossing "var (gravür)"; "—" without machining.</summary>
+    public string MachiningDisplay => !MachiningPresent ? "—"
+        : MarkingNames().Count == 0 ? "var" : "var (" + string.Join(", ", MarkingNames()) + ")";
+
+    private string IslemeAyrintisi()
+    {
+        var adlar = MachiningKinds.Select(kind => kind switch
+        {
+            "Engraving" => "gravür",
+            "Embossing" => "kabartma",
+            _ => "cep, basamak, havşa / imbus başı"
+        }).Distinct().ToList();
+        return "var (" + (adlar.Count == 0 ? "cep, basamak, havşa / imbus başı" : string.Join(", ", adlar)) + ")";
+    }
+
+    private List<string> MarkingNames() => MachiningKinds
+        .Select(kind => kind switch { "Engraving" => "gravür", "Embossing" => "kabartma", _ => null })
+        .OfType<string>().ToList();
     public string EngineReasonDisplay => EngineReasons.Count == 0 ? "" : string.Join(" ", EngineReasons);
 
     private double _laserMaximumMm = 20;
@@ -198,6 +217,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
             SheetRecognized = recognized,
             BendCount = recognized ? sheet!.Bends.Count : 0,
             MachiningPresent = part.MachiningPresent == true,
+            MachiningKinds = part.MachiningKinds,
             AcinimEnMm = acinim?.WidthMm,
             AcinimBoyMm = acinim?.HeightMm,
             EnKucukDikdortgenEnMm = acinim?.MinimumRectangle?.ShortMm,
@@ -455,7 +475,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         new("Grup", GroupDisplay),
         new("Büküm", BendCountDisplay),
         new("Delikler", HoleSummary),
-        new("İşleme", MachiningPresent ? "var (cep, basamak, havşa / imbus başı; DXF'te yok)" : "yok"),
+        new("İşleme", MachiningPresent ? IslemeAyrintisi() + "; DXF'te yok" : "yok"),
         new("DXF", DxfDisplay),
         new("CATIA adedi", CatiaQuantityDisplay),
         new("Eşleşme", CatiaMatchDisplay),

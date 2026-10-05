@@ -1453,6 +1453,13 @@ internal static class Program
             "no flat pattern: the measured thickness, bends and machining are shown, the DXF comes from CATIA");
         Check(acinimsiz.GroupDisplay == "—" && ((IAnalizSatiri)acinimsiz).Ayrintilar.Any(x => x.Key == "Grup" && x.Value == "—"),
             "a part that is not a sheet shows no Lazer / Şalama group");
+        MontajParcaSatiri gravurlu = MontajParcaSatiri.Olustur("C:\\m.stp", olculen, analysis.Parts[4] with
+        {
+            MachiningPresent = true, MachiningKinds = new[] { "Engraving", "Pocket" }
+        }, null, 20);
+        Check(gravurlu.MachiningDisplay == "var (gravür)" &&
+              ((IAnalizSatiri)gravurlu).Ayrintilar.Any(x => x.Key == "İşleme" && x.Value == "var (gravür, cep, basamak, havşa / imbus başı); DXF'te yok"),
+            "engraving shows as \"var (gravür)\": " + gravurlu.MachiningDisplay);
         acinimsiz.ApproveAsSheet();
         Check(acinimsiz.Sekme == AnalizSekmesi.Saclar && acinimsiz.IsThickPlate && acinimsiz.GroupDisplay == "Şalama/Kütük",
             "approved without a flat pattern, a 30 mm part is listed under Şalama/Kütük by its measured thickness");

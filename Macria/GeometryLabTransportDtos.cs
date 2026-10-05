@@ -134,6 +134,10 @@ public sealed record GeometryLabPartTransport
     [JsonPropertyName("machiningPresent")]
     public bool? MachiningPresent { get; init; }
 
+    // Engine 2026.10.5.4+: Pocket, Engraving, Embossing.
+    [JsonPropertyName("machiningKinds")]
+    public IReadOnlyList<string> MachiningKinds { get; init; } = Array.Empty<string>();
+
     // File name the engine wrote with --dxf-klasor (part-<id>.dxf), or null.
     [JsonPropertyName("dxfFile")]
     public string? DxfFile { get; init; }
