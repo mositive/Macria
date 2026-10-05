@@ -702,9 +702,23 @@ internal static class Program
             }
             var (eslenen, eslenemeyen) = MacriaProje.KararlariEsle(acilis.Veri.Kararlar,
                 MacriaProjeSatirlari.Adaylar(profil, montaj, yol => kaynakIdleri.GetValueOrDefault(yol)), _ => false);
-            int uygulanan = eslenen.Count(x => MacriaProjeSatirlari.Uygula(x.Karar, x.Aday.Satir));
+            // A "Dene" decision (schema 1.3) replaces the part's row with its stored run;
+            // it lands when its run is in the project and the run rows hold the part.
+            int uygulanan = eslenen.Count(x =>
+            {
+                if (x.Karar.Karar != MacriaProje.KararDene) return MacriaProjeSatirlari.Uygula(x.Karar, x.Aday.Satir);
+                string anahtar = MacriaProje.EkAnahtari(x.Karar.Kaynak, x.Karar.EkAnaliz ?? "");
+                if (!acilis.EkAnalysisJson.TryGetValue(anahtar, out string? ekJson)) return false;
+                GeometryLabProcessAdapterResult ek = GeometryLabProcessAdapter.SonucuJsondanKur(ekJson, acilis.EkDxfKlasoru.GetValueOrDefault(anahtar));
+                int id = ((IAnalizSatiri)x.Aday.Satir).ParcaLocalId ?? -1;
+                var (ekProfil, ekMontaj) = MacriaProjeSatirlari.EkSatirlari(((IAnalizSatiri)x.Aday.Satir).KaynakYolu, ek,
+                    acilis.Veri.Ayarlar.LazerAzamiKalinlikMm, new SatirDenemesi(x.Karar.DenemeModu ?? MacriaProje.DenemeYeniden, x.Karar.EkAnaliz!));
+                return ek.IsSuccess && !ek.Analysis!.Otomatik &&
+                       ekProfil.Cast<IAnalizSatiri>().Concat(ekMontaj).Any(r => r.ParcaLocalId == id && r.Deneme != null);
+            });
             Check(eslenemeyen.Count == 0 && uygulanan == acilis.Veri.Kararlar.Count,
-                "every decision of an old project lands on a row: " + Path.GetFileName(proje));
+                "every decision of an old project lands on a row: " + Path.GetFileName(proje) + " (" + uygulanan + " / " +
+                acilis.Veri.Kararlar.Count + ", eşlenemeyen " + eslenemeyen.Count + ")");
             IEnumerable<IAnalizSatiri> hepsi = profil.Cast<IAnalizSatiri>().Concat(montaj);
             Console.WriteLine($"REAL_OLD_PROJECT: {Path.GetFileName(proje)} şema {acilis.Manifest.SchemaVersion}, {acilis.Veri.Kararlar.Count} karar uygulandı; " +
                 string.Join(", ", hepsi.GroupBy(x => x.Sekme).OrderBy(g => g.Key).Select(g => g.Key + " " + g.Count())));

@@ -20,6 +20,16 @@ public partial class MainWindow
     private async void btnAnalizYenidenAnaliz_Click(object sender, RoutedEventArgs e) =>
         await SeciliParcalariCalistirAsync(SeciliAnalizSatirlari(), MacriaProje.DenemeYeniden);
 
+    private async void btnAnalizProfilDene_Click(object sender, RoutedEventArgs e) =>
+        await SeciliParcalariCalistirAsync(SeciliAnalizSatirlari(), MacriaProje.DenemeProfil);
+
+    private static string IsBasligi(string mod) => mod switch
+    {
+        MacriaProje.DenemeProfil => "Profil olarak dene",
+        MacriaProje.DenemeSac => "Sac olarak dene",
+        _ => "Yeniden analiz"
+    };
+
     private async Task SeciliParcalariCalistirAsync(List<IAnalizSatiri> satirlar, string mod)
     {
         if (_externalStepProfileAnalysisRunning || _profilIslemde || _projeIslemde) return;
@@ -36,7 +46,7 @@ public partial class MainWindow
             isler.Add(new ParcaIsi(grup.Key, grup.Select(x => x.ParcaLocalId!.Value).Distinct().OrderBy(x => x).ToList(), mod));
         }
         if (isler.Count == 0) return;
-        await ParcaIsleriniCalistirAsync(isler, "Yeniden analiz");
+        await ParcaIsleriniCalistirAsync(isler, IsBasligi(mod));
         ProjeDegisti();
     }
 
@@ -160,6 +170,11 @@ public partial class MainWindow
                    SureMetni(sure) + ".");
         foreach (int id in is_.Parcalar.Where(id => once.GetValueOrDefault(id) != sonra.GetValueOrDefault(id)))
             LogInfo("   #" + id + " " + SatirAdi(is_.Yol, id) + ": " + SekmeAdi(once[id]) + " → " + SekmeAdi(sonra[id]));
+        // A trial that did not move a part says why (the engine's reason starts with the trial).
+        if (is_.Mod != MacriaProje.DenemeYeniden)
+            foreach (IAnalizSatiri satir in ParcaSatirlari(is_.Yol, is_.Parcalar)
+                         .Where(x => once.GetValueOrDefault(x.ParcaLocalId!.Value) == x.Sekme))
+                LogInfo("   #" + satir.ParcaLocalId + " " + satir.ParcaAdi + ": tanınmadı — " + satir.MotorGerekcesi);
     }
 
     /// <summary>Tab of each listed part of the STEP, by localId.</summary>
