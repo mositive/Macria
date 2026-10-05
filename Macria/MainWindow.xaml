@@ -2288,6 +2288,30 @@
                                           CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False"
                                           SelectionMode="Extended" SelectionChanged="gridSacParcalar_SelectionChanged"
                                           GridLinesVisibility="All" HeadersVisibility="Column" FontSize="13" RowHeight="34">
+                                    <!-- Kalinligi elle duzeltilen satir butunuyle vurgulu (Toplu DXF'teki Ham Sac rengi) -->
+                                    <DataGrid.RowStyle>
+                                        <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding KalinlikDuzeltildi}" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource HamSacChangedRowBrush}"/>
+                                                </DataTrigger>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding KalinlikDuzeltildi}" Value="True"/>
+                                                        <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Background" Value="{StaticResource HamSacChangedRowHoverBrush}"/>
+                                                </MultiDataTrigger>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding KalinlikDuzeltildi}" Value="True"/>
+                                                        <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Background" Value="{StaticResource HamSacChangedRowHoverBrush}"/>
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGrid.RowStyle>
                                     <DataGrid.Columns>
                                         <!-- Onay durumu renkli etiket: Sac yesil, Onay gerekli amber -->
                                         <DataGridTemplateColumn Header="Durum" Width="135" MinWidth="125" SortMemberPath="StatusDisplay">
