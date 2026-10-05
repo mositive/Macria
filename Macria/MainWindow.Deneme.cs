@@ -66,6 +66,7 @@ public partial class MainWindow
         try
         {
             GeometryLabMotorKimligi? motor = await Task.Run(() => MotorKimliginiOku(engine));
+            LogInfo(MotorSurumuMetni(motor));
             _motorDxfOturumKlasoru ??= Path.Combine(Path.GetTempPath(), "Macria", "MotorDxf", Guid.NewGuid().ToString("N"));
             for (int sira = 0; sira < isler.Count; ++sira)
             {

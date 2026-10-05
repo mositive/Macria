@@ -251,6 +251,7 @@ public partial class MainWindow
         try
         {
             GeometryLabMotorKimligi? motorKimligi = await Task.Run(() => MotorKimliginiOku(engine));
+            LogInfo(MotorSurumuMetni(motorKimligi));
             var adapter = new GeometryLabProcessAdapter(new GeometryLabProcessAdapterOptions
             {
                 EngineExecutablePath = engine.ExecutablePath!,

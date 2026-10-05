@@ -142,6 +142,10 @@ public partial class MainWindow
 
     // ------------------------------------------------------------ sources
 
+    /// <summary>"Motor 2026.10.5.5 (8ab8a10)": the console line at the start of an engine run.</summary>
+    private static string MotorSurumuMetni(GeometryLabMotorKimligi? motor) =>
+        "Motor " + (motor?.Gosterim ?? "sürümü okunamadı");
+
     private static GeometryLabMotorKimligi? MotorKimliginiOku(GeometryLabEngineLocation engine)
     {
         if (!engine.IsAvailable) return null;
