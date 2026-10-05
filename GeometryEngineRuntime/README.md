@@ -10,6 +10,20 @@ DLL'leri alınır. Test EXE'leri, `.pdb`, `.lib`, `.exp` ve CMake ara
 dosyaları buraya konmaz. `Macria.csproj` bu klasörü Debug, Release ve publish
 çıktılarında `GeometryEngine\` altına kopyalar.
 
+Lisans kuralı: Bu klasöre giren her üçüncü taraf dosyanın lisans metni ve
+bildirimi `licenses/` altında olmalıdır.
+- Yeni bir DLL eklenince ya da bir DLL'in sürümü değişince lisans dosyası
+  `licenses/` altına eklenir ya da güncellenir.
+- Aynı değişiklikte `licenses/00-DIZIN.txt` (hangi DLL hangi lisans dosyası)
+  ve Macria'daki `THIRD_PARTY_NOTICES.txt` (bileşen, sürüm, lisans, telif)
+  güncellenir.
+- LGPL ya da FIPL bileşenlerinde (OCCT, FFmpeg, FreeImage) aynı sürümün
+  kaynak kodu, `THIRD_PARTY_NOTICES.txt`'de yazan kaynak kodu yerine konur.
+- GPL ya da "nonfree" FFmpeg derlemesi, FreeImage'in GPL seçeneği ve FreeType'ın
+  GPL seçeneği kullanılmaz.
+- `GeometryLabAdapter.Tests`, buradaki her üçüncü taraf DLL'in iki dizinde de
+  anıldığını denetler; eksik lisans testi düşürür.
+
 Motor sürümü: `Macria.GeometryEngine.exe` her değiştiğinde `motor-surumu.txt`
 güncellenir. İlk satır sıralanabilir sürümdür (`yıl.ay.gün.n`, ör. `2026.10.3.1`;
 aynı gün ikinci paket `.2`), ikinci satır GeometryLab commit'idir. Macria bunu
@@ -38,3 +52,4 @@ işlemine yükler; görüntüleyicideki native bir çökme Macria'yı da kapatı
 | 2026-10-04 | `Macria.GeometryEngine.exe`, `motor-surumu.txt` → `2026.10.4.1` | GeometryLab `adce5dd`, x64 Release | Sac kuralı gerçek et genişliğine bakar: kalınlık, açınıma sığan en büyük dairenin çapını (halka genişliği, somun cidarı; dişli delikler dahil) geçiyorsa parça sac değildir. WGRV004423'te 4 parça Sheet → Other: `257300_Duplicate_10` (halka), `Hex nut with collar`, `355742`, `343221` (Ø30/Ø8,5 burç). 52 regresyon STEP'inin 51'inde fark sıfır; WGRV'de başka alan ve DXF değişmedi. Şema 1.2, JSON alanları aynı. Diğer 38 dosya aynı (34 DLL hash ile karşılaştırıldı, exe bağımlılıkları aynı). Önceki paket: Macria git geçmişinde bir önceki commit. |
 | 2026-10-04 | `Macria.GeometryEngine.exe`, `motor-surumu.txt` → `2026.10.5.1` | GeometryLab `aba237c`, x64 Release | Her parçada `classificationCode` (kararın nedeni: Sheet, HollowProfile, SheetProfileConflict, FlatPatternFailed, UnsupportedFaces, NotRecognized …) ve `recognitionEvidence` (sac kalınlığı ya da profil kesiti bulundu mu). Şema 1.2'de yalnız ek alanlar; 52 regresyon STEP'inde bu alanlar dışında fark sıfır. Diğer 38 dosya aynı. Önceki paket: Macria git geçmişinde bir önceki commit. |
 | 2026-10-04 | `Macria.GeometryEngine.exe`, `motor-surumu.txt` → `2026.10.5.2` | GeometryLab `80ef23d` (G1 `fe94414` + G4), x64 Release | Açınımda B-spline/elips kenar 0,05 mm içinde daireye uyuyorsa ARC, düzse LINE; uymayan parça parça bölünür, en son polyline (R12 POLYLINE). İşlenmiş plaka: ham kalınlık en dıştaki iki paralel yüzün arası, ara paralel yüzler işleme (`machiningPresent`, `machiningFaceIds`; parçada `machiningPresent`), açınım malzeme izdüşümü (dış hat ve boydan boya delikler). Şema 1.2'de yalnız ek alanlar (`segments[].points` yalnız polyline'da). 52 regresyon STEP'inden yalnız WGRV004423 değişti: 11 elle onaylı sac ve 243441 (t 20) DXF'li Sheet; 359147 dahil 22 parça kalınlık kurallarıyla Diğer. Diğer 38 dosya aynı (exe bağımlılıkları aynı). Önceki paket: Macria git geçmişinde bir önceki commit. |
+| 2026-10-05 | `licenses/` (yeni) | OCCT 8.0.1, OCCT 3rdparty paketi, upstream lisans metinleri | Her üçüncü taraf DLL'in lisans metni ve bildirimi (`00-DIZIN.txt`); DLL'ler değişmedi. Lisans kuralı eklendi. |

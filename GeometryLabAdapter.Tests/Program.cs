@@ -60,6 +60,7 @@ internal static class Program
             MacriaProjeTests();
             SekmeKurallariTests();
             UcuncuTarafBildirimleriTests();
+            RuntimeLisanslariTests();
             await RealProjectRoundTripAsync();
             await RealSinglePartPathAsync();
             RealOldProjectsTests();
@@ -496,6 +497,32 @@ internal static class Program
             "the Hakkında window shows the OCCT notice");
         Check(UcuncuTarafBildirimleri.BildirimDosyasi(Path.Combine(macria, "yok-boyle-klasor")) == null,
             "a missing notices file is reported as null");
+    }
+
+    // GeometryEngineRuntime/README.md lisans kuralı: every third-party file in
+    // GeometryEngineRuntime is named in licenses/00-DIZIN.txt and in
+    // THIRD_PARTY_NOTICES.txt; the OCCT DLL count matches what both say.
+    private static void RuntimeLisanslariTests()
+    {
+        string kok = RepoKoku();
+        string runtime = Path.Combine(kok, "GeometryEngineRuntime");
+        string dizin = File.ReadAllText(Path.Combine(runtime, "licenses", "00-DIZIN.txt"));
+        string bildirim = File.ReadAllText(Path.Combine(kok, "Macria", UcuncuTarafBildirimleri.DosyaAdi));
+        string[] dosyalar = Directory.GetFiles(runtime, "*.dll").Concat(Directory.GetFiles(runtime, "*.exe"))
+            .Select(Path.GetFileNameWithoutExtension).OfType<string>()
+            .Where(ad => !ad.StartsWith("Macria.", StringComparison.OrdinalIgnoreCase)).ToArray();
+        int occt = dosyalar.Count(ad => ad.StartsWith("TK", StringComparison.Ordinal));
+        Check(occt > 0 && dizin.Contains("TK*.dll (" + occt + " dosya)") && bildirim.Contains("TK*.dll (" + occt + " dosya)"),
+            "both license indexes name the " + occt + " OCCT DLLs");
+        foreach (string ad in dosyalar.Where(ad => !ad.StartsWith("TK", StringComparison.Ordinal)))
+            Check(dizin.Contains(ad, StringComparison.OrdinalIgnoreCase) && bildirim.Contains(ad, StringComparison.OrdinalIgnoreCase),
+                "third-party file " + ad + " is named in licenses/00-DIZIN.txt and THIRD_PARTY_NOTICES.txt");
+        foreach (string lisans in new[] { "LGPL-2.1.txt", "OCCT-LGPL-EXCEPTION.txt", "OCCT.txt", "FFmpeg.txt", "FreeImage.txt",
+                     "FreeImage-FIPL-1.0.txt", "FreeType-FTL.txt", "oneTBB-Apache-2.0.txt", "jemalloc-BSD-2.txt", "OpenVR-BSD-3.txt" })
+            Check(File.Exists(Path.Combine(runtime, "licenses", lisans)) && bildirim.Contains(lisans),
+                "license file " + lisans + " exists and THIRD_PARTY_NOTICES.txt points to it");
+        foreach (string lisans in Directory.GetFiles(Path.Combine(kok, "Macria", "licenses")).Select(Path.GetFileName))
+            Check(bildirim.Contains(lisans!), "THIRD_PARTY_NOTICES.txt points to licenses/" + lisans);
     }
 
     private static void SekmeKurallariTests()
