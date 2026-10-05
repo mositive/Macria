@@ -31,6 +31,15 @@
 			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
 			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
 		</Content>
+		<!-- Third-party notices: THIRD_PARTY_NOTICES.txt and licenses\ (WPF-UI,
+		     .NET) next to Macria.exe, outside the single-file bundle so they can
+		     be read; the engine's own licenses come with GeometryEngine\licenses\. -->
+		<None Remove="THIRD_PARTY_NOTICES.txt;licenses\**" />
+		<Content Include="THIRD_PARTY_NOTICES.txt;licenses\**\*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+		</Content>
 		<Resource Include="Assets\macria-logo.png" />
 		<Resource Include="Assets\tutorial-1.png" />
 		<Resource Include="Assets\tutorial-2.png" />

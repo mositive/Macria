@@ -1,0 +1,114 @@
+MACRIA – ÜÇÜNCÜ TARAF YAZILIM BİLDİRİMLERİ
+THIRD-PARTY SOFTWARE NOTICES
+==============================================================================
+
+Macria aşağıdaki üçüncü taraf yazılımları kullanır ve dağıtır. Tam lisans
+metinleri iki klasördedir:
+
+  licenses\                 Macria'nın kendi bileşenleri (WPF-UI, .NET)
+  GeometryEngine\licenses\  GeometryEngine DLL'leri (OCCT, FFmpeg, FreeImage, ...)
+
+------------------------------------------------------------------------------
+Bildirimler / Notices
+------------------------------------------------------------------------------
+
+Macria.GeometryEngine.exe and Macria.GeometryViewer.dll make use of facilities
+provided by the Open CASCADE Technology software. Open CASCADE Technology is
+licensed under the GNU Lesser General Public License version 2.1 with the
+Open CASCADE exception version 1.0.
+(Macria, Open CASCADE Technology yazılımının sağladığı olanakları kullanır.)
+
+This software uses libraries from the FFmpeg project under the LGPLv2.1.
+
+This software uses the FreeImage open source image library. See
+https://freeimage.sourceforge.io for details. FreeImage is used under the FIPL,
+version 1.0.
+
+This software is based in part on the work of the Independent JPEG Group.
+
+Portions of this software are copyright (C) 2024 The FreeType Project
+(https://freetype.org). All rights reserved.
+
+------------------------------------------------------------------------------
+Kaynak kodu / Source code
+------------------------------------------------------------------------------
+
+LGPL ve FIPL kapsamındaki bileşenlerin kaynak kodu (Open CASCADE Technology
+8.0.1, FFmpeg 3.3.4, FreeImage 3.18.0; LibRaw FreeImage kaynağındadır):
+
+  [iş yeri paylaşım klasörü – Enes ekleyecek]
+
+LGPL kütüphaneleri (OCCT, FFmpeg) GeometryEngine klasöründe ayrı DLL olarak
+dağıtılır; aynı sürümün uyumlu bir derlemesiyle değiştirilebilirler.
+
+------------------------------------------------------------------------------
+Bileşenler / Components
+------------------------------------------------------------------------------
+
+Open CASCADE Technology 8.0.1
+  Dosyalar : GeometryEngine\TK*.dll (24 dosya)
+  Lisans   : LGPL-2.1 + Open CASCADE exception 1.0
+  Telif    : (C) OPEN CASCADE SAS
+  Metin    : GeometryEngine\licenses\OCCT.txt, LGPL-2.1.txt, OCCT-LGPL-EXCEPTION.txt
+  Adres    : https://dev.opencascade.org
+
+FFmpeg 3.3.4 (LGPL-2.1+ derlemesi; GPL ve "nonfree" bileşen yok)
+  Dosyalar : GeometryEngine\avcodec-57.dll, avformat-57.dll, avutil-55.dll, swscale-4.dll
+  Lisans   : LGPL-2.1 or later
+  Metin    : GeometryEngine\licenses\FFmpeg.txt, LGPL-2.1.txt
+  Adres    : https://ffmpeg.org
+
+FreeImage 3.18.0
+  Dosya    : GeometryEngine\FreeImage.dll
+  Lisans   : FreeImage Public License 1.0 (FIPL)
+  İçerir   : LibJPEG 9c, LibPNG 1.6.35, LibTIFF 4.0.9, zlib 1.2.11, OpenJPEG,
+             OpenEXR 2.2, LibRaw 0.19 (LGPL-2.1), LibWebP 1.0.0, LibJXR 1.1
+  Metin    : GeometryEngine\licenses\FreeImage.txt, FreeImage-FIPL-1.0.txt
+  Adres    : https://freeimage.sourceforge.io
+
+FreeType 2.13.3
+  Dosya    : GeometryEngine\freetype.dll
+  Lisans   : FreeType License (FTL)
+  Metin    : GeometryEngine\licenses\FreeType-FTL.txt
+  Adres    : https://freetype.org
+
+oneAPI Threading Building Blocks (oneTBB) 2021.13.0
+  Dosya    : GeometryEngine\tbb12.dll
+  Lisans   : Apache License 2.0
+  Telif    : Copyright 2005-2024 Intel Corporation
+  Metin    : GeometryEngine\licenses\oneTBB-Apache-2.0.txt, oneTBB-third-party-programs.txt
+  Adres    : https://github.com/uxlfoundation/oneTBB
+
+jemalloc 5.3.0
+  Dosya    : GeometryEngine\jemalloc.dll
+  Lisans   : BSD-2-Clause
+  Telif    : Copyright (C) 2002-present Jason Evans and contributors
+  Metin    : GeometryEngine\licenses\jemalloc-BSD-2.txt
+  Adres    : https://jemalloc.net
+
+OpenVR SDK 1.14.15
+  Dosya    : GeometryEngine\openvr_api.dll
+  Lisans   : BSD-3-Clause
+  Telif    : Copyright (c) 2015, Valve Corporation
+  Metin    : GeometryEngine\licenses\OpenVR-BSD-3.txt
+  Adres    : https://github.com/ValveSoftware/openvr
+
+Microsoft Visual C++ çalışma zamanı 14.51
+  Dosyalar : GeometryEngine\MSVCP140.dll, VCRUNTIME140.dll, VCRUNTIME140_1.dll
+  Lisans   : Microsoft Visual Studio lisansı, yeniden dağıtılabilir kod
+  Metin    : GeometryEngine\licenses\MSVC-runtime.txt
+
+WPF-UI 4.3.0 ve WPF-UI.Abstractions 4.3.0
+  Dosyalar : Macria.exe içinde (Wpf.Ui.dll, Wpf.Ui.Abstractions.dll)
+  Lisans   : MIT
+  Telif    : Copyright (c) 2021-2025 Leszek Pomianowski and WPF UI Contributors
+  Metin    : licenses\WPF-UI-MIT.txt, licenses\WPF-UI-ThirdPartyNotices.txt
+  Adres    : https://github.com/lepoco/wpfui
+
+.NET 8 çalışma zamanı ve WPF (Microsoft.NETCore.App, Microsoft.WindowsDesktop.App 8.0)
+  Dosyalar : Macria.exe içinde (self-contained publish)
+  Lisans   : MIT ve bileşen bildirimleri
+  Telif    : Copyright (c) .NET Foundation and Contributors
+  Metin    : licenses\dotnet-MIT.txt, licenses\dotnet-THIRD-PARTY-NOTICES.txt,
+             licenses\dotnet-wpf-THIRD-PARTY-NOTICES.txt
+  Adres    : https://github.com/dotnet/runtime, https://github.com/dotnet/wpf
