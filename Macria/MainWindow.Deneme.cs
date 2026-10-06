@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace Macria;
 
@@ -14,6 +15,31 @@ namespace Macria;
 // project source and comes back with the project ("Dene" decision).
 public partial class MainWindow
 {
+    // Rows a run or Otomatik Karara Dön put in place: selected and shown afterwards.
+    private readonly List<IAnalizSatiri> _degisenSatirlar = new();
+
+    /// <summary>
+    /// The replaced rows stay selected: in the open tab where they still are,
+    /// in their new tab (scrolled into view) where they moved.
+    /// </summary>
+    private void DegisenSatirlariSec()
+    {
+        if (_degisenSatirlar.Count == 0) return;
+        AnalizSekmeleriniGuncelle();
+        foreach (IGrouping<AnalizSekmesi, IAnalizSatiri> grup in _degisenSatirlar.GroupBy(x => x.Sekme))
+        {
+            if (SekmeTablosu(grup.Key) is not DataGrid tablo) continue;
+            List<IAnalizSatiri> gorunen = grup.Where(x => tablo.Items.Contains(x)).ToList();
+            if (gorunen.Count == 0) continue;
+            tablo.SelectedItems.Clear();
+            foreach (IAnalizSatiri satir in gorunen) tablo.SelectedItems.Add(satir);
+            tablo.ScrollIntoView(gorunen[0]);
+        }
+        _degisenSatirlar.Clear();
+        AracCubugunuGuncelle();
+        SagPaneliGuncelle();
+    }
+
     /// <summary>One engine run: the parts (localIds) of one STEP and the run's mode (MacriaProje.Deneme*).</summary>
     private sealed record ParcaIsi(string Yol, List<int> Parcalar, string Mod);
 
@@ -148,6 +174,7 @@ public partial class MainWindow
             ProjeDurumunuGoster();
             ExternalStepProfilOzetiniGuncelle();
             AnalizSekmeleriniGuncelle();
+            DegisenSatirlariSec();
             SagPaneliGuncelle();
         }
     }
@@ -215,13 +242,17 @@ public partial class MainWindow
         List<MacriaProjeKarari> tasinan = MacriaProjeSatirlari.KararlariTopla(eskiProfil, eskiMontaj, _ => "")
             .Where(k => k.Karar is MacriaProje.KararListeDisi or MacriaProje.KararKalinlik or MacriaProje.KararDxfDosyasi)
             .ToList();
+        // The new rows take the old rows' place in their lists (not the end).
         int sira = eskiProfil.Count > 0 ? _externalStepProfileRows.IndexOf(eskiProfil[0]) : _externalStepProfileRows.Count;
+        int montajSirasi = eskiMontaj.Count > 0 ? _montajParcaRows.IndexOf(eskiMontaj[0]) : _montajParcaRows.Count;
         foreach (GeometryLabStepProfileListItem row in eskiProfil) _externalStepProfileRows.Remove(row);
         foreach (MontajParcaSatiri row in eskiMontaj) _montajParcaRows.Remove(row);
         sira = Math.Min(sira, _externalStepProfileRows.Count);
+        montajSirasi = Math.Min(montajSirasi, _montajParcaRows.Count);
         foreach (GeometryLabStepProfileListItem row in profil) _externalStepProfileRows.Insert(sira++, row);
-        foreach (MontajParcaSatiri row in montaj) _montajParcaRows.Add(row);
+        foreach (MontajParcaSatiri row in montaj) _montajParcaRows.Insert(montajSirasi++, row);
         var yeni = profil.Cast<IAnalizSatiri>().Concat(montaj).ToList();
+        _degisenSatirlar.AddRange(yeni);
         foreach (MacriaProjeKarari karar in tasinan)
         {
             object? hedef = yeni.FirstOrDefault(x => x.ParcaLocalId == karar.Parca?.LocalId);
@@ -249,6 +280,7 @@ public partial class MainWindow
         }
         ProjeDegisti();
         AnalizSekmeleriniGuncelle();
+        DegisenSatirlariSec();
         SagPaneliGuncelle();
     }
 

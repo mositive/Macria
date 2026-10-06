@@ -456,6 +456,8 @@ public partial class MainWindow
             _projeYukleniyor = true;
             try { denemeEslenemeyen.AddRange(await DenemeleriUygulaAsync(denemeEslenen, acilis, taranan.Contains)); }
             finally { _projeYukleniyor = false; }
+            // Rows put back by the project are not a fresh run: nothing is selected for them.
+            _degisenSatirlar.Clear();
         }
         var (eslenen, eslenemeyen) = MacriaProje.KararlariEsle(kararlar.Except(denemeler),
             MacriaProjeSatirlari.Adaylar(_externalStepProfileRows, _montajParcaRows, ProjeKaynakId), taranan.Contains);
