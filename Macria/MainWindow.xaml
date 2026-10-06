@@ -2101,7 +2101,8 @@
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                     <WrapPanel x:Name="pnlAnalizAraclari" Grid.Row="0" Margin="0,0,0,4">
                         <TextBox x:Name="txtAnalizArama" Style="{StaticResource SearchBox}" Width="230" Height="28" Margin="0,0,12,6"
-                                 ToolTip="Parça adına göre bütün sekmeleri ve Lazer / Şalama alt sekmelerini süzer; Esc temizler"
+                                 ToolTip="Parça adına göre bütün sekmeleri ve Lazer / Şalama alt sekmelerini süzer. Birden çok parça: virgül, noktalı virgül ya da alt alta (Excel'den yapıştırın); herhangi birini içeren satır görünür. Esc temizler"
+                                 DataObject.Pasting="txtAnalizArama_Pasting"
                                  TextChanged="txtAnalizArama_TextChanged" KeyDown="txtAnalizArama_KeyDown"/>
                         <Button x:Name="btnAnalizExcel" local:DugmeIkonu.Ikon="{StaticResource Icon.ExcelExport}" Style="{StaticResource SecondaryButton}" Content="Excel'e Aktar" Height="28" Padding="10,0" Margin="0,0,6,6"
                                 ToolTip="Açık sekmenin görünen sütunlarını ve satırlarını Excel'e yazar" Click="btnAnalizExcel_Click"/>

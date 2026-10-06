@@ -122,19 +122,38 @@ public static class SekmeKurallari
         _ => AnalizSekmesi.KontrolGerekli
     };
 
+    // Search terms are separated by comma, semicolon, line break or tab.
+    private static readonly char[] AramaAyraclari = { ',', ';', '\r', '\n', '\t' };
+
+    /// <summary>The search's terms: split at the separators, spaces removed, empty ones dropped.</summary>
+    public static IReadOnlyList<string> AramaTerimleri(string? arama) =>
+        (arama ?? "").Split(AramaAyraclari).Select(BosluksuzMetin).Where(x => x.Length > 0).ToList();
+
+    private static string BosluksuzMetin(string metin) => new(metin.Where(c => !char.IsWhiteSpace(c)).ToArray());
+
     /// <summary>
-    /// The tab search: the text (case and Turkish letters ignored) in the part
-    /// name, the part column ("file › part") or the STEP file name. Empty matches all.
+    /// The tab search: a row matches when one of the terms (AramaTerimleri) is in
+    /// the part name, the part column ("file › part") or the STEP file name;
+    /// case, Turkish letters and spaces ignored. No term matches all.
     /// </summary>
     public static bool AramayaUyar(IAnalizSatiri satir, string? arama)
     {
-        string aranan = (arama ?? "").Trim();
-        if (aranan.Length == 0) return true;
+        IReadOnlyList<string> terimler = AramaTerimleri(arama);
+        if (terimler.Count == 0) return true;
         var tr = System.Globalization.CultureInfo.GetCultureInfo("tr-TR").CompareInfo;
         const System.Globalization.CompareOptions secenek = System.Globalization.CompareOptions.IgnoreCase;
-        bool Icerir(string? metin) => !string.IsNullOrEmpty(metin) && tr.IndexOf(metin, aranan, secenek) >= 0;
-        return Icerir(satir.ParcaAdi) || Icerir(satir.ParcaGosterimi) || Icerir(System.IO.Path.GetFileName(satir.KaynakYolu));
+        string[] alanlar = new[] { satir.ParcaAdi, satir.ParcaGosterimi, System.IO.Path.GetFileName(satir.KaynakYolu) }
+            .Where(x => !string.IsNullOrEmpty(x)).Select(x => BosluksuzMetin(x!)).ToArray();
+        return terimler.Any(terim => alanlar.Any(alan => tr.IndexOf(alan, terim, secenek) >= 0));
     }
+
+    /// <summary>
+    /// Text pasted into the one-line search box: lines (a column copied from
+    /// Excel) become terms joined with ", ", so no line is lost.
+    /// </summary>
+    public static string AramaYapistir(string? metin) =>
+        string.Join(", ", (metin ?? "").Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None)
+            .Select(x => x.Trim()).Where(x => x.Length > 0));
 
     /// <summary>A part the engine identified as neither sheet nor profile (shown as "Diğer").</summary>
     public static bool Diger(string kod) =>

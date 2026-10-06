@@ -1551,6 +1551,19 @@ internal static class Program
         var profil = new GeometryLabStepProfileListItem { SourceStepPath = "C:\\m.stp", PartName = "Kutu", PartQuantity = 3 };
         Check(SekmeKurallari.AramayaUyar(profil, "kutu") && SekmeKurallari.AramayaUyar(profil, "M.STP") &&
               !SekmeKurallari.AramayaUyar(profil, "sac"), "profile rows are searched by part and file name");
+        // (B) Several terms: any one matches; comma, semicolon, line break and tab; spaces and case ignored.
+        var p1 = new GeometryLabStepProfileListItem { SourceStepPath = "C:\\w.stp", PartName = "55RS100111-7", PartQuantity = 1 };
+        var p2 = new GeometryLabStepProfileListItem { SourceStepPath = "C:\\w.stp", PartName = "236948", PartQuantity = 4 };
+        var p3 = new GeometryLabStepProfileListItem { SourceStepPath = "C:\\w.stp", PartName = "M5 Baskı", PartQuantity = 2 };
+        var p4 = new GeometryLabStepProfileListItem { SourceStepPath = "C:\\w.stp", PartName = "434865", PartQuantity = 4 };
+        var hepsi = new[] { p1, p2, p3, p4 };
+        string Bulunan(string arama) => string.Join("|", hepsi.Where(x => SekmeKurallari.AramayaUyar(x, arama)).Select(x => x.PartName));
+        Check(Bulunan("236948, m5 BASKI;55RS 100111-7") == "55RS100111-7|236948|M5 Baskı", "three terms, mixed separators: " + Bulunan("236948, m5 BASKI;55RS 100111-7"));
+        Check(Bulunan("236948\r\n434865\t m5BASKI") == "236948|M5 Baskı|434865", "line breaks and tabs separate terms: " + Bulunan("236948\r\n434865\t m5BASKI"));
+        Check(Bulunan("236948,, ;  ,") == "236948" && Bulunan(" , ; ") == "55RS100111-7|236948|M5 Baskı|434865" &&
+              SekmeKurallari.AramaTerimleri(" , ;\n ").Count == 0, "empty terms are dropped; no term matches all");
+        Check(SekmeKurallari.AramaYapistir("236948\r\n434865\r\n\r\nM5 Baskı\r\n") == "236948, 434865, M5 Baskı" &&
+              SekmeKurallari.AramaYapistir("tek") == "tek", "a column pasted from Excel becomes \", \"-separated terms");
     }
 
     // Toplu DXF's "Güncelle" for Saclar: a DXF written under the old thickness

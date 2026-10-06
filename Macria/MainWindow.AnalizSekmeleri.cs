@@ -67,9 +67,17 @@ public partial class MainWindow
         e.Handled = true;
     }
 
+    // A column pasted from Excel: its lines become ", "-separated terms (the
+    // one-line box would keep only the first line).
+    private void txtAnalizArama_Pasting(object sender, DataObjectPastingEventArgs e)
+    {
+        if (e.DataObject.GetData(DataFormats.UnicodeText) is not string metin || !metin.Contains('\n') && !metin.Contains('\r')) return;
+        e.DataObject = new DataObject(DataFormats.UnicodeText, SekmeKurallari.AramaYapistir(metin));
+    }
+
     /// <summary>"Saclar (12)", or while searching "Saclar (3 / 12)".</summary>
     private string SekmeBasligi(string ad, int bulunan, int toplam) =>
-        ad + " (" + (_analizArama.Length == 0 ? toplam.ToString() : bulunan + " / " + toplam) + ")";
+        ad + " (" + (SekmeKurallari.AramaTerimleri(_analizArama).Count == 0 ? toplam.ToString() : bulunan + " / " + toplam) + ")";
 
     // A row's place in the mixed tabs, by its part (STEP + localId; a file
     // row by itself): given when the part first appears, kept when a run
