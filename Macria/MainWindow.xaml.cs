@@ -353,8 +353,8 @@ namespace Macria
             KonsoluUygula();
             OnizlemeyiUygula();
 
-            LogInfo("Macria v" + AboutWindow.SurumMetni() +
-                    " Hazır — Sheet Metal filtresi TR/EN / Teşhis açık.");
+            LogInfo("Macria v" + AboutWindow.SurumMetni() + " Hazır — " + AcilisMotorSurumu() +
+                    " — Sheet Metal filtresi TR/EN / Teşhis açık.");
 
             if (Ayarlar.KonumVar)
                 LogInfo(SaveAsBulucu.VarMi()

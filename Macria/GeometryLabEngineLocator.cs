@@ -49,8 +49,17 @@ public sealed record GeometryLabMotorKimligi
         {
             if (_onbellek is { } o && o.Yol == yol && o.Zaman == zaman) return o.Kimlik;
         }
+        GeometryLabMotorKimligi surum = SurumOku(yol);
+        var kimlik = surum with { Sha256 = DosyaSha256(yol) };
+        lock (Kilit) _onbellek = (yol, zaman, kimlik);
+        return kimlik;
+    }
+
+    /// <summary>Version and commit from motor-surumu.txt next to the exe, without the hash (fast, for display).</summary>
+    public static GeometryLabMotorKimligi SurumOku(string exePath)
+    {
         string? surum = null, commit = null;
-        string surumDosyasi = Path.Combine(Path.GetDirectoryName(yol) ?? "", SurumDosyasi);
+        string surumDosyasi = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(exePath)) ?? "", SurumDosyasi);
         if (File.Exists(surumDosyasi))
         {
             string[] satirlar = File.ReadAllLines(surumDosyasi)
@@ -58,9 +67,7 @@ public sealed record GeometryLabMotorKimligi
             if (satirlar.Length > 0 && Version.TryParse(satirlar[0], out _)) surum = satirlar[0];
             if (satirlar.Length > 1) commit = satirlar[1];
         }
-        var kimlik = new GeometryLabMotorKimligi { Surum = surum, Commit = commit, Sha256 = DosyaSha256(yol) };
-        lock (Kilit) _onbellek = (yol, zaman, kimlik);
-        return kimlik;
+        return new GeometryLabMotorKimligi { Surum = surum, Commit = commit };
     }
 
     /// <summary>

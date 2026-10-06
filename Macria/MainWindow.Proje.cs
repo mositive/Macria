@@ -146,6 +146,20 @@ public partial class MainWindow
     private static string MotorSurumuMetni(GeometryLabMotorKimligi? motor) =>
         "Motor " + (motor?.Gosterim ?? "sürümü okunamadı");
 
+    /// <summary>"Motor 2026.10.6.2 (abc1234)" for the start-up line; read from motor-surumu.txt only.</summary>
+    private static string AcilisMotorSurumu()
+    {
+        try
+        {
+            GeometryLabEngineLocation engine = GeometryLabEngineLocator.Locate();
+            return engine.IsAvailable ? MotorSurumuMetni(GeometryLabMotorKimligi.SurumOku(engine.ExecutablePath!)) : "Motor bulunamadı";
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return "Motor sürümü okunamadı";
+        }
+    }
+
     private static GeometryLabMotorKimligi? MotorKimliginiOku(GeometryLabEngineLocation engine)
     {
         if (!engine.IsAvailable) return null;
