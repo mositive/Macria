@@ -23,6 +23,9 @@ public partial class MainWindow
     private async void btnAnalizProfilDene_Click(object sender, RoutedEventArgs e) =>
         await SeciliParcalariCalistirAsync(SeciliAnalizSatirlari(), MacriaProje.DenemeProfil);
 
+    private async void btnAnalizSacDene_Click(object sender, RoutedEventArgs e) =>
+        await SeciliParcalariCalistirAsync(SeciliAnalizSatirlari(), MacriaProje.DenemeSac);
+
     private static string IsBasligi(string mod) => mod switch
     {
         MacriaProje.DenemeProfil => "Profil olarak dene",

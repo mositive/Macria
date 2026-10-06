@@ -2862,6 +2862,27 @@ internal static class Program
               ((IAnalizSatiri)profilDenemesi).Ayrintilar.Any(x => x.Key == "Durum" && x.Value.EndsWith(" (deneme)")),
             "a trial shows \"(deneme)\" after the status, in Seçili Parça too");
 
+        // Sac olarak dene: a part the engine now calls a sheet is approved (no DXF: from CATIA).
+        GeometryLabProcessAdapterResult sacSonuc = EkSonuc(5) with
+        {
+            Analysis = EkSonuc(5).Analysis! with
+            {
+                AnalysisMode = "TrialSheet",
+                Parts = new[] { analysis.Parts[4] with { Classification = "Sheet", ClassificationCode = MotorSinifKodu.Sheet, RecognitionEvidence = true } },
+                SheetMetalAnalyses = new[]
+                {
+                    new GeometryLabSheetMetalTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 5 }, Status = "Recognized", ThicknessMm = 44 }
+                }
+            }
+        };
+        var (_, sacMontaj) = MacriaProjeSatirlari.EkSatirlari("C:\\m.stp", sacSonuc, 20, new SatirDenemesi(MacriaProje.DenemeSac, "e4"));
+        Check(sacMontaj.Count == 1 && sacMontaj[0].EffectiveCategory == MontajParcaKategorisi.Sac && sacMontaj[0].Sekme == AnalizSekmesi.Saclar &&
+              sacMontaj[0].StatusDisplay == "Sac (deneme)" && sacMontaj[0].IsThickPlate &&
+              sacMontaj[0].KullaniciKarariMetni.StartsWith("Sac olarak denendi; Sac olarak onaylandı (açınım yok, DXF CATIA'dan)"),
+            "a sheet trial's sheet is approved, marked \"(deneme)\", grouped by its thickness: " + sacMontaj[0].StatusDisplay + " / " +
+            sacMontaj[0].KullaniciKarariMetni);
+        Check(IslemeMetni.Kisa(true, new[] { "Machined" }) == "var (kabuk dışı)", "trial machining has its own text");
+
         // Decisions: a run is a "Dene" decision naming the run, with the part.
         List<MacriaProjeKarari> kararlar = MacriaProjeSatirlari.KararlariTopla(profil, montaj, _ => "k1");
         MacriaProjeKarari? dene = kararlar.FirstOrDefault(k => k.Karar == MacriaProje.KararDene && k.Parca?.LocalId == 5);

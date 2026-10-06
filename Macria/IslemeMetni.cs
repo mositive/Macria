@@ -35,6 +35,8 @@ public static class IslemeMetni
             "Engraving" => "gravür",
             "Embossing" => "kabartma",
             "Pocket" => ayrinti ? "cep, basamak, havşa / imbus başı" : "cep",
+            // Sac olarak dene: faces left outside the skins taken as machining.
+            "Machined" => ayrinti ? "kabuk dışı yüzler (sac denemesi)" : "kabuk dışı",
             _ => null
         })
         .OfType<string>().Distinct().ToList();

@@ -2190,6 +2190,8 @@
                                 ToolTip="Seçili parçaları motorla süre sınırı olmadan yeniden analiz eder (otomatik kurallar); çoklu seçimde STEP başına tek çalıştırma" Click="btnAnalizYenidenAnaliz_Click"/>
                         <Button x:Name="btnAnalizProfilDene" Style="{StaticResource SecondaryButton}" Content="Profil Olarak Dene" Height="28" Padding="10,0" Margin="0,0,6,6"
                                 ToolTip="Seçili parçalara yalnız profil tanıyıcısını gevşetilmiş kurallarla uygular (kısa boy, tek tutarlı içi boş eksen); kesit, et, boy ve uç kesimini motor ölçer" Click="btnAnalizProfilDene_Click"/>
+                        <Button x:Name="btnAnalizSacDene" Style="{StaticResource SecondaryButton}" Content="Sac Olarak Dene" Height="28" Padding="10,0" Margin="0,0,6,6"
+                                ToolTip="Seçili parçalara yalnız sac tanıyıcısını gevşetilmiş kurallarla uygular (levha değil kuralları yok, alanın en çok %10'u artık yüz işleme); tanınan parça onaylı sac olur, açınım yoksa DXF CATIA'dan" Click="btnAnalizSacDene_Click"/>
                         <Button x:Name="btnAnalizOtomatik" Style="{StaticResource SecondaryButton}" Content="Otomatik Karara Dön" Height="28" Padding="10,0" Margin="0,0,6,6"
                                 ToolTip="Seçili satırlardaki kullanıcı kararını ve yeniden analiz / deneme sonucunu kaldırır" Click="btnAnalizOtomatik_Click"/>
                         <Button x:Name="btnAnalizGeriAl" Style="{StaticResource SecondaryButton}" Content="Geri Al" Height="28" Padding="10,0" Margin="0,0,6,6"

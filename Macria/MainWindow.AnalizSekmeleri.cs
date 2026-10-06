@@ -209,6 +209,8 @@ public partial class MainWindow
         // The trials go with Yeniden Analiz Et: same tabs, same rows.
         btnAnalizProfilDene.Visibility = Gorunur(durum.YenidenAnalizGorunur);
         btnAnalizProfilDene.IsEnabled = durum.YenidenAnalizEtkin;
+        btnAnalizSacDene.Visibility = Gorunur(durum.YenidenAnalizGorunur);
+        btnAnalizSacDene.IsEnabled = durum.YenidenAnalizEtkin;
     }
 
     // One right panel for every tab: the 3D view (in Saclar also the engine

@@ -74,7 +74,15 @@ public static class MacriaProjeSatirlari
         if (!ParcaYolundan(ek)) return (new(), new());
         var (profil, montaj) = MontajSatirlari(stepPath, ek, laserMaximumMm);
         foreach (GeometryLabStepProfileListItem row in profil) row.DenemeyiIsaretle(deneme);
-        foreach (MontajParcaSatiri row in montaj) row.DenemeyiIsaretle(deneme);
+        foreach (MontajParcaSatiri row in montaj)
+        {
+            row.DenemeyiIsaretle(deneme);
+            // The user asked for a sheet and the engine found one: it is approved
+            // (with or without a flat pattern), marked "(deneme)".
+            if (deneme.Mod == MacriaProje.DenemeSac && row.EngineCode == MotorSinifKodu.Sheet &&
+                row.EffectiveCategory == MontajParcaKategorisi.OnayGerekli)
+                row.ApproveAsSheet();
+        }
         return (profil, montaj);
     }
 
