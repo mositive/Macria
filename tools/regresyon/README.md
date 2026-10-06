@@ -5,8 +5,9 @@ Regresyon seti repoda değil, `Masaüstü\Macria-Regresyon\` altındadır (OneDr
 ```
 Macria-Regresyon\
   stepler\       12 STEP (her biri kendi klasöründe)
-  projeler\      WGRV004423 A.macria, B-Rep Calisma A.macria
-  referans-dxf\  CATIA DXF'leri (1201_Baski_Kolu, 1201_Mafsal; t = 2 mm)
+  projeler\      WGRV004423 A.macria, B-Rep Calisma A.macria, toplucalisma.macria, toplucalismaR1 A.macria
+  referans-dxf\  CATIA DXF'leri: 1201_Baski_Kolu, 1201_Mafsal (t = 2 mm);
+                 sac-lazer\ 7 dosya (55RS100111-1, -2, -3, -4, -8, -9, -12; motor DXF'iyle karşılaştırma için)
   temel\<motor sürümü>\   o motorla alınmış temel çıktılar
 ```
 
