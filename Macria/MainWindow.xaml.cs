@@ -291,7 +291,7 @@ namespace Macria
             // Bekleme suresi, ogretilmis Save As konumu ve son kurlar
             // makineye ozel; her acilista kullanicinin profilinden okunur
             Ayarlar.Yukle();
-            DugmeIkonu.YalnizIkon = Ayarlar.DugmeYalnizIkon;
+            DugmeIkonu.Uygula(Ayarlar.DugmeYalnizIkon, Ayarlar.EtkinDugmeBoyutu);
 
             // Ham Sac yalnizca acik tarama oturumunda yasasin. Eski surumlerin
             // diske yazdigi degerler de ilk acilista temizlenir.

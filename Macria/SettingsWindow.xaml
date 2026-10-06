@@ -252,10 +252,20 @@
                             <ComboBoxItem Content="İkon ve ad"/>
                             <ComboBoxItem Content="Yalnız ikon"/>
                         </ComboBox>
+                        <TextBlock Text="İkon Boyutu" FontSize="12"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="0,14,0,5"/>
+                        <ComboBox x:Name="cmbDugmeBoyutu" Style="{StaticResource AppCombo}"
+                                  Width="260" HorizontalAlignment="Left"
+                                  AutomationProperties.Name="İkon Boyutu">
+                            <ComboBoxItem Content="Küçük (ikon 16, buton 36 px)"/>
+                            <ComboBoxItem Content="Orta (ikon 24, buton 40 px)"/>
+                            <ComboBoxItem Content="Büyük (ikon 32, buton 48 px)"/>
+                        </ComboBox>
                         <TextBlock TextWrapping="Wrap" FontSize="12.5" LineHeight="19"
                                    Foreground="{StaticResource TextSecondaryBrush}"
                                    Margin="0,8,0,0"
-                                   Text="Dosya Analiz Merkezi'ndeki butonlar (proje çubuğu, sekme araç çubuğu, 2B / 3B önizleme). Yalnız ikon modunda butonun adı ipucunda görünür. Kaydet'e basınca hemen uygulanır."/>
+                                   Text="Bütün ekranlardaki ikonlu butonlar (Dosya Analiz Merkezi, Toplu DXF, DXF Düzenleme, Plaka Yerleşimi). İkon ve ad Küçük, Yalnız ikon Büyük boyutla başlar; boyutu değiştirebilirsiniz. Yalnız ikon modunda butonun adı ipucunda görünür. Kaydet'e basınca hemen uygulanır."/>
                     </StackPanel>
                 </Border>
 

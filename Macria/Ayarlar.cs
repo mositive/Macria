@@ -82,6 +82,9 @@ namespace Macria
         // "Buton görünümü": Dosya Analiz Merkezi butonlarinda yalniz ikon
         // (false = ikon ve ad). DugmeIkonu.YalnizIkon ile aninda uygulanir.
         public static bool DugmeYalnizIkon;
+        // "Ikon boyutu"; null: gorunumun varsayilani (Ikon ve ad Kucuk, Yalniz ikon Buyuk).
+        public static DugmeBoyutu? DugmeBoyutuSecimi;
+        public static DugmeBoyutu EtkinDugmeBoyutu => DugmeBoyutuSecimi ?? DugmeIkonu.VarsayilanBoyut(DugmeYalnizIkon);
 
         // TimeSpan.Zero: no whole-run limit.
         public static TimeSpan GeometryLabZamanAsimi()
@@ -158,6 +161,9 @@ namespace Macria
                         case "BukumBilgisiDxf": BukumBilgisiDxf = deger != "0"; break;
                         case "GomuluTeshisKaydi": GomuluTeshisKaydi = deger == "1"; break;
                         case "DugmeGorunumu": DugmeYalnizIkon = deger == "YalnizIkon"; break;
+                        case "DugmeBoyutu":
+                            DugmeBoyutuSecimi = Enum.TryParse(deger, out DugmeBoyutu boyut) && Enum.IsDefined(boyut) ? boyut : null;
+                            break;
                         case "LazerAzamiKalinlikMm":
                             double lazer = Ondalik(deger, LazerAzamiKalinlikMm);
                             if (lazer > 0) LazerAzamiKalinlikMm = lazer;
@@ -213,7 +219,8 @@ namespace Macria
                     "LazerAzamiKalinlikMm=" + LazerAzamiKalinlikMm.ToString(CultureInfo.InvariantCulture),
                     "BukumBilgisiDxf=" + (BukumBilgisiDxf ? "1" : "0"),
                     "GomuluTeshisKaydi=" + (GomuluTeshisKaydi ? "1" : "0"),
-                    "DugmeGorunumu=" + (DugmeYalnizIkon ? "YalnizIkon" : "IkonVeAd")
+                    "DugmeGorunumu=" + (DugmeYalnizIkon ? "YalnizIkon" : "IkonVeAd"),
+                    "DugmeBoyutu=" + (DugmeBoyutuSecimi?.ToString() ?? "")
                 };
 
                 File.WriteAllLines(DosyaYolu(), satirlar);

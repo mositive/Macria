@@ -31,6 +31,10 @@ namespace Macria
             chkFareUyarisi.IsChecked = !Ayarlar.FareUyarisiGizle;
             chkBukumKapat.IsChecked = Ayarlar.BukumKapat;
             cmbDugmeGorunumu.SelectedIndex = Ayarlar.DugmeYalnizIkon ? 1 : 0;
+            cmbDugmeBoyutu.SelectedIndex = (int)Ayarlar.EtkinDugmeBoyutu;
+            // A new view starts with its own size (İkon ve ad Küçük, Yalnız ikon Büyük); the user may change it.
+            cmbDugmeGorunumu.SelectionChanged += (_, _) =>
+                cmbDugmeBoyutu.SelectedIndex = (int)DugmeIkonu.VarsayilanBoyut(cmbDugmeGorunumu.SelectedIndex == 1);
 
             KonumYaz();
             BukumYaz();
@@ -290,9 +294,10 @@ namespace Macria
             Ayarlar.ParcaSureSiniriSaniye = Sayi(txtParcaSureSiniri.Text, Ayarlar.ParcaSureSiniriSaniye, 0, 86400);
             Ayarlar.MotorIsParcacigi = Sayi(txtMotorIsParcacigi.Text, Ayarlar.MotorIsParcacigi, 0, 256);
             Ayarlar.DugmeYalnizIkon = cmbDugmeGorunumu.SelectedIndex == 1;
+            Ayarlar.DugmeBoyutuSecimi = (DugmeBoyutu)Math.Max(0, cmbDugmeBoyutu.SelectedIndex);
             Ayarlar.Kaydet();
             // No restart: every icon button follows at once.
-            DugmeIkonu.YalnizIkon = Ayarlar.DugmeYalnizIkon;
+            DugmeIkonu.Uygula(Ayarlar.DugmeYalnizIkon, Ayarlar.EtkinDugmeBoyutu);
 
             DialogResult = true;
             Close();

@@ -2,12 +2,15 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Macria"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
         <ResourceDictionary.MergedDictionaries>
             <!-- Buton ikonlari (Tasarim/Macria_Tum_Butonlar_WPF): DrawingImage "Icon.*" anahtarlari -->
             <ResourceDictionary Source="Ikonlar/MacriaAllIcons.xaml"/>
+            <!-- Sekme ikonlari (Macria_Sekmeler_WPF; TabIcon.Profiles: Macria_Uzun_Profil) -->
+            <ResourceDictionary Source="Ikonlar/MacriaTabResources.xaml"/>
         </ResourceDictionary.MergedDictionaries>
 
         <!-- ======== FONTLAR ======== -->
@@ -46,12 +49,21 @@
         <!-- "Buton gorunumu" (Ayarlar): DugmeIkonu.YalnizIkon bu ikisini degistirir -->
         <Visibility x:Key="DugmeYazisiGorunurlugu">Visible</Visibility>
         <Thickness x:Key="DugmeIkonBoslugu">0,0,6,0</Thickness>
+        <!-- "Ikon boyutu" (Ayarlar): Kucuk 16 / 36, Orta 24 / 40, Buyuk 32 / 48 -->
+        <sys:Double x:Key="DugmeIkonBoyutu">16</sys:Double>
+        <sys:Double x:Key="DugmeYuksekligi">36</sys:Double>
+        <sys:Double x:Key="DugmeKareGenislik">0</sys:Double>
+        <Thickness x:Key="DugmeIcBoslugu">10,0,10,0</Thickness>
         <!-- local:DugmeIkonu.Ikon verilen butonun icerigi: ikon + metin (Content metin kalir) -->
         <DataTemplate x:Key="IkonluDugmeIcerigi">
             <StackPanel Orientation="Horizontal">
-                <Image x:Name="ikon" Width="16" Height="16" Stretch="Uniform" VerticalAlignment="Center"
+                <Image x:Name="ikon" Width="{DynamicResource DugmeIkonBoyutu}" Height="{DynamicResource DugmeIkonBoyutu}"
+                       Stretch="Uniform" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5"
                        Margin="{DynamicResource DugmeIkonBoslugu}"
                        local:DugmeIkonu.CizgiFircasi="{DynamicResource MacriaIconForeground}">
+                    <Image.RenderTransform>
+                        <RotateTransform x:Name="donus"/>
+                    </Image.RenderTransform>
                     <Image.Source>
                         <MultiBinding Converter="{x:Static local:DugmeIkonu.Boyayici}">
                             <Binding Path="(local:DugmeIkonu.Ikon)" RelativeSource="{RelativeSource AncestorType=ButtonBase}"/>
@@ -59,13 +71,47 @@
                         </MultiBinding>
                     </Image.Source>
                 </Image>
-                <TextBlock Text="{Binding}" VerticalAlignment="Center" Visibility="{DynamicResource DugmeYazisiGorunurlugu}"/>
+                <TextBlock x:Name="yazi" Text="{Binding}" VerticalAlignment="Center" Visibility="{DynamicResource DugmeYazisiGorunurlugu}"/>
             </StackPanel>
             <DataTemplate.Triggers>
+                <!-- Her gorunumde yalniz ikon (DugmeIkonu.HepIkon) -->
+                <DataTrigger Binding="{Binding (local:DugmeIkonu.HepIkon), RelativeSource={RelativeSource AncestorType=ButtonBase}}" Value="True">
+                    <Setter TargetName="yazi" Property="Visibility" Value="Collapsed"/>
+                    <Setter TargetName="ikon" Property="Margin" Value="0"/>
+                </DataTrigger>
                 <DataTrigger Binding="{Binding IsEnabled, RelativeSource={RelativeSource AncestorType=ButtonBase}}" Value="False">
                     <Setter TargetName="ikon" Property="Opacity" Value="0.38"/>
                 </DataTrigger>
+                <!-- Is surerken ikon doner (DugmeIkonu.Donuyor) -->
+                <DataTrigger Binding="{Binding (local:DugmeIkonu.Donuyor), RelativeSource={RelativeSource AncestorType=ButtonBase}}" Value="True">
+                    <DataTrigger.EnterActions>
+                        <BeginStoryboard x:Name="donusAnimasyonu">
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetName="donus" Storyboard.TargetProperty="Angle"
+                                                 From="0" To="360" Duration="0:0:0.9" RepeatBehavior="Forever"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </DataTrigger.EnterActions>
+                    <DataTrigger.ExitActions>
+                        <StopStoryboard BeginStoryboardName="donusAnimasyonu"/>
+                    </DataTrigger.ExitActions>
+                </DataTrigger>
             </DataTemplate.Triggers>
+        </DataTemplate>
+        <!-- local:DugmeIkonu.Ikon verilen sekmenin basligi: ikon + ad + adet (Header metni sayac bagina bagli kalir) -->
+        <DataTemplate x:Key="IkonluSekmeBasligi">
+            <StackPanel Orientation="Horizontal">
+                <Image Width="16" Height="16" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,7,0"
+                       local:DugmeIkonu.CizgiFircasi="{DynamicResource MacriaIconForeground}">
+                    <Image.Source>
+                        <MultiBinding Converter="{x:Static local:DugmeIkonu.Boyayici}">
+                            <Binding Path="(local:DugmeIkonu.Ikon)" RelativeSource="{RelativeSource AncestorType=TabItem}"/>
+                            <Binding Path="(local:DugmeIkonu.CizgiFircasi)" RelativeSource="{RelativeSource Self}"/>
+                        </MultiBinding>
+                    </Image.Source>
+                </Image>
+                <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+            </StackPanel>
         </DataTemplate>
 
         <!-- Ince, yuvarlak ilerleme cubugu: sayili asamada vurgu renginde dolar;

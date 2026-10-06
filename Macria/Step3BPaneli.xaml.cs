@@ -231,15 +231,13 @@ public partial class Step3BPaneli : UserControl
     }
 
     // Kompakt matches the embedded tab toolbars, Normal the "Büyük Aç" window.
+    // The buttons' height and padding follow "İkon boyutu" (DugmeIkonu); only the gap differs.
     private void BoyutuUygula()
     {
         bool normal = _boyut == Step3BPaneliBoyutu.Normal;
         foreach (UIElement child in aracCubugu.Children)
         {
             if (child is not Button button) continue;
-            button.Height = normal ? 30 : 25;
-            button.Padding = normal ? new Thickness(10, 0, 10, 0)
-                : button == btnBuyukAc ? new Thickness(9, 0, 9, 0) : new Thickness(7, 0, 7, 0);
             button.Margin = normal ? new Thickness(0, 0, 5, 5) : new Thickness(0, 0, 4, 4);
         }
     }
