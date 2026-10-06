@@ -1772,6 +1772,15 @@ internal static class Program
         baski.ApproveAsSheet();
         Check(baski.SacGibi && baski.ThicknessDisplay == "44 mm" && baski.OlcuGosterimiMetni == "t = 44 mm",
             "approved as a sheet, the thickness is shown again");
+        // (3) A closed section (236948, a box profile) is no "Sac?".
+        MontajParcaSatiri kutu = MontajParcaSatiri.Olustur("C:\\m.stp", olculen with
+        {
+            SheetMetalAnalyses = new[]
+            {
+                new GeometryLabSheetMetalTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 5 }, Status = "NotSheet", ThicknessMm = 4, ClosedSection = true }
+            }
+        }, analysis.Parts[4] with { ClassificationCode = MotorSinifKodu.NotRecognized, RecognitionEvidence = true }, null, 20);
+        Check(((IAnalizSatiri)kutu).TurGosterimi == "Kapalı kesit", "a closed section's type: " + ((IAnalizSatiri)kutu).TurGosterimi);
         MontajParcaSatiri bos = Row(4, null);
         Check(bos.EngineCode == MotorSinifKodu.NotRecognized && !bos.EngineEvidence &&
               bos.EffectiveCategory == MontajParcaKategorisi.Tanimsiz && bos.Sekme == AnalizSekmesi.Tanimsiz,

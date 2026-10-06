@@ -83,6 +83,8 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
                            KalinlikDuzeltildi;
     /// <summary>The part's own size for a part that is no sheet: "Ø12 × 80", "40 × 40 × 100", or "—".</summary>
     public string GovdeOlcusu { get; init; } = "—";
+    /// <summary>The sheet recognizer found a closed section (tube, box profile): no sheet, whatever its thickness.</summary>
+    public bool KapaliKesit { get; init; }
     /// <summary>Profil / Sac olarak dene are closed to the part (DenemeKapisi): e.g. a shaft; null when open.</summary>
     public string? DenemeyeKapaliNedeni { get; init; }
     public string ThicknessDisplay => SacGibi && EtkinKalinlikMm is double t ? FormatNumber(t) + " mm" : "—";
@@ -253,6 +255,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
             DxfSourcePath = part.SheetCandidate ? dxfSourcePath : null,
             DxfCutOnlySourcePath = part.SheetCandidate ? dxfCutOnlySourcePath : null,
             GovdeOlcusu = GovdeOlcusuHesapla(analysis, solidId, sheet),
+            KapaliKesit = sheet?.ClosedSection == true,
             DenemeyeKapaliNedeni = solidId is null ? null : DenemeKapisi.Neden(analysis.ProfileRecognitions
                 .FirstOrDefault(x => x.SolidId?.LocalId == solidId && x.SectionRecognitionStatus == "Recognized")?.ProfileType)
         };
@@ -497,7 +500,9 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
     {
         MontajParcaKategorisi.Sac or MontajParcaKategorisi.OnayGerekli => "Sac",
         MontajParcaKategorisi.Diger => "Diğer",
-        _ => ProfileCandidate != null ? "Sac / profil" : SheetCandidate || ThicknessMm != null ? "Sac?" : "—"
+        _ => ProfileCandidate != null ? "Sac / profil"
+            : KapaliKesit && !SheetCandidate ? "Kapalı kesit"
+            : SheetCandidate || ThicknessMm != null ? "Sac?" : "—"
     };
     string IAnalizSatiri.OlcuGosterimi => OlcuGosterimiMetni;
     public string OlcuGosterimiMetni => !SacGibi ? GovdeOlcusu
