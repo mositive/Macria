@@ -72,16 +72,27 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
     public string? DxfFor(bool bendInfo) => bendInfo ? DxfSourcePath : DxfCutOnlySourcePath;
 
     public string SourceFileName => System.IO.Path.GetFileName(SourceStepPath);
-    public string ThicknessDisplay => EtkinKalinlikMm is double t ? FormatNumber(t) + " mm" : "—";
+    /// <summary>
+    /// A sheet, or what may become one: the Saclar categories, an engine sheet
+    /// (with or without a flat pattern, or in conflict with a profile), or a
+    /// thickness the user typed. Other parts (shaft, bolt, nut) show no sheet
+    /// thickness or flat size; their Ölçü is the part's own size.
+    /// </summary>
+    public bool SacGibi => EffectiveCategory is MontajParcaKategorisi.Sac or MontajParcaKategorisi.OnayGerekli ||
+                           EngineCode is MotorSinifKodu.Sheet or MotorSinifKodu.FlatPatternFailed or MotorSinifKodu.SheetProfileConflict ||
+                           KalinlikDuzeltildi;
+    /// <summary>The part's own size for a part that is no sheet: "Ø12 × 80", "40 × 40 × 100", or "—".</summary>
+    public string GovdeOlcusu { get; init; } = "—";
+    public string ThicknessDisplay => SacGibi && EtkinKalinlikMm is double t ? FormatNumber(t) + " mm" : "—";
     /// <summary>Editable thickness cell text (no unit).</summary>
     public string KalinlikMetni => EtkinKalinlikMm is double t ? FormatNumber(t) : "";
-    public string MotorKalinlikDisplay => ThicknessMm is double t ? FormatNumber(t) + " mm" : "—";
+    public string MotorKalinlikDisplay => SacGibi && ThicknessMm is double t ? FormatNumber(t) + " mm" : "—";
     /// <summary>"En küçük çevreleyen dikdörtgen (en × boy)": short × long side, at any angle.</summary>
-    public string EnKucukDikdortgenDisplay => EnKucukDikdortgenEnMm is double en && EnKucukDikdortgenBoyMm is double boy
+    public string EnKucukDikdortgenDisplay => SacGibi && EnKucukDikdortgenEnMm is double en && EnKucukDikdortgenBoyMm is double boy
         ? FormatNumber(Math.Round(en, 1)) + " × " + FormatNumber(Math.Round(boy, 1)) + " mm"
         : "—";
     /// <summary>"Açınım ölçüsü (en × boy)": the rectangle around the flat pattern.</summary>
-    public string AcinimOlcusuDisplay => AcinimEnMm is double en && AcinimBoyMm is double boy
+    public string AcinimOlcusuDisplay => SacGibi && AcinimEnMm is double en && AcinimBoyMm is double boy
         ? FormatNumber(Math.Round(en, 1)) + " × " + FormatNumber(Math.Round(boy, 1)) + " mm"
         : "—";
     public string BendCountDisplay => SheetRecognized ? BendCount.ToString(CultureInfo.InvariantCulture) : "—";
@@ -138,8 +149,8 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
     public string ListeDisiNotu { get; private set; } = "";
 
     /// <summary>"DXF" column: the file DXF Üret writes, or why there is none.</summary>
-    public string DxfDisplay => DxfSourcePath != null && EtkinKalinlikMm is double t
-        ? DxfAdi.Uret(PartName, t, Quantity)
+    public string DxfDisplay => !SacGibi ? "—"
+        : DxfSourcePath != null && EtkinKalinlikMm is double t ? DxfAdi.Uret(PartName, t, Quantity)
         : "açınım yok – CATIA'dan";
 
     public string StatusDisplay => (EffectiveCategory switch
@@ -221,11 +232,40 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
                 ? "—"
                 : HoleSummaryFor(analysis.HoleFeatures.Where(x => x.SolidId?.LocalId == solidId)),
             DxfSourcePath = part.SheetCandidate ? dxfSourcePath : null,
-            DxfCutOnlySourcePath = part.SheetCandidate ? dxfCutOnlySourcePath : null
+            DxfCutOnlySourcePath = part.SheetCandidate ? dxfCutOnlySourcePath : null,
+            GovdeOlcusu = GovdeOlcusuHesapla(analysis, solidId, sheet)
         };
         row._laserMaximumMm = laserMaximumMm;
         row.Recalculate();
         return row;
+    }
+
+    /// <summary>
+    /// The size of a part that is no sheet. A solid bar the profile recognizer
+    /// measured: "Ø20 × 204" or "40 × 40 × 100" (section × length). Otherwise
+    /// the sheet recognizer's box: its "thickness" is the third side and a
+    /// single-circle outline a diameter ("Ø12,5 × 44"). Nothing measured: "—".
+    /// </summary>
+    private static string GovdeOlcusuHesapla(GeometryLabAnalysisTransport analysis, int? solidId,
+        GeometryLabSheetMetalTransport? sheet)
+    {
+        static string N(double mm) => FormatNumber(Math.Round(mm, 1));
+        if (solidId is null) return "—";
+        GeometryLabProfileRecognitionTransport? profil = analysis.ProfileRecognitions.FirstOrDefault(x => x.SolidId?.LocalId == solidId);
+        double? boy = profil?.LengthSummary?.UniformLengthMm ?? profil?.LengthSummary?.LongLengthMm;
+        if (profil?.SectionRecognitionStatus == "Recognized")
+        {
+            if (profil.ProfileType == "SolidCircularBar" && profil.OuterDiameterMm is double d)
+                return "Ø" + N(d) + (boy is double l ? " × " + N(l) : "") + " mm";
+            if (profil.ProfileType is "SolidSquareBar" or "SolidRectangularBar" && profil.OuterWidthMm is double w && profil.OuterHeightMm is double h)
+                return N(w) + " × " + N(h) + (boy is double l ? " × " + N(l) : "") + " mm";
+        }
+        GeometryLabFlatPatternTransport? acinim = sheet?.FlatPattern?.Status == "Succeeded" ? sheet.FlatPattern : null;
+        if (acinim?.WidthMm is double en && acinim.HeightMm is double genislik && sheet!.ThicknessMm is double t)
+            return acinim.Segments.Count == 1 && acinim.Segments[0].Type == "Circle"
+                ? "Ø" + N(en) + " × " + N(t) + " mm"
+                : N(en) + " × " + N(genislik) + " × " + N(t) + " mm";
+        return "—";
     }
 
     /// <summary>
@@ -405,7 +445,8 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
             nameof(CatiaSheetMetalFeature), nameof(GroupDisplay), nameof(ListeDisi), nameof(Sekme),
             nameof(DurumEtiketi), nameof(KararGosterimi), nameof(AciklamaGosterimi), nameof(IsThickPlate),
             nameof(KullaniciKalinlikMm), nameof(EtkinKalinlikMm), nameof(KalinlikDuzeltildi), nameof(ThicknessDisplay),
-            nameof(KalinlikMetni), nameof(DxfDisplay), nameof(OlcuGosterimiMetni), nameof(KullaniciKarariMetni)
+            nameof(KalinlikMetni), nameof(DxfDisplay), nameof(OlcuGosterimiMetni), nameof(KullaniciKarariMetni),
+            nameof(SacGibi), nameof(MotorKalinlikDisplay), nameof(AcinimOlcusuDisplay), nameof(EnKucukDikdortgenDisplay)
         })
             Raise(name);
     }
@@ -432,9 +473,10 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         _ => ProfileCandidate != null ? "Sac / profil" : SheetCandidate || ThicknessMm != null ? "Sac?" : "—"
     };
     string IAnalizSatiri.OlcuGosterimi => OlcuGosterimiMetni;
-    public string OlcuGosterimiMetni => EtkinKalinlikMm is double t
-        ? "t = " + FormatNumber(t) + " mm" + (KalinlikDuzeltildi && ThicknessMm is double m ? " (tespit edilen " + FormatNumber(m) + ")" : "")
-        : "—";
+    public string OlcuGosterimiMetni => !SacGibi ? GovdeOlcusu
+        : EtkinKalinlikMm is double t
+            ? "t = " + FormatNumber(t) + " mm" + (KalinlikDuzeltildi && ThicknessMm is double m ? " (tespit edilen " + FormatNumber(m) + ")" : "")
+            : "—";
     public string DurumEtiketi => StatusDisplay;
     public string KararGosterimi => DecisionDisplay;
     /// <summary>The engine's reason, result first and short (MotorGerekcesiMetni); its own text is in "Teknik ayrıntı".</summary>
@@ -465,6 +507,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         new("STEP dosyası", SourceFileName),
         new("Parça", PartName + " (" + Quantity.ToString(CultureInfo.InvariantCulture) + " adet)"),
         new("Durum", StatusDisplay),
+        new("Ölçü", OlcuGosterimiMetni),
         new("Ham sac kalınlığı", ThicknessDisplay + (KalinlikDuzeltildi ? " (kullanıcı düzeltti)" : "")),
         new("Tespit edilen kalınlık", MotorKalinlikDisplay),
         new("Açınım ölçüsü (en × boy)", AcinimOlcusuDisplay),

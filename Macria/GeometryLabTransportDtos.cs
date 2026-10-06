@@ -235,6 +235,9 @@ public sealed record GeometryLabFlatPatternTransport
     [JsonPropertyName("minimumRectangle")]
     public GeometryLabFlatRectangleTransport? MinimumRectangle { get; init; }
 
+    [JsonPropertyName("segments")]
+    public IReadOnlyList<GeometryLabFlatSegmentTransport> Segments { get; init; } = Array.Empty<GeometryLabFlatSegmentTransport>();
+
     [JsonPropertyName("holes")]
     public IReadOnlyList<GeometryLabFlatHoleTransport> Holes { get; init; } =
         Array.Empty<GeometryLabFlatHoleTransport>();
@@ -245,6 +248,13 @@ public sealed record GeometryLabFlatPatternTransport
 
     [JsonPropertyName("rejectionReason")]
     public string? RejectionReason { get; init; }
+}
+
+/// <summary>One edge of the flat pattern outline; only its type is read ("Line", "Arc", "Circle", "Polyline").</summary>
+public sealed record GeometryLabFlatSegmentTransport
+{
+    [JsonPropertyName("type")]
+    public string? Type { get; init; }
 }
 
 public sealed record GeometryLabFlatRectangleTransport

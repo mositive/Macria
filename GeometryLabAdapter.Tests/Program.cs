@@ -1606,8 +1606,40 @@ internal static class Program
                 new GeometryLabSheetMetalTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 5 }, Status = "NotSheet", ThicknessMm = 2 }
             }
         }, analysis.Parts[4] with { ClassificationCode = MotorSinifKodu.NotRecognized, RecognitionEvidence = true }, null, 20);
-        Check(sacDegil.ThicknessDisplay == "2 mm" && sacDegil.BendCountDisplay == "—" && sacDegil.MachiningDisplay == "—",
-            "a part the sheet recognizer rejected still shows the thickness it measured, without a bend count");
+        // (2) A part that is no sheet shows no sheet thickness or flat size.
+        Check(!sacDegil.SacGibi && sacDegil.ThicknessDisplay == "—" && sacDegil.MotorKalinlikDisplay == "—" &&
+              sacDegil.OlcuGosterimiMetni == "—" && sacDegil.BendCountDisplay == "—" && sacDegil.DxfDisplay == "—",
+            "a part the sheet recognizer rejected shows no sheet thickness: " + sacDegil.ThicknessDisplay);
+        // Its Ölçü is its own size: a solid round bar Ø × length, a single-circle outline Ø × "thickness".
+        GeometryLabAnalysisTransport milAnalizi = olculen with
+        {
+            ProfileRecognitions = new[]
+            {
+                new GeometryLabProfileRecognitionTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 5 }, SectionRecognitionStatus = "Recognized",
+                    ProfileType = "SolidCircularBar", OuterDiameterMm = 12.0, LengthSummary = new GeometryLabLengthSummaryTransport { UniformLengthMm = 80.0 } }
+            }
+        };
+        MontajParcaSatiri mil = MontajParcaSatiri.Olustur("C:\\m.stp", milAnalizi,
+            analysis.Parts[4] with { ClassificationCode = MotorSinifKodu.SolidBar, RecognitionEvidence = true }, null, 20);
+        Check(mil.OlcuGosterimiMetni == "Ø12 × 80 mm" && mil.ThicknessDisplay == "—" && mil.AcinimOlcusuDisplay == "—" &&
+              ((IAnalizSatiri)mil).Ayrintilar.Any(x => x.Key == "Ölçü" && x.Value == "Ø12 × 80 mm"),
+            "a shaft shows Ø × length: " + mil.OlcuGosterimiMetni);
+        GeometryLabAnalysisTransport baskiAnalizi = olculen with
+        {
+            SheetMetalAnalyses = new[]
+            {
+                new GeometryLabSheetMetalTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 5 }, Status = "Recognized", ThicknessMm = 44,
+                    FlatPattern = new GeometryLabFlatPatternTransport { Status = "Succeeded", WidthMm = 12.472, HeightMm = 12.472,
+                        Segments = new[] { new GeometryLabFlatSegmentTransport { Type = "Circle" } } } }
+            }
+        };
+        MontajParcaSatiri baski = MontajParcaSatiri.Olustur("C:\\m.stp", baskiAnalizi,
+            analysis.Parts[4] with { ClassificationCode = MotorSinifKodu.ThickerThanOutline, RecognitionEvidence = true }, null, 20);
+        Check(baski.OlcuGosterimiMetni == "Ø12,5 × 44 mm" && baski.ThicknessDisplay == "—" && baski.AcinimOlcusuDisplay == "—",
+            "a pin (sheet trial size, round outline) shows Ø × length: " + baski.OlcuGosterimiMetni);
+        baski.ApproveAsSheet();
+        Check(baski.SacGibi && baski.ThicknessDisplay == "44 mm" && baski.OlcuGosterimiMetni == "t = 44 mm",
+            "approved as a sheet, the thickness is shown again");
         MontajParcaSatiri bos = Row(4, null);
         Check(bos.EngineCode == MotorSinifKodu.NotRecognized && !bos.EngineEvidence &&
               bos.EffectiveCategory == MontajParcaKategorisi.Tanimsiz && bos.Sekme == AnalizSekmesi.Tanimsiz,
