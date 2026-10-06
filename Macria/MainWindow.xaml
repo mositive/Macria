@@ -267,73 +267,32 @@
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <CheckBox x:Name="chkOpenAfter" Content="Bitince Dosyayı Aç"
+                        <CheckBox x:Name="chkOpenAfter" Content="Bitince Dosyayı Aç" local:DugmeIkonu.Ikon="{StaticResource Icon.OpenFile}"
                                   VerticalAlignment="Center" Margin="0,0,16,0"/>
 
                         <!-- DXF onizleme panelini ac/kapat -->
-                        <Button x:Name="btnOnizleme" Style="{StaticResource SecondaryButton}"
-                                Width="34" Height="30" Padding="0" Margin="0,0,10,0"
+                        <Button x:Name="btnOnizleme" Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.TogglePreview}"
+                                Content="Önizleme Paneli" Margin="0,0,10,0"
                                 VerticalAlignment="Center"
                                 ToolTip="DXF Önizleme Panelini Aç / Kapat"
-                                Click="btnOnizleme_Click">
-                            <Grid Width="15" Height="12">
-                                <Border BorderBrush="{StaticResource TextPrimaryBrush}"
-                                        BorderThickness="1" CornerRadius="1"/>
-                                <Border Width="5" HorizontalAlignment="Right" Margin="0,2,2,2"
-                                        Background="{StaticResource TextPrimaryBrush}"/>
-                            </Grid>
-                        </Button>
+                                Click="btnOnizleme_Click"/>
                         <!-- Gorsel yerlesim: parcalarin gercek olculeri DXF'ten
                              okundugu icin bu sayfada duruyor -->
-                        <Button x:Name="btnYerlesim" Style="{StaticResource SecondaryButton}"
-                                VerticalAlignment="Center" Margin="0,0,10,0"
+                        <Button x:Name="btnYerlesim" Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.NestingLayout}"
+                                Content="Yerleşim" VerticalAlignment="Center" Margin="0,0,10,0"
                                 ToolTip="Dışa Aktarılmış Parçaları Plakaya Yerleştir"
-                                Click="btnYerlesim_Click">
-                            <StackPanel Orientation="Horizontal">
-                                <!-- Plaka uzerine dizilmis parcalar; cizili simge -->
-                                <Grid Width="15" Height="11" VerticalAlignment="Center"
-                                      Margin="0,0,8,0">
-                                    <Border BorderBrush="{StaticResource TextPrimaryBrush}"
-                                            BorderThickness="1" CornerRadius="1"/>
-                                    <Rectangle Width="5" Height="4" Margin="2,2,0,0"
-                                               HorizontalAlignment="Left" VerticalAlignment="Top"
-                                               Fill="{StaticResource TextPrimaryBrush}"/>
-                                    <Rectangle Width="3" Height="5" Margin="0,0,2,2"
-                                               HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                                               Fill="{StaticResource TextPrimaryBrush}"/>
-                                </Grid>
-                                <TextBlock Text="Yerleşim" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
+                                Click="btnYerlesim_Click"/>
 
-                        <Button x:Name="btnScan" Style="{StaticResource PrimaryButton}"
-                                Click="btnScan_Click" VerticalAlignment="Center">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock x:Name="scanSpinner" Text="&#xE72C;"
-                                           FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                           VerticalAlignment="Center" Margin="0,0,8,0"
-                                           Visibility="Collapsed"
-                                           RenderTransformOrigin="0.5,0.5">
-                                    <TextBlock.RenderTransform>
-                                        <RotateTransform x:Name="scanSpin"/>
-                                    </TextBlock.RenderTransform>
-                                </TextBlock>
-                                <TextBlock x:Name="scanIcon" Text="&#xE721;"
-                                           FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                           VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                <TextBlock x:Name="scanText" Text="CATIA'yı Tara"/>
-                            </StackPanel>
-                        </Button>
-                        <Button x:Name="btnExportAll" Style="{StaticResource SuccessButton}"
+                        <!-- Tarama surerken metin "Taraniyor..." olur ve ikon doner (DugmeIkonu.Donuyor) -->
+                        <Button x:Name="btnScan" Style="{StaticResource PrimaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.ScanCatia}"
+                                Content="CATIA'yı Tara" AutomationProperties.Name="CATIA'yı Tara"
+                                ToolTip="Açık CATIA montajını tarar; sac parçaları ve ürün ağacını listeler"
+                                Click="btnScan_Click" VerticalAlignment="Center"/>
+                        <Button x:Name="btnExportAll" Style="{StaticResource SuccessButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.ExportAllDxf}"
+                                Content="Tümünü DXF Olarak Dışarı Aktar"
+                                ToolTip="Listedeki sac parçaların hepsini CATIA'dan DXF olarak dışa aktarır"
                                 Click="btnExportAll_Click" VerticalAlignment="Center"
-                                Margin="10,0,0,0">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Tümünü DXF Olarak Dışarı Aktar"
-                                           VerticalAlignment="Center"/>
-                                <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                                           VerticalAlignment="Center" Margin="9,0,0,0"/>
-                            </StackPanel>
-                        </Button>
+                                Margin="10,0,0,0"/>
                     </StackPanel>
                 </Grid>
 
@@ -376,43 +335,22 @@
 
                     <StackPanel Grid.Column="2" Orientation="Horizontal">
                         <Button x:Name="btnParcaSutunlari"
-                                Style="{StaticResource SecondaryButton}"
-                                Height="34"
+                                Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.Columns}"
+                                Content="Sütunlar"
                                 Click="btnParcaSutunlari_Click"
-                                ToolTip="Sütunları göster, gizle ve sıralarını değiştir">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE71D;" FontFamily="Segoe MDL2 Assets"
-                                           FontSize="13" VerticalAlignment="Center"
-                                           Margin="0,0,7,0"/>
-                                <TextBlock Text="Sütunlar" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
+                                ToolTip="Sütunları göster, gizle ve sıralarını değiştir"/>
 
                         <Button x:Name="btnHamSacGuncelle"
-                                Style="{StaticResource SecondaryButton}"
-                                Height="34" Margin="8,0,0,0"
+                                Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.Refresh}"
+                                Content="Güncelle" Margin="8,0,0,0"
                                 Click="btnHamSacGuncelle_Click"
-                                ToolTip="Ham Sac değerini bu tabloya uygula ve mevcut DXF dosya adlarını güncelle">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE895;" FontFamily="Segoe MDL2 Assets"
-                                           FontSize="13" VerticalAlignment="Center"
-                                           Margin="0,0,7,0"/>
-                                <TextBlock Text="Güncelle" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
+                                ToolTip="Ham Sac değerini bu tabloya uygula ve mevcut DXF dosya adlarını güncelle"/>
 
                         <Button x:Name="btnParcaTabloTemizle"
-                                Style="{StaticResource SecondaryButton}"
-                                Height="34" Margin="8,0,0,0"
+                                Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.ClearTable}"
+                                Content="Tabloyu Temizle" Margin="8,0,0,0"
                                 Click="btnParcaTabloTemizle_Click"
-                                ToolTip="Sac Lazer, Ürün Ağacı ve Kutu Profil tablolarını temizle">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets"
-                                           FontSize="12" VerticalAlignment="Center"
-                                           Margin="0,0,7,0"/>
-                                <TextBlock Text="Tabloyu Temizle" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
+                                ToolTip="Sac Lazer, Ürün Ağacı ve Kutu Profil tablolarını temizle"/>
                     </StackPanel>
                 </Grid>
 
@@ -496,7 +434,7 @@
                                   ToolTip="Kapatılırsa Çoklu Body parçaları Sac Lazer listesinden çıkarılır. Görünür olsa bile toplu DXF işlemine alınmaz."
                                   Click="SacCokluBodyFiltresi_Click"/>
                         <Button x:Name="btnSacExcel"
-                                Style="{StaticResource SecondaryButton}"
+                                Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.ExcelExport}"
                                 Content="Excel'e Aktar" Height="30" Padding="14,0"
                                 ToolTip="Sac Lazer Parça tablosunu Excel'e aktar"
                                 Click="btnSacExcel_Click"/>
@@ -862,8 +800,8 @@
                                 </StackPanel>
 
                                 <!-- Konsoldaki gibi: cizim genis pencerede de acilabilir -->
-                                <Button x:Name="btnOnizlemePopOut" Style="{StaticResource ConsoleToolButton}"
-                                        Content="&#xE8A7;" ToolTip="Ayrı Pencerede Aç"
+                                <Button x:Name="btnOnizlemePopOut" Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.ExpandPreview}"
+                                        Content="Ayrı Pencerede Aç" ToolTip="Önizlemeyi ayrı pencerede açar"
                                         HorizontalAlignment="Right" VerticalAlignment="Top"
                                         Click="btnOnizlemePopOut_Click"/>
                             </Grid>
@@ -904,13 +842,13 @@
                                 </Grid.ColumnDefinitions>
 
                                 <Button Grid.Column="0" x:Name="btnOnizlemeKlasor"
-                                        Style="{StaticResource SecondaryButton}"
+                                        Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.SelectFolder}"
                                         Content="Klasör Seç" Height="30" Padding="0"
                                         ToolTip="DXF Dosyalarının Aranacağı Klasörü Seçin"
                                         Click="btnOnizlemeKlasor_Click"/>
 
                                 <Button Grid.Column="2" x:Name="btnOnizlemeAc"
-                                        Style="{StaticResource SecondaryButton}"
+                                        Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.OpenFile}"
                                         Content="Dosyayı Aç" Height="30" Padding="0"
                                         IsEnabled="False"
                                         Click="btnOnizlemeAc_Click"/>
@@ -986,7 +924,7 @@
                                           ToolTip="Kapatılırsa gizli Physical Product parçaları bu listeden çıkarılır"
                                           Click="GizliOgeFiltresi_Click"/>
                                 <Button x:Name="btnUrunAgaciExcel"
-                                        Style="{StaticResource SecondaryButton}"
+                                        Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.ExcelExport}"
                                         Content="Excel'e Aktar" Height="30" Padding="14,0"
                                         ToolTip="Eşsiz parça listesini Excel'e aktar"
                                         Click="btnUrunAgaciExcel_Click"/>

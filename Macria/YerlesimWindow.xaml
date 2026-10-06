@@ -1,6 +1,7 @@
 <Window x:Class="Macria.YerlesimWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Macria"
         Title="Görsel Yerleşim"
         Icon="Assets/macria-logo.png"
         Width="1180" Height="780"
@@ -123,34 +124,27 @@
                              ToolTip="Seçili Parça Çeşidinin Dört Yanındaki Pay (mm)"
                              TextChanged="SeciliPay_TextChanged"/>
 
-                    <Button x:Name="btnDondur" Style="{StaticResource SecondaryButton}"
-                            Content="Döndür" Height="32" Padding="14,0"
+                    <Button x:Name="btnDondur" Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.RotatePart}"
+                            Content="Döndür"
                             ToolTip="Seçili Parçayı 90° Çevir  (R)"
                             IsEnabled="False" Click="btnDondur_Click"/>
 
-                    <Button x:Name="btnBekle" Style="{StaticResource SecondaryButton}"
-                            Content="Beklemeye Al" Height="32" Padding="14,0" Margin="8,0,0,0"
+                    <Button x:Name="btnBekle" Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.HoldPart}"
+                            Content="Beklemeye Al" Margin="8,0,0,0"
                             ToolTip="Seçili Parçayı Plakadan Çıkar  (Delete)"
                             IsEnabled="False" Click="btnBekle_Click"/>
 
-                    <Button x:Name="btnSigdir" Style="{StaticResource SecondaryButton}"
-                            Content="Sığdır" Height="32" Padding="14,0" Margin="8,0,0,0"
+                    <Button x:Name="btnSigdir" Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.FitView}"
+                            Content="Sığdır" Margin="8,0,0,0"
                             ToolTip="Görünümü Sıfırla" Click="btnSigdir_Click"/>
 
-                    <Button x:Name="btnResim" Style="{StaticResource SecondaryButton}"
-                            Height="32" Padding="14,0" Margin="8,0,0,0"
+                    <Button x:Name="btnResim" Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.CaptureImage}"
+                            Content="Görüntü" Margin="8,0,0,0"
                             ToolTip="Yerleşimi PNG Görüntüsü Olarak Kaydet"
-                            Click="btnResim_Click">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE74E;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="12" VerticalAlignment="Center"
-                                       Margin="0,0,8,0"/>
-                            <TextBlock Text="Görüntü" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
+                            Click="btnResim_Click"/>
 
-                    <Button x:Name="btnOtomatik" Style="{StaticResource PrimaryButton}"
-                            Content="Otomatik Yerleştir" Height="32" Padding="18,0"
+                    <Button x:Name="btnOtomatik" Style="{StaticResource PrimaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.AutoNest}"
+                            Content="Otomatik Yerleştir"
                             Margin="8,0,0,0"
                             ToolTip="Tüm Parçaları Yeniden Diz"
                             Click="btnOtomatik_Click"/>
@@ -215,16 +209,14 @@
                               ToolTip="Fire Ağırlığı Bu Malzemenin Yoğunluğuyla Hesaplanır"
                               SelectionChanged="cmbMalzeme_SelectionChanged"/>
 
-                    <Button x:Name="btnMalzemeEkle" Style="{StaticResource SecondaryButton}"
-                            Content="&#xE710;" FontFamily="Segoe MDL2 Assets"
-                            FontSize="12" Width="30" Height="30" Padding="0"
+                    <Button x:Name="btnMalzemeEkle" Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.AddMaterial}"
+                            Content="Malzeme Ekle" local:DugmeIkonu.HepIkon="True"
                             Margin="6,0,0,0" VerticalAlignment="Center"
                             ToolTip="Özel Malzeme Ekle"
                             Click="btnMalzemeEkle_Click"/>
 
-                    <Button x:Name="btnMalzemeSil" Style="{StaticResource SecondaryButton}"
-                            Content="&#xE74D;" FontFamily="Segoe MDL2 Assets"
-                            FontSize="12" Width="30" Height="30" Padding="0"
+                    <Button x:Name="btnMalzemeSil" Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.Delete}"
+                            Content="Malzeme Sil" local:DugmeIkonu.HepIkon="True"
                             Margin="4,0,0,0" VerticalAlignment="Center"
                             IsEnabled="False"
                             ToolTip="Seçili Özel Malzemeyi Sil"

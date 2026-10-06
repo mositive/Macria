@@ -2345,21 +2345,9 @@ namespace Macria
             }
             else ProfilButonlariniGuncelle();
 
-            scanIcon.Visibility = active ? Visibility.Collapsed : Visibility.Visible;
-            scanSpinner.Visibility = active ? Visibility.Visible : Visibility.Collapsed;
-            scanText.Text = active ? "Taranıyor..." : "CATIA'yı Tara";
-
-            if (active)
-            {
-                var spin = new System.Windows.Media.Animation.DoubleAnimation(0, 360,
-                    TimeSpan.FromSeconds(0.9));
-                spin.RepeatBehavior = System.Windows.Media.Animation.RepeatBehavior.Forever;
-                scanSpin.BeginAnimation(RotateTransform.AngleProperty, spin);
-            }
-            else
-            {
-                scanSpin.BeginAnimation(RotateTransform.AngleProperty, null);
-            }
+            btnScan.Content = active ? "Taranıyor..." : "CATIA'yı Tara";
+            // The scan icon turns while the scan runs.
+            DugmeIkonu.SetDonuyor(btnScan, active);
         }
 
         // ================= CATIA BAGLANTISI =================

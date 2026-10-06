@@ -1,6 +1,7 @@
 <Window x:Class="Macria.OnizlemeWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Macria"
         Title="Macria — DXF Önizleme"
         Icon="Assets/macria-logo.png"
         Height="640" Width="860"
@@ -13,13 +14,9 @@
         WindowStartupLocation="CenterOwner">
 
     <Window.Resources>
+        <!-- Edit araclari: ikon ve boyut DugmeIkonu'ndan (Ayarlar > Gorunum) -->
         <Style x:Key="EditIconButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
-            <Setter Property="Width" Value="40"/>
-            <Setter Property="Height" Value="40"/>
-            <Setter Property="Padding" Value="0"/>
             <Setter Property="Margin" Value="3,0,0,0"/>
-            <Setter Property="FontSize" Value="24"/>
-            <Setter Property="FontFamily" Value="Segoe UI Emoji"/>
             <Setter Property="ToolTipService.InitialShowDelay" Value="500"/>
             <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
         </Style>
@@ -109,32 +106,32 @@
                 </StackPanel>
 
                 <WrapPanel Grid.Row="1" HorizontalAlignment="Right" Margin="0,8,0,0">
-                    <Button x:Name="btnSec" Style="{StaticResource SecondaryButton}"
-                        Content="Seç" Height="30" Padding="12,0"
+                    <Button x:Name="btnSec" Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.SelectGeometry}"
+                        Content="Seç" ToolTip="Seç: entity seçer, ölçü modunu kapatır"
                         Click="btnSec_Click"/>
-                    <Button x:Name="btnMesafe" Style="{StaticResource SecondaryButton}"
-                        Content="Mesafe" Height="30" Padding="12,0" Margin="6,0,0,0"
+                    <Button x:Name="btnMesafe" Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.MeasureDistance}"
+                        Content="Mesafe" Margin="6,0,0,0" ToolTip="Mesafe: iki nokta arasını ölçer (ESC: iptal)"
                         Click="btnMesafe_Click"/>
-                    <Button x:Name="btnCizgiCizgi" Style="{StaticResource SecondaryButton}"
-                        Content="Çizgi-Çizgi" Height="30" Padding="12,0" Margin="6,0,0,0"
+                    <Button x:Name="btnCizgiCizgi" Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.MeasureLineAngle}"
+                        Content="Çizgi-Çizgi" Margin="6,0,0,0"
                         ToolTip="İki paralel LINE seç, ölçüyü üçüncü tıkla yerleştir (ESC: iptal)"
                         Click="btnCizgiCizgi_Click"/>
-                    <Button x:Name="btnTemizle" Style="{StaticResource SecondaryButton}"
-                        Content="Temizle" Height="30" Padding="12,0" Margin="6,0,8,0"
+                    <Button x:Name="btnTemizle" Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.ClearMeasurements}"
+                        Content="Ölçüleri Temizle" Margin="6,0,8,0" ToolTip="Çizimdeki ölçüleri siler"
                         Click="btnTemizle_Click"/>
-                    <Button x:Name="btnSigdir" Style="{StaticResource SecondaryButton}"
-                            Content="Sığdır" Height="30" Padding="14,0"
+                    <Button x:Name="btnSigdir" Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.FitView}"
+                            Content="Sığdır"
                             ToolTip="Yakınlaştırmayı Sıfırla"
                             Click="btnSigdir_Click"/>
-                    <Button x:Name="btnAc" Style="{StaticResource SecondaryButton}"
-                            Content="Dosyayı Aç" Height="30" Padding="14,0" Margin="8,0,0,0"
+                    <Button x:Name="btnAc" Style="{StaticResource SecondaryButton}" local:DugmeIkonu.Ikon="{StaticResource Icon.OpenFile}"
+                            Content="Dosyayı Aç" Margin="8,0,0,0" ToolTip="DXF'i Windows'un varsayılan uygulamasıyla açar"
                             IsEnabled="False"
                             Click="btnAc_Click"/>
                 </WrapPanel>
                 <Grid Grid.Row="2" Margin="0,8,0,0">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <CheckBox x:Name="chkEditModu" Content="Edit Modu" VerticalAlignment="Center"
+                    <CheckBox x:Name="chkEditModu" Content="Edit Modu" VerticalAlignment="Center" local:DugmeIkonu.Ikon="{StaticResource Icon.EditMode}"
                               Margin="0,0,10,0" Checked="EditModu_Degisti" Unchecked="EditModu_Degisti"
                               ToolTip="Yalnızca kaynak LINE / CIRCLE / ARC kayıtlarını düzenle"/>
                     <TextBlock x:Name="txtEditDurumu" Text="EDIT" FontWeight="SemiBold"
@@ -145,25 +142,25 @@
                             BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="3">
                     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button x:Name="btnEditSec" Style="{StaticResource EditIconButton}" Content="🖱️"
+                    <Button x:Name="btnEditSec" Style="{StaticResource EditIconButton}" Content="Seç" local:DugmeIkonu.Ikon="{StaticResource Icon.SelectGeometry}"
                             AutomationProperties.Name="Seç" ToolTip="Seç&#10;Entity seçer. Ctrl ile çoklu seçim yapabilirsiniz." Click="btnSec_Click"/>
-                    <Button x:Name="btnSil" Style="{StaticResource EditIconButton}" Content="🗑️" IsEnabled="False"
+                    <Button x:Name="btnSil" Style="{StaticResource EditIconButton}" Content="Sil" local:DugmeIkonu.Ikon="{StaticResource Icon.Delete}" IsEnabled="False"
                             AutomationProperties.Name="Sil" ToolTip="Sil&#10;Seçili entity veya entity'leri siler (Delete)." Click="btnSil_Click"/>
-                    <Button x:Name="btnBirlestir" Style="{StaticResource EditIconButton}" Content="🔗" IsEnabled="False"
+                    <Button x:Name="btnBirlestir" Style="{StaticResource EditIconButton}" Content="Birleştir" local:DugmeIkonu.Ikon="{StaticResource Icon.JoinGeometry}" IsEnabled="False"
                             AutomationProperties.Name="Birleştir" ToolTip="Birleştir&#10;İki LINE'ı kesişim noktasına uzatır veya kısaltır. Önizleme sonrası Uygula." Click="btnBirlestir_Click"/>
-                    <Button x:Name="btnPah" Style="{StaticResource EditIconButton}" Content="◢" FontSize="28" IsEnabled="False"
-                            AutomationProperties.Name="Pah" ToolTip="Pah&#10;Köşeye veya kapalı konturun köşelerine pah uygular." Click="btnPah_Click"/>
-                    <Button x:Name="btnRadius" Style="{StaticResource EditIconButton}" Content="◜" FontSize="30" IsEnabled="False"
-                            AutomationProperties.Name="Radius" ToolTip="Radius&#10;Köşeyi veya kapalı konturun köşelerini yuvarlatır." Click="btnRadius_Click"/>
+                    <Button x:Name="btnPah" Style="{StaticResource EditIconButton}" Content="Pah Kır" local:DugmeIkonu.Ikon="{StaticResource Icon.Chamfer}" IsEnabled="False"
+                            AutomationProperties.Name="Pah Kır" ToolTip="Pah Kır&#10;Köşeye veya kapalı konturun köşelerine pah uygular." Click="btnPah_Click"/>
+                    <Button x:Name="btnRadius" Style="{StaticResource EditIconButton}" Content="Radyus" local:DugmeIkonu.Ikon="{StaticResource Icon.Fillet}" IsEnabled="False"
+                            AutomationProperties.Name="Radyus" ToolTip="Radyus&#10;Köşeyi veya kapalı konturun köşelerini yuvarlatır." Click="btnRadius_Click"/>
                     <Border Width="1" Margin="10,4,4,4" Background="{StaticResource BorderBrush}"/>
-                    <Button x:Name="btnUndo" Style="{StaticResource EditIconButton}" Content="↩️" IsEnabled="False"
+                    <Button x:Name="btnUndo" Style="{StaticResource EditIconButton}" Content="Geri Al" local:DugmeIkonu.Ikon="{StaticResource Icon.Undo}" IsEnabled="False"
                             AutomationProperties.Name="Geri Al" ToolTip="Geri Al&#10;Son düzenleme işlemini geri alır (Ctrl+Z)." Click="btnUndo_Click"/>
-                    <Button x:Name="btnRedo" Style="{StaticResource EditIconButton}" Content="↪️" IsEnabled="False"
+                    <Button x:Name="btnRedo" Style="{StaticResource EditIconButton}" Content="Yinele" local:DugmeIkonu.Ikon="{StaticResource Icon.Redo}" IsEnabled="False"
                             AutomationProperties.Name="Yinele" ToolTip="Yinele&#10;Geri alınan işlemi yeniden uygular (Ctrl+Y)." Click="btnRedo_Click"/>
-                    <Button x:Name="btnKaydet" Style="{StaticResource EditIconButton}" Content="💾" IsEnabled="False"
+                    <Button x:Name="btnKaydet" Style="{StaticResource EditIconButton}" Content="Kaydet" local:DugmeIkonu.Ikon="{StaticResource Icon.Save}" IsEnabled="False"
                             AutomationProperties.Name="Kaydet" ToolTip="Kaydet&#10;Kullanıcı onayı ve yedek ile mevcut DXF üzerine güvenli kaydeder (Ctrl+S)."
                             Click="btnKaydet_Click"/>
-                    <Button x:Name="btnFarkliKaydet" Style="{StaticResource EditIconButton}" Content="📤" IsEnabled="False"
+                    <Button x:Name="btnFarkliKaydet" Style="{StaticResource EditIconButton}" Content="Farklı Kaydet" local:DugmeIkonu.Ikon="{StaticResource Icon.ExportFile}" IsEnabled="False"
                             AutomationProperties.Name="Farklı Kaydet" ToolTip="Farklı Kaydet&#10;Düzenlenmiş DXF'i yeni dosyaya kaydeder; mevcut dosyanın üzerine yazmaz."
                             Click="btnFarkliKaydet_Click"/>
                     </StackPanel>

@@ -597,11 +597,15 @@ internal static class Program
             Undo(); Check(Count() == 8 && !Dirty && !Property<bool>(Session, "GeriAlabilir"), "Single all-contour Undo restores all eight corners");
             Check(File.ReadAllBytes(Property<string>(Session, "Yol")).AsSpan().SequenceEqual((byte[])Call(Session, "Cikti")!), "Command selection/preview/edit never writes physical DXF before Save");
         }
+        // Edit tools: a package icon (DugmeIkonu.Ikon) and the tool's name as text; "Buton görünümü"
+        // decides whether the name shows, "İkon boyutu" the size (Ayarlar > Görünüm).
+        Type dugmeIkonu = _window!.GetType().Assembly.GetType("Macria.DugmeIkonu", true)!;
         foreach (string name in new[] { "btnEditSec", "btnSil", "btnBirlestir", "btnPah", "btnRadius", "btnUndo", "btnRedo", "btnKaydet", "btnFarkliKaydet" })
         {
             Button button = Button(name);
-            Check(button.Width == 40 && button.Height == 40 && button.FontSize >= 24, name + ": compact icon-only button with readable size");
-            Check(button.Content is string content && !content.Any(char.IsLetter), name + ": no toolbar text label");
+            Check(dugmeIkonu.GetMethod("GetIkon")!.Invoke(null, new object[] { button }) != null, name + ": package icon");
+            Check(button.Content is string content && content == System.Windows.Automation.AutomationProperties.GetName(button),
+                name + ": the tool's name is the button text and its accessible name");
             Check(button.ToolTip is string tooltip && tooltip.Contains('\n') && ToolTipService.GetInitialShowDelay(button) == 500, name + ": name/instructions tooltip and 500 ms delay");
             Check(!string.IsNullOrEmpty(System.Windows.Automation.AutomationProperties.GetName(button)), name + ": accessible tool name retained");
         }
