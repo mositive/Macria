@@ -75,6 +75,7 @@ internal static class Program
             SutunDuzeniTests();
             MotorGerekcesiTests();
             ExcelDegeriTests();
+            await UctanUcaBoyAsync();
             AramaTests();
             DxfYenidenAdlandirmaTests();
             AssemblyProcessedProfilePart();
@@ -1346,6 +1347,31 @@ internal static class Program
 
     // (34) "Sütunlar": per tab visible columns and order, remembered; new
     // columns of a later Macria join where they stand by default.
+    // (5) 55RS100111-7 (Ø107,317 × 3): the end-to-end length is shown as such; the
+    // reason says the cut length, not the length, is what could not be proven.
+    private static async Task UctanUcaBoyAsync()
+    {
+        string? engine = Ortam("MACRIA_GEOMETRY_ENGINE_EXE");
+        string step = Path.Combine(Fiksturler, "stepler", "55RS100111-7", "55RS100111-7-stp.stp");
+        if (string.IsNullOrWhiteSpace(engine) || !File.Exists(engine) || !File.Exists(step))
+        {
+            Console.WriteLine("REAL_END_TO_END_LENGTH: SKIPPED - engine or fixture unavailable.");
+            return;
+        }
+        GeometryLabProcessAdapterResult sonuc = await new GeometryLabProcessAdapter(new GeometryLabProcessAdapterOptions
+        {
+            EngineExecutablePath = engine,
+            Timeout = TimeSpan.FromMinutes(2),
+            TemporaryRootDirectory = Path.Combine(_root, "work")
+        }).AnalyzeAsync(step);
+        var (profil, _) = MacriaProjeSatirlari.Kur(step, sonuc, 20);
+        GeometryLabStepProfileListItem boru = profil.Single();
+        Check(boru.LengthDisplay == "100 mm (uçtan uca)" &&
+              boru.MotorGerekcesi.Contains("uçtan uca boy 100 mm") && !boru.MotorGerekcesi.Contains("güvenilir profil boyu bulunamadı"),
+            "a tube whose cuts are not proven: \"Boy\" is end to end, the reason agrees: " + boru.SectionDisplay + " / " +
+            boru.LengthDisplay + " / " + boru.MotorGerekcesi);
+    }
+
     // (6) Excel: quantities are numbers; the STEP column names the file.
     private static void ExcelDegeriTests()
     {

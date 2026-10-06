@@ -240,6 +240,9 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
         ProfileType = TurkishProfileType(profile.ProfileType!);
         SectionDisplay = section;
         LengthDisplay = FormatPhysicalAxisLength(analysis, profile, null);
+        // The axis span is the part's end-to-end extent; it is the cut length
+        // only when the length stage proved the cuts.
+        if (LengthDisplay != "—" && !LengthProven(profile)) LengthDisplay += " (uçtan uca)";
         TopologyDisplay = FormatTopology(profile.LengthSummary);
         CutDisplay = FormatCuts(profile.EndCutCandidates);
         EvidenceStatus = Evidence(profile);
@@ -252,7 +255,7 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
         else
         {
             AnalysisStatus = "İnceleme gerekli";
-            FailureReason = UserExplanation(EligibilityReason(profile));
+            FailureReason = UserExplanation(EligibilityReason(profile, LengthDisplay));
             SetResultGroup(GeometryLabExternalStepResultGroup.ReviewRequired);
         }
     }
@@ -459,12 +462,24 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
         profile.EndCutCandidates.Count == 2 &&
         profile.EndCutCandidates.All(c => c.MeasurementStatus == "Valid" && c.CutAngleDegrees.HasValue);
 
-    private static string EligibilityReason(GeometryLabProfileRecognitionTransport profile)
+    private static bool LengthProven(GeometryLabProfileRecognitionTransport profile) =>
+        profile.LengthSummary?.MeasurementStatus == "Valid" && profile.LengthRecognitionStatus == "Recognized";
+
+    private static string EligibilityReason(GeometryLabProfileRecognitionTransport profile, string lengthDisplay = "—")
     {
         if (profile.ProfileType is "SolidSquareBar" or "SolidRectangularBar" or "SolidCircularBar")
             return "Geometrik prizma; sac/lama üretim türü B-Rep'ten doğrulanamadı.";
-        if (profile.LengthSummary?.MeasurementStatus != "Valid" || profile.LengthRecognitionStatus != "Recognized")
-            return "Kesit tanındı; güvenilir profil boyu bulunamadı.";
+        if (!LengthProven(profile))
+        {
+            // The end-to-end extent is known (shown as "Boy"); what is missing is the cut length.
+            string uctanUca = lengthDisplay.Replace(" (uçtan uca)", "");
+            bool cokluUcYuzu = profile.EndCutCandidates.Any(c => c.Reason?.Contains("Multiple planar terminal faces", StringComparison.Ordinal) == true);
+            return uctanUca == "—"
+                ? "Kesit tanındı; güvenilir profil boyu bulunamadı."
+                : "Kesit tanındı; uçtan uca boy " + uctanUca + (cokluUcYuzu
+                    ? ", ama uçlarda birden fazla düzlem yüz var: kesim boyu doğrulanamadı."
+                    : ", ama uç kesimi kanıtlanamadı: kesim boyu doğrulanamadı.");
+        }
         if (profile.CutRecognitionStatus != "Recognized" || profile.EndCutCandidates.Count != 2 ||
             profile.EndCutCandidates.Any(c => c.MeasurementStatus != "Valid" || !c.CutAngleDegrees.HasValue))
             return "Kesit tanındı; iki benzersiz geçerli uç doğrulanamadı.";
