@@ -207,10 +207,13 @@ public partial class MainWindow
         btnAnalizYenidenAnaliz.Visibility = Gorunur(durum.YenidenAnalizGorunur);
         btnAnalizYenidenAnaliz.IsEnabled = durum.YenidenAnalizEtkin;
         // The trials go with Yeniden Analiz Et: same tabs, same rows.
-        btnAnalizProfilDene.Visibility = Gorunur(durum.YenidenAnalizGorunur);
-        btnAnalizProfilDene.IsEnabled = durum.YenidenAnalizEtkin;
-        btnAnalizSacDene.Visibility = Gorunur(durum.YenidenAnalizGorunur);
-        btnAnalizSacDene.IsEnabled = durum.YenidenAnalizEtkin;
+        foreach ((Button dugme, string ipucu) in new[] { (btnAnalizProfilDene, ProfilDeneIpucu), (btnAnalizSacDene, SacDeneIpucu) })
+        {
+            dugme.Visibility = Gorunur(durum.YenidenAnalizGorunur);
+            dugme.IsEnabled = durum.DenemeEtkin;
+            // A part closed to trials says why, also on the disabled button.
+            dugme.ToolTip = durum.DenemeKapaliNedeni ?? ipucu;
+        }
     }
 
     // One right panel for every tab: the 3D view (in Saclar also the engine

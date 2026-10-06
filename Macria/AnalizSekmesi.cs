@@ -50,6 +50,8 @@ public interface IAnalizSatiri
     int? ParcaLocalId { get; }
     /// <summary>The row comes from a run on selected parts (Yeniden Analiz Et, Profil / Sac olarak dene), or null.</summary>
     SatirDenemesi? Deneme { get; }
+    /// <summary>Why Profil / Sac olarak dene are off for this part (DenemeKapisi), or null.</summary>
+    string? DenemeyeKapaliNedeni { get; }
     void ListeDisinaCikar(string? not = null);
     void ListeyeGeriAl();
     void KontrolGerekliyeAl();
@@ -78,6 +80,27 @@ public sealed record SatirDenemesi(string Mod, string EkId)
 
     /// <summary>Shown after the status of a row a trial recognized ("Profil (deneme)").</summary>
     public bool Deneme => Mod is MacriaProje.DenemeProfil or MacriaProje.DenemeSac;
+}
+
+/// <summary>
+/// Parts the trials (Profil / Sac olarak dene) are closed to: what the engine
+/// already knows to be something else. Today a solid round bar (shaft); the
+/// catalog parts (bolt, nut, washer, pin, cotter pin) join this list when
+/// they are recognized. Yeniden Analiz Et stays open.
+/// </summary>
+public static class DenemeKapisi
+{
+    public const string DoluMil = "Dolu mil olarak tanındı; denemeye kapalı";
+
+    // Profile recognizer section type -> reason. Catalog kinds go here later.
+    private static readonly IReadOnlyDictionary<string, string> KapaliTurler = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["SolidCircularBar"] = DoluMil
+    };
+
+    /// <summary>The reason for a part whose solid the profile recognizer measured as `kesitTuru`, or null.</summary>
+    public static string? Neden(string? kesitTuru) =>
+        kesitTuru is not null && KapaliTurler.TryGetValue(kesitTuru, out string? neden) ? neden : null;
 }
 
 /// <summary>Where the engine's classification puts a part (docs/SEKME_VE_ARAC_CUBUGU_PLANI.md).</summary>
@@ -137,6 +160,10 @@ public sealed record AnalizAracDurumu
     public bool GeriAlEtkin { get; init; }
     public bool YenidenAnalizGorunur { get; init; }
     public bool YenidenAnalizEtkin { get; init; }
+    /// <summary>Profil / Sac olarak dene: on when a selected part is open to trials.</summary>
+    public bool DenemeEtkin { get; init; }
+    /// <summary>Every selected part is closed to trials: why (shown as the buttons' tooltip), otherwise null.</summary>
+    public string? DenemeKapaliNedeni { get; init; }
     public bool DosyayiAcEtkin { get; init; }
     public bool ExcelEtkin { get; init; }
 
@@ -173,7 +200,12 @@ public sealed record AnalizAracDurumu
             GeriAlEtkin = var,
             // Parts of an analysed STEP; a file row has no part to select.
             YenidenAnalizGorunur = sekme is AnalizSekmesi.KontrolGerekli or AnalizSekmesi.Tanimsiz,
-            YenidenAnalizEtkin = !motorMesgul && secili.Any(x => x.ParcaLocalId != null)
+            YenidenAnalizEtkin = !motorMesgul && secili.Any(x => x.ParcaLocalId != null),
+            DenemeEtkin = !motorMesgul && secili.Any(x => x.ParcaLocalId != null && x.DenemeyeKapaliNedeni == null),
+            DenemeKapaliNedeni = secili.Any(x => x.ParcaLocalId != null) &&
+                                 secili.Where(x => x.ParcaLocalId != null).All(x => x.DenemeyeKapaliNedeni != null)
+                ? secili.First(x => x.DenemeyeKapaliNedeni != null).DenemeyeKapaliNedeni
+                : null
         };
     }
 }

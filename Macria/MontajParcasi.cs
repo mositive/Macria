@@ -83,6 +83,8 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
                            KalinlikDuzeltildi;
     /// <summary>The part's own size for a part that is no sheet: "Ø12 × 80", "40 × 40 × 100", or "—".</summary>
     public string GovdeOlcusu { get; init; } = "—";
+    /// <summary>Profil / Sac olarak dene are closed to the part (DenemeKapisi): e.g. a shaft; null when open.</summary>
+    public string? DenemeyeKapaliNedeni { get; init; }
     public string ThicknessDisplay => SacGibi && EtkinKalinlikMm is double t ? FormatNumber(t) + " mm" : "—";
     /// <summary>Editable thickness cell text (no unit).</summary>
     public string KalinlikMetni => EtkinKalinlikMm is double t ? FormatNumber(t) : "";
@@ -240,7 +242,9 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
                 : HoleSummaryFor(analysis.HoleFeatures.Where(x => x.SolidId?.LocalId == solidId)),
             DxfSourcePath = part.SheetCandidate ? dxfSourcePath : null,
             DxfCutOnlySourcePath = part.SheetCandidate ? dxfCutOnlySourcePath : null,
-            GovdeOlcusu = GovdeOlcusuHesapla(analysis, solidId, sheet)
+            GovdeOlcusu = GovdeOlcusuHesapla(analysis, solidId, sheet),
+            DenemeyeKapaliNedeni = solidId is null ? null : DenemeKapisi.Neden(analysis.ProfileRecognitions
+                .FirstOrDefault(x => x.SolidId?.LocalId == solidId && x.SectionRecognitionStatus == "Recognized")?.ProfileType)
         };
         row._laserMaximumMm = laserMaximumMm;
         row.Recalculate();

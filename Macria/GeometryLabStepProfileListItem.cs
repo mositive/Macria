@@ -49,6 +49,8 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
     public IReadOnlyList<string> PartEngineReasons { get; init; } = Array.Empty<string>();
     public string IslemeGosterimi => IslemeMetni.Kisa(PartMachiningPresent, PartMachiningKinds);
     int? IAnalizSatiri.ParcaLocalId => PartLocalId;
+    // A profile row is a hollow section: open to the trials.
+    string? IAnalizSatiri.DenemeyeKapaliNedeni => null;
     /// <summary>Built from a run on selected parts (Yeniden Analiz Et, Profil olarak dene).</summary>
     public SatirDenemesi? Deneme { get; private set; }
 

@@ -3052,6 +3052,25 @@ internal static class Program
               !AnalizAracDurumu.Hesapla(AnalizSekmesi.Profiller, secili, true, false).YenidenAnalizGorunur &&
               !AnalizAracDurumu.Hesapla(AnalizSekmesi.KontrolGerekli, secili, true, false, motorMesgul: true).YenidenAnalizEtkin,
             "Yeniden Analiz Et: Kontrol gerekli and Tanımsız only, off while the engine runs; Otomatik Karara Dön undoes it");
+        // A shaft the profile recognizer measured is closed to the trials (not to Yeniden Analiz Et).
+        GeometryLabAnalysisTransport milli = analysis with
+        {
+            ProfileRecognitions = new[]
+            {
+                new GeometryLabProfileRecognitionTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 5 }, SectionRecognitionStatus = "Recognized",
+                    ProfileType = "SolidCircularBar", OuterDiameterMm = 20 }
+            }
+        };
+        MontajParcaSatiri milSatiri = MontajParcaSatiri.Olustur("C:\\m.stp", milli,
+            analysis.Parts[4] with { ClassificationCode = MotorSinifKodu.SolidBar, RecognitionEvidence = true }, null, 20);
+        AnalizAracDurumu milDurumu = AnalizAracDurumu.Hesapla(AnalizSekmesi.KontrolGerekli, new IAnalizSatiri[] { milSatiri }, true, false);
+        Check(milSatiri.DenemeyeKapaliNedeni == DenemeKapisi.DoluMil && !milDurumu.DenemeEtkin && milDurumu.YenidenAnalizEtkin &&
+              milDurumu.DenemeKapaliNedeni == "Dolu mil olarak tanındı; denemeye kapalı",
+            "a shaft: Profil / Sac olarak dene off with the reason, Yeniden Analiz Et on");
+        AnalizAracDurumu karisik = AnalizAracDurumu.Hesapla(AnalizSekmesi.KontrolGerekli, new IAnalizSatiri[] { milSatiri, montaj[0] }, true, false);
+        Check(karisik.DenemeEtkin && karisik.DenemeKapaliNedeni == null && montaj[0].DenemeyeKapaliNedeni == null,
+            "a shaft and another part selected: the trials run on the other part");
+        Check(DenemeKapisi.Neden("SquareHollowSection") == null && DenemeKapisi.Neden(null) == null, "only the listed kinds are closed");
         var dosyaSatiri = new GeometryLabStepProfileListItem { SourceStepPath = "C:\\eski.stp" };
         Check(!AnalizAracDurumu.Hesapla(AnalizSekmesi.Tanimsiz, new IAnalizSatiri[] { dosyaSatiri }, true, false).YenidenAnalizEtkin,
             "a file row without engine parts cannot be re-analysed by part");

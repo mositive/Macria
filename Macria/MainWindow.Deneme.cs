@@ -20,6 +20,11 @@ public partial class MainWindow
     private async void btnAnalizYenidenAnaliz_Click(object sender, RoutedEventArgs e) =>
         await SeciliParcalariCalistirAsync(SeciliAnalizSatirlari(), MacriaProje.DenemeYeniden);
 
+    private const string ProfilDeneIpucu =
+        "Seçili parçalara yalnız profil tanıyıcısını gevşetilmiş kurallarla uygular (kısa boy, tek tutarlı içi boş eksen); kesit, et, boy ve uç kesimini motor ölçer";
+    private const string SacDeneIpucu =
+        "Seçili parçalara yalnız sac tanıyıcısını gevşetilmiş kurallarla uygular (et genişliği kuralı yok, alanın en çok %10'u kabuk dışı yüz işleme; kalınlık açınımın en dar ölçüsünden küçük olmalı, kapalı kesit sac değil); tanınan parça onaylı sac olur";
+
     private async void btnAnalizProfilDene_Click(object sender, RoutedEventArgs e) =>
         await SeciliParcalariCalistirAsync(SeciliAnalizSatirlari(), MacriaProje.DenemeProfil);
 
@@ -38,6 +43,12 @@ public partial class MainWindow
         if (_externalStepProfileAnalysisRunning || _profilIslemde || _projeIslemde) return;
         if (ProjeSaltOkunurUyarisi()) return;
         var isler = new List<ParcaIsi>();
+        if (mod != MacriaProje.DenemeYeniden)
+        {
+            foreach (IAnalizSatiri kapali in satirlar.Where(x => x.DenemeyeKapaliNedeni != null))
+                LogInfo(IsBasligi(mod) + ": " + kapali.ParcaAdi + " atlandı — " + kapali.DenemeyeKapaliNedeni + ".");
+            satirlar = satirlar.Where(x => x.DenemeyeKapaliNedeni == null).ToList();
+        }
         foreach (IGrouping<string, IAnalizSatiri> grup in satirlar.Where(x => x.ParcaLocalId != null)
                      .GroupBy(x => Path.GetFullPath(x.KaynakYolu), StringComparer.OrdinalIgnoreCase))
         {
