@@ -292,10 +292,29 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         }
         GeometryLabFlatPatternTransport? acinim = sheet?.FlatPattern?.Status == "Succeeded" ? sheet.FlatPattern : null;
         if (acinim?.WidthMm is double en && acinim.HeightMm is double genislik && sheet!.ThicknessMm is double t)
-            return acinim.Segments.Count == 1 && acinim.Segments[0].Type == "Circle"
-                ? "Ø" + N(en) + " × " + N(t) + " mm"
+            return DisHatCapi(acinim) is double cap
+                ? "Ø" + N(cap) + " × " + N(t) + " mm"
                 : N(en) + " × " + N(genislik) + " × " + N(t) + " mm";
         return "—";
+    }
+
+    /// <summary>
+    /// A turned (round) part's outline is one circle, or arcs of one circle
+    /// (a disc, a ring, a stepped disc seen from its axis): its diameter.
+    /// Holes inside do not matter. Null for any other outline.
+    /// </summary>
+    public static double? DisHatCapi(GeometryLabFlatPatternTransport acinim)
+    {
+        const double tolerans = 0.01;
+        // Engine outputs without segment roles: only a single circle is known to be round.
+        if (acinim.Segments.All(x => x.Role is null))
+            return acinim.Segments.Count == 1 && acinim.Segments[0].Type == "Circle" && acinim.WidthMm is double w ? w : null;
+        List<GeometryLabFlatSegmentTransport> dis = acinim.Segments.Where(x => x.Role == "Outer").ToList();
+        if (dis.Count == 0 || dis.Any(x => x.Type is not ("Arc" or "Circle") || x.RadiusMm is null || x.Center is null)) return null;
+        GeometryLabFlatSegmentTransport ilk = dis[0];
+        bool tekDaire = dis.All(x => Math.Abs(x.RadiusMm!.Value - ilk.RadiusMm!.Value) <= tolerans &&
+                                     Math.Abs(x.Center!.X - ilk.Center!.X) <= tolerans && Math.Abs(x.Center.Y - ilk.Center.Y) <= tolerans);
+        return tekDaire ? 2 * ilk.RadiusMm!.Value : null;
     }
 
     /// <summary>

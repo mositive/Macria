@@ -250,11 +250,30 @@ public sealed record GeometryLabFlatPatternTransport
     public string? RejectionReason { get; init; }
 }
 
-/// <summary>One edge of the flat pattern outline; only its type is read ("Line", "Arc", "Circle", "Polyline").</summary>
+/// <summary>One edge of the flat pattern outline ("Line", "Arc", "Circle", "Polyline"); arcs and circles with their circle.</summary>
 public sealed record GeometryLabFlatSegmentTransport
 {
     [JsonPropertyName("type")]
     public string? Type { get; init; }
+
+    // "Outer" (the outline) or "Inner" (a cut-out).
+    [JsonPropertyName("role")]
+    public string? Role { get; init; }
+
+    [JsonPropertyName("center")]
+    public GeometryLabFlatPointTransport? Center { get; init; }
+
+    [JsonPropertyName("radiusMm")]
+    public double? RadiusMm { get; init; }
+}
+
+public sealed record GeometryLabFlatPointTransport
+{
+    [JsonPropertyName("x")]
+    public double X { get; init; }
+
+    [JsonPropertyName("y")]
+    public double Y { get; init; }
 }
 
 public sealed record GeometryLabFlatRectangleTransport

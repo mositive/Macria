@@ -1772,6 +1772,25 @@ internal static class Program
         baski.ApproveAsSheet();
         Check(baski.SacGibi && baski.ThicknessDisplay == "44 mm" && baski.OlcuGosterimiMetni == "t = 44 mm",
             "approved as a sheet, the thickness is shown again");
+        // (4) A turned part whose outline is arcs of one circle (359147, a ring with an inner
+        // contour like 257300_Duplicate_10): Ø × thickness, the inner contour does not matter.
+        GeometryLabFlatSegmentTransport Yay(string rol, double x, double y, double r) => new()
+            { Type = "Arc", Role = rol, Center = new GeometryLabFlatPointTransport { X = x, Y = y }, RadiusMm = r };
+        GeometryLabAnalysisTransport Disk(params GeometryLabFlatSegmentTransport[] parcalar) => olculen with
+        {
+            SheetMetalAnalyses = new[]
+            {
+                new GeometryLabSheetMetalTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 5 }, Status = "Recognized", ThicknessMm = 58,
+                    FlatPattern = new GeometryLabFlatPatternTransport { Status = "Succeeded", WidthMm = 119, HeightMm = 119, Segments = parcalar } }
+            }
+        };
+        MontajParcaSatiri disk = MontajParcaSatiri.Olustur("C:\\m.stp", Disk(Yay("Outer", 59.5, 59.5, 59.5), Yay("Outer", 59.5, 59.5, 59.5),
+            Yay("Inner", 59.5, 59.500000001, 40)), analysis.Parts[4] with { ClassificationCode = MotorSinifKodu.ThickerThanMaterial, RecognitionEvidence = true }, null, 20);
+        Check(disk.OlcuGosterimiMetni == "Ø119 × 58 mm" && ((IAnalizSatiri)disk).Ayrintilar.Any(x => x.Key == "Ölçü" && x.Value == "Ø119 × 58 mm"),
+            "a round outline of arcs (with a hole) shows Ø × thickness: " + disk.OlcuGosterimiMetni);
+        MontajParcaSatiri yuvarlakKoseli = MontajParcaSatiri.Olustur("C:\\m.stp", Disk(Yay("Outer", 10, 10, 10),
+            new GeometryLabFlatSegmentTransport { Type = "Line", Role = "Outer" }), analysis.Parts[4] with { ClassificationCode = MotorSinifKodu.ThickerThanMaterial, RecognitionEvidence = true }, null, 20);
+        Check(yuvarlakKoseli.OlcuGosterimiMetni == "119 × 119 × 58 mm", "an outline with a straight edge is not round: " + yuvarlakKoseli.OlcuGosterimiMetni);
         // (3) A closed section (236948, a box profile) is no "Sac?".
         MontajParcaSatiri kutu = MontajParcaSatiri.Olustur("C:\\m.stp", olculen with
         {
