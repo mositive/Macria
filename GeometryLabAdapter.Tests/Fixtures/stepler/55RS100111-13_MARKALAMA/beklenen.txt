@@ -1,0 +1,2 @@
+# Markalanmış kutu profil: kesit boyunca tek değil, temel stok (işlenmiş profil) olarak tanınır.
+Profil

@@ -12,6 +12,37 @@ internal static class Program
     private static string _root = "";
     private static string _step = "";
 
+    // Real-engine and real-file tests read the repository's fixed copies
+    // (Fixtures/: .macria projects, single-part STEPs, montaj-1) and the
+    // packaged engine, never the user's working files. An environment
+    // variable still points a test elsewhere (engine development).
+    private static readonly string DepoKoku = DepoKokunuBul();
+    private static readonly string Fiksturler = Path.Combine(DepoKoku, "GeometryLabAdapter.Tests", "Fixtures");
+
+    private static string DepoKokunuBul()
+    {
+        for (DirectoryInfo? klasor = new(AppContext.BaseDirectory); klasor != null; klasor = klasor.Parent)
+            if (Directory.Exists(Path.Combine(klasor.FullName, "GeometryEngineRuntime")) &&
+                Directory.Exists(Path.Combine(klasor.FullName, "GeometryLabAdapter.Tests")))
+                return klasor.FullName;
+        return "";
+    }
+
+    private static string? Ortam(string ad)
+    {
+        string? deger = Environment.GetEnvironmentVariable(ad);
+        if (!string.IsNullOrWhiteSpace(deger) || DepoKoku.Length == 0) return deger;
+        return ad switch
+        {
+            "MACRIA_GEOMETRY_ENGINE_EXE" => Path.Combine(DepoKoku, "GeometryEngineRuntime", "Macria.GeometryEngine.exe"),
+            "MACRIA_GEOMETRY_ENGINE_ASSEMBLY_DIR" => Path.Combine(Fiksturler, "stepler", "montaj-1"),
+            "MACRIA_TEK_PARCA_KOK" => Path.Combine(Fiksturler, "stepler"),
+            "MACRIA_ESKI_PROJELER" => Path.Combine(Fiksturler, "projeler", "WGRV004423 A.macria") + ";" +
+                                      Path.Combine(Fiksturler, "projeler", "B-Rep Calisma A.macria"),
+            _ => null
+        };
+    }
+
     private static async Task<int> Main()
     {
         _root = Path.Combine(Path.GetTempPath(), "Macria-GeometryLabAdapter-Tests-" + Guid.NewGuid().ToString("N"));
@@ -144,7 +175,7 @@ internal static class Program
 
     private static async Task RealEngineAsync()
     {
-        string? engine = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_EXE");
+        string? engine = Ortam("MACRIA_GEOMETRY_ENGINE_EXE");
         string? step = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_STEP");
         if (string.IsNullOrWhiteSpace(engine) || string.IsNullOrWhiteSpace(step) || !File.Exists(engine) || !File.Exists(step))
         {
@@ -178,8 +209,8 @@ internal static class Program
     // Dispose did must leave the DLL and OCCT loaded.
     private static void RealViewerDllPinned()
     {
-        string? engine = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_EXE");
-        string? folder = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_ASSEMBLY_DIR");
+        string? engine = Ortam("MACRIA_GEOMETRY_ENGINE_EXE");
+        string? folder = Ortam("MACRIA_GEOMETRY_ENGINE_ASSEMBLY_DIR");
         string? step = Directory.Exists(folder)
             ? Directory.GetFiles(folder, "*.stp").Concat(Directory.GetFiles(folder, "*.step")).FirstOrDefault()
             : null;
@@ -375,8 +406,8 @@ internal static class Program
     // MACRIA_PROJE_STEPS (separated by ';'), e.g. WGRV004423.
     private static async Task RealProjectRoundTripAsync()
     {
-        string? engine = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_EXE");
-        string? folder = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_ASSEMBLY_DIR");
+        string? engine = Ortam("MACRIA_GEOMETRY_ENGINE_EXE");
+        string? folder = Ortam("MACRIA_GEOMETRY_ENGINE_ASSEMBLY_DIR");
         var steps = new List<string>();
         if (Directory.Exists(folder)) steps.AddRange(Directory.GetFiles(folder, "*.stp"));
         steps.AddRange((Environment.GetEnvironmentVariable("MACRIA_PROJE_STEPS") ?? "")
@@ -639,8 +670,8 @@ internal static class Program
     // the same profile.
     private static async Task RealSinglePartPathAsync()
     {
-        string? engine = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_EXE");
-        string? kok = Environment.GetEnvironmentVariable("MACRIA_TEK_PARCA_KOK");
+        string? engine = Ortam("MACRIA_GEOMETRY_ENGINE_EXE");
+        string? kok = Ortam("MACRIA_TEK_PARCA_KOK");
         if (string.IsNullOrWhiteSpace(engine) || !File.Exists(engine) || string.IsNullOrWhiteSpace(kok) || !Directory.Exists(kok))
         {
             Console.WriteLine("REAL_SINGLE_PART: SKIPPED - MACRIA_TEK_PARCA_KOK unavailable.");
@@ -679,7 +710,7 @@ internal static class Program
     // decisions land on the new tabs.
     private static void RealOldProjectsTests()
     {
-        string[] projeler = (Environment.GetEnvironmentVariable("MACRIA_ESKI_PROJELER") ?? "")
+        string[] projeler = (Ortam("MACRIA_ESKI_PROJELER") ?? "")
             .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Where(File.Exists).ToArray();
         if (projeler.Length == 0)
         {
@@ -752,7 +783,7 @@ internal static class Program
 
     private static async Task RealBaseStockEngineAsync()
     {
-        string? engine = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_EXE");
+        string? engine = Ortam("MACRIA_GEOMETRY_ENGINE_EXE");
         string? step = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_BASE_STEP");
         if (string.IsNullOrWhiteSpace(engine) || string.IsNullOrWhiteSpace(step) || !File.Exists(engine) || !File.Exists(step))
         {
@@ -780,7 +811,7 @@ internal static class Program
 
     private static async Task RealNormalPriorityEngineAsync()
     {
-        string? engine = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_EXE");
+        string? engine = Ortam("MACRIA_GEOMETRY_ENGINE_EXE");
         string? step = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_NORMAL_PRIORITY_STEP");
         if (string.IsNullOrWhiteSpace(engine) || string.IsNullOrWhiteSpace(step) || !File.Exists(engine) || !File.Exists(step))
         {
@@ -802,7 +833,7 @@ internal static class Program
 
     private static async Task RealNegativeEligibilityEngineAsync()
     {
-        string? engine = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_EXE");
+        string? engine = Ortam("MACRIA_GEOMETRY_ENGINE_EXE");
         string? paths = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_NEGATIVE_STEPS");
         if (string.IsNullOrWhiteSpace(engine) || string.IsNullOrWhiteSpace(paths) || !File.Exists(engine))
         {
@@ -1002,8 +1033,8 @@ internal static class Program
     // "<part name>: <quantity> <class>" (Sac, Profil, Diğer, Kontrol gerekli).
     private static async Task RealAssemblyEngineAsync()
     {
-        string? engine = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_EXE");
-        string? folder = Environment.GetEnvironmentVariable("MACRIA_GEOMETRY_ENGINE_ASSEMBLY_DIR");
+        string? engine = Ortam("MACRIA_GEOMETRY_ENGINE_EXE");
+        string? folder = Ortam("MACRIA_GEOMETRY_ENGINE_ASSEMBLY_DIR");
         if (string.IsNullOrWhiteSpace(engine) || string.IsNullOrWhiteSpace(folder))
         {
             Console.WriteLine("REAL_ASSEMBLY_ENGINE: SKIPPED - MACRIA_GEOMETRY_ENGINE_EXE / MACRIA_GEOMETRY_ENGINE_ASSEMBLY_DIR unavailable.");

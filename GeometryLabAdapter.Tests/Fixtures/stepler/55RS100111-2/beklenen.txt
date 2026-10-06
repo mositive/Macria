@@ -1,0 +1,2 @@
+# B-spline yüzeyler; sac olarak tanınmıyor.
+Desteklenmiyor

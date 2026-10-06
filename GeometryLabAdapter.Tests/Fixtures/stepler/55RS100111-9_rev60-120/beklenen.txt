@@ -1,0 +1,3 @@
+# CATIA Top ve Bottom delikleri baş çapıyla çiziyor (Ø20, Ø9,75); motor geçiş çapını çizer.
+Gecmeli
+delikler: 10 5.4
