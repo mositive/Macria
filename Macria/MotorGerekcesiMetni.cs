@@ -17,8 +17,12 @@ public static class MotorGerekcesiMetni
 {
     private static readonly CultureInfo Tr = CultureInfo.GetCultureInfo("tr-TR");
 
-    /// <summary>Short text for a part row: the engine code (MotorSinifKodu) and its reasons.</summary>
-    public static string Kisa(string kod, IReadOnlyList<string> gerekceler)
+    /// <summary>
+    /// Short text for a part row: the engine code (MotorSinifKodu) and its
+    /// reasons. `kapaliKesitSekli`: the sheet recognizer's closed-section shape
+    /// ("Box", "Tube"; null in older outputs, said as "boru" as before).
+    /// </summary>
+    public static string Kisa(string kod, IReadOnlyList<string> gerekceler, string? kapaliKesitSekli = null)
     {
         if (gerekceler.Count == 0) return "—";
         string ilk = gerekceler[0];
@@ -36,7 +40,7 @@ public static class MotorGerekcesiMetni
                 // A closed section is said with its shape (engine 2026.10.6.4+); the
                 // automatic text cannot tell a box from a tube.
                 if (neden is "kapalı kesit (kutu profil)" or "kapalı kesit (boru)") return deneme + ", tanınmadı: " + neden;
-                string otomatik = gerekceler.Count > 1 ? Kisa(kod, gerekceler.Skip(1).ToList()) : "";
+                string otomatik = gerekceler.Count > 1 ? Kisa(kod, gerekceler.Skip(1).ToList(), kapaliKesitSekli) : "";
                 // The trial's reason is often the automatic one: said once.
                 bool ayni = otomatik.Contains(neden, StringComparison.Ordinal) ||
                             neden.StartsWith("levha değil", StringComparison.Ordinal) && otomatik.StartsWith("Sac değil", StringComparison.Ordinal) ||
@@ -55,16 +59,16 @@ public static class MotorGerekcesiMetni
             }
             else if (ilk.StartsWith(deneme + ": ", StringComparison.Ordinal))
                 sonuc = ilk.Substring(deneme.Length + 2);
-            return deneme + " → " + Otomatik(kod, new[] { sonuc }.Concat(gerekceler.Skip(1)).ToList()) +
+            return deneme + " → " + Otomatik(kod, new[] { sonuc }.Concat(gerekceler.Skip(1)).ToList(), kapaliKesitSekli) +
                    (gevsetilen.Length > 0 ? " (gevşetilen: " + gevsetilen + ")" : "");
         }
-        return Otomatik(kod, gerekceler);
+        return Otomatik(kod, gerekceler, kapaliKesitSekli);
     }
 
     /// <summary>The engine's own text for "Teknik ayrıntı".</summary>
     public static string Teknik(IReadOnlyList<string> gerekceler) => gerekceler.Count == 0 ? "—" : string.Join(" ", gerekceler);
 
-    private static string Otomatik(string kod, IReadOnlyList<string> gerekceler)
+    private static string Otomatik(string kod, IReadOnlyList<string> gerekceler, string? kapaliKesitSekli)
     {
         string hepsi = string.Join(" ", gerekceler);
         switch (kod)
@@ -112,7 +116,7 @@ public static class MotorGerekcesiMetni
                     : hepsi.Contains("süresi", StringComparison.Ordinal) ? "Tanınamadı: sac analizi yarıda kaldı"
                     : "Tanınamadı: sac analizi tamamlanamadı";
             case MotorSinifKodu.NotRecognized:
-                return SacNedeni(hepsi);
+                return SacNedeni(hepsi, kapaliKesitSekli);
             case MotorSinifKodu.InvalidGeometry:
                 return "Tanınamadı: geçersiz geometri";
             case MotorSinifKodu.MultiSolid:
@@ -127,10 +131,11 @@ public static class MotorGerekcesiMetni
     }
 
     // Why the sheet recognizer did not take a part, from its rejection text.
-    private static string SacNedeni(string metin) =>
+    private static string SacNedeni(string metin, string? kapaliKesitSekli = null) =>
         metin.Contains("Sabit ofsetli karşılıklı yüz çifti bulunamadı", StringComparison.Ordinal) ? "Tanınamadı: karşılıklı paralel yüz yok"
         : metin.Contains("Kabuklar arasında kalmayan yüzler", StringComparison.Ordinal) ? "Tanınamadı: sac kalınlığı dışına taşan yüzler var"
-        : metin.Contains("Kabuk kendi üzerine kapanıyor", StringComparison.Ordinal) ? "Sac değil: kapalı kesit (boru)"
+        : metin.Contains("Kabuk kendi üzerine kapanıyor", StringComparison.Ordinal)
+            ? "Sac değil: kapalı kesit (" + (kapaliKesitSekli == "Box" ? "kutu profil" : "boru") + ")"
         : metin.Contains("kabukları ayrışmadı", StringComparison.Ordinal) ? "Tanınamadı: sac yüzleri ayrışmadı"
         : metin.Contains("Kalınlık çiftleri arasında düzlem yüz yok", StringComparison.Ordinal) ? "Sac değil: paralel düz yüz çifti yok"
         : "Tanınamadı";

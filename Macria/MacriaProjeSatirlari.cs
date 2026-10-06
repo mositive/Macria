@@ -105,7 +105,9 @@ public static class MacriaProjeSatirlari
     {
         if (ek.Analysis is not { } analiz || analiz.Parts.FirstOrDefault(x => x.LocalId == localId) is not { } parca) return null;
         (string kod, _) = MotorSinifKodu.Belirle(analiz, parca);
-        return MotorGerekcesiMetni.Kisa(kod, parca.ClassificationReasons);
+        int? solid = parca.SolidIds.Count == 1 ? parca.SolidIds[0].LocalId : null;
+        string? sekil = analiz.SheetMetalAnalyses.FirstOrDefault(x => solid != null && x.SolidId?.LocalId == solid && x.ClosedSection)?.ClosedSectionShape;
+        return MotorGerekcesiMetni.Kisa(kod, parca.ClassificationReasons, sekil);
     }
 
     /// <summary>

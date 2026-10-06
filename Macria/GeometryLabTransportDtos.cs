@@ -185,6 +185,10 @@ public sealed record GeometryLabSheetMetalTransport
     [JsonPropertyName("closedSection")]
     public bool ClosedSection { get; init; }
 
+    // Engine 2026.10.6.5+: a closed section's shape, "Box" or "Tube"; null in older outputs.
+    [JsonPropertyName("closedSectionShape")]
+    public string? ClosedSectionShape { get; init; }
+
     [JsonPropertyName("bends")]
     public IReadOnlyList<GeometryLabSheetBendTransport> Bends { get; init; } =
         Array.Empty<GeometryLabSheetBendTransport>();

@@ -85,6 +85,8 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
     public string GovdeOlcusu { get; init; } = "—";
     /// <summary>The sheet recognizer found a closed section (tube, box profile): no sheet, whatever its thickness.</summary>
     public bool KapaliKesit { get; init; }
+    /// <summary>The closed section's shape ("Box", "Tube"); null without one or in older engine outputs.</summary>
+    public string? KapaliKesitSekli { get; init; }
     /// <summary>Profil / Sac olarak dene are closed to the part (DenemeKapisi): e.g. a shaft; null when open.</summary>
     public string? DenemeyeKapaliNedeni { get; init; }
     public string ThicknessDisplay => SacGibi && EtkinKalinlikMm is double t ? FormatNumber(t) + " mm" : "—";
@@ -256,6 +258,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
             DxfCutOnlySourcePath = part.SheetCandidate ? dxfCutOnlySourcePath : null,
             GovdeOlcusu = GovdeOlcusuHesapla(analysis, solidId, sheet),
             KapaliKesit = sheet?.ClosedSection == true,
+            KapaliKesitSekli = sheet?.ClosedSection == true ? sheet.ClosedSectionShape : null,
             DenemeyeKapaliNedeni = solidId is null ? null : DenemeKapisi.Neden(analysis.ProfileRecognitions
                 .FirstOrDefault(x => x.SolidId?.LocalId == solidId && x.SectionRecognitionStatus == "Recognized")?.ProfileType)
         };
@@ -531,7 +534,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
     public string DurumEtiketi => StatusDisplay;
     public string KararGosterimi => DecisionDisplay;
     /// <summary>The engine's reason, result first and short (MotorGerekcesiMetni); its own text is in "Teknik ayrıntı".</summary>
-    public string MotorGerekcesi => DenemeGerekcesi ?? MotorGerekcesiMetni.Kisa(EngineCode, EngineReasons);
+    public string MotorGerekcesi => DenemeGerekcesi ?? MotorGerekcesiMetni.Kisa(EngineCode, EngineReasons, KapaliKesitSekli);
     public string KullaniciKarariMetni
     {
         get

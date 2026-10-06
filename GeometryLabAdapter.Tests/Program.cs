@@ -1464,6 +1464,12 @@ internal static class Program
                 "Sac veya profil olarak tanınmadı (Kabuk kendi üzerine kapanıyor (kapalı kesit / boru); sac açınımı yok.)." },
                 "Sac olarak denendi, tanınmadı: kapalı kesit (boru)")
         };
+        // (A) The automatic reason says a closed section's shape (engine 2026.10.6.5+); older outputs keep "(boru)".
+        string[] kapali = { "Sac veya profil olarak tanınmadı (Kabuk kendi üzerine kapanıyor (kapalı kesit / boru); sac açınımı yok.)." };
+        Check(MotorGerekcesiMetni.Kisa(MotorSinifKodu.NotRecognized, kapali, "Box") == "Sac değil: kapalı kesit (kutu profil)" &&
+              MotorGerekcesiMetni.Kisa(MotorSinifKodu.NotRecognized, kapali, "Tube") == "Sac değil: kapalı kesit (boru)" &&
+              MotorGerekcesiMetni.Kisa(MotorSinifKodu.NotRecognized, kapali) == "Sac değil: kapalı kesit (boru)",
+            "automatic closed-section reason: kutu profil / boru; without the shape (older output) as before");
         foreach (var (kod, gerekce, beklenen) in ornekler)
         {
             string kisa = K(kod, gerekce);
@@ -1807,6 +1813,19 @@ internal static class Program
             }
         }, analysis.Parts[4] with { ClassificationCode = MotorSinifKodu.NotRecognized, RecognitionEvidence = true }, null, 20);
         Check(((IAnalizSatiri)kutu).TurGosterimi == "Kapalı kesit", "a closed section's type: " + ((IAnalizSatiri)kutu).TurGosterimi);
+        MontajParcaSatiri kutuSekilli = MontajParcaSatiri.Olustur("C:\\m.stp", olculen with
+        {
+            SheetMetalAnalyses = new[]
+            {
+                new GeometryLabSheetMetalTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 5 }, Status = "NotSheet", ThicknessMm = 4,
+                    ClosedSection = true, ClosedSectionShape = "Box" }
+            }
+        }, analysis.Parts[4] with
+        {
+            ClassificationCode = MotorSinifKodu.NotRecognized, RecognitionEvidence = true,
+            ClassificationReasons = new[] { "Sac veya profil olarak tanınmadı (Kabuk kendi üzerine kapanıyor (kapalı kesit / boru); sac açınımı yok.)." }
+        }, null, 20);
+        Check(kutuSekilli.MotorGerekcesi == "Sac değil: kapalı kesit (kutu profil)", "236948-like box: automatic reason " + kutuSekilli.MotorGerekcesi);
         MontajParcaSatiri bos = Row(4, null);
         Check(bos.EngineCode == MotorSinifKodu.NotRecognized && !bos.EngineEvidence &&
               bos.EffectiveCategory == MontajParcaKategorisi.Tanimsiz && bos.Sekme == AnalizSekmesi.Tanimsiz,
