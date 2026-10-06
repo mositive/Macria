@@ -1439,7 +1439,13 @@ internal static class Program
             (MotorSinifKodu.Sheet, new[] { "Sac olarak denendi: Sac, açınım yok: Büküm F47 iki flanş arasında değil. t=2 mm." },
                 "Sac olarak denendi → Sac, açınım yok: uçta biten büküm; t = 2 mm"),
             (MotorSinifKodu.NotRecognized, new[] { "Profil olarak denendi: yuvarlak boru, boru tanıma henüz yok.", "Sac veya profil olarak tanınmadı." },
-                "Profil olarak denendi: yuvarlak boru, boru tanıma henüz yok")
+                "Profil olarak denendi: yuvarlak boru, boru tanıma henüz yok"),
+            (MotorSinifKodu.ThickerThanOutline, new[] { "Sac olarak denendi: sac tanınmadı (kalınlık 44 mm, açınımın en dar ölçüsü 12,472 mm'den küçük değil: levha değil).",
+                "Sac kabuğu bulundu ama kalınlık (44 mm) açınımın en dar ölçüsünden (12,472 mm) büyük: levha değil, çubuk.", "Sac veya profil olarak tanınmadı." },
+                "Sac olarak denendi, tanınmadı → Sac değil (çubuk/mil): kalınlık 44 mm > en dar ölçü 12,5 mm"),
+            (MotorSinifKodu.NotRecognized, new[] { "Sac olarak denendi: sac tanınmadı (kapalı kesit (boru / kutu) sac değil).",
+                "Sac veya profil olarak tanınmadı (Kabuk kendi üzerine kapanıyor (kapalı kesit / boru); sac açınımı yok.)." },
+                "Sac olarak denendi, tanınmadı → Sac değil: kapalı kesit (boru)")
         };
         foreach (var (kod, gerekce, beklenen) in ornekler)
         {

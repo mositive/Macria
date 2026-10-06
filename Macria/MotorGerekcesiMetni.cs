@@ -35,8 +35,11 @@ public static class MotorGerekcesiMetni
                 string neden = DenemeNedeni(tanimadi.Groups[1].Value);
                 string otomatik = gerekceler.Count > 1 ? Kisa(kod, gerekceler.Skip(1).ToList()) : "";
                 // The trial's reason is often the automatic one: said once.
+                bool ayni = otomatik.Contains(neden, StringComparison.Ordinal) ||
+                            neden == "levha değil" && otomatik.StartsWith("Sac değil", StringComparison.Ordinal) ||
+                            neden.StartsWith("kapalı kesit", StringComparison.Ordinal) && otomatik.Contains("kapalı kesit", StringComparison.Ordinal);
                 return otomatik.Length == 0 ? deneme + ", tanınmadı: " + neden
-                    : otomatik.Contains(neden, StringComparison.Ordinal) ? deneme + ", tanınmadı → " + otomatik
+                    : ayni ? deneme + ", tanınmadı → " + otomatik
                     : deneme + ", tanınmadı (" + neden + ") → " + otomatik;
             }
             string gevsetilen = "";
@@ -139,6 +142,9 @@ public static class MotorGerekcesiMetni
     // A trial's "not recognized" reason, without the engine's English detail.
     private static string DenemeNedeni(string metin)
     {
+        // Sac olarak dene kept the plate rule: the part is thicker than its outline is narrow.
+        if (metin.Contains("küçük değil: levha değil", StringComparison.Ordinal)) return "levha değil";
+        if (metin.StartsWith("kapalı kesit", StringComparison.Ordinal)) return "kapalı kesit (boru / kutu)";
         int iki = metin.IndexOf(':');
         string kisa = iki > 0 && metin.Take(iki).All(c => c < 128 || char.IsLetter(c)) ? metin[..iki] : metin;
         if (kisa.Contains("Kabuklar arasında kalmayan yüzler", StringComparison.Ordinal) ||
