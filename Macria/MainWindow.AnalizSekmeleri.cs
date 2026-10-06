@@ -71,11 +71,32 @@ public partial class MainWindow
     private string SekmeBasligi(string ad, int bulunan, int toplam) =>
         ad + " (" + (_analizArama.Length == 0 ? toplam.ToString() : bulunan + " / " + toplam) + ")";
 
+    // A row's place in the mixed tabs, by its part (STEP + localId; a file
+    // row by itself): given when the part first appears, kept when a run
+    // replaces its row, even by a row of the other kind.
+    private readonly Dictionary<object, int> _satirYerleri = new(new SatirYeriKarsilastirici());
+
+    // Part keys (strings) by value, file rows by reference.
+    private sealed class SatirYeriKarsilastirici : IEqualityComparer<object>
+    {
+        public new bool Equals(object? x, object? y) => x is string a && y is string b ? a == b : ReferenceEquals(x, y);
+        public int GetHashCode(object o) => o is string s ? s.GetHashCode() : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(o);
+    }
+
+    private static object SatirYeriAnahtari(IAnalizSatiri satir) => satir.ParcaLocalId is int id
+        ? Path.GetFullPath(satir.KaynakYolu).ToUpperInvariant() + "|" + id
+        : satir;
+
     private void TumSatirlariYenile()
     {
         _tumSatirlar.Clear();
-        foreach (GeometryLabStepProfileListItem row in _externalStepProfileRows) _tumSatirlar.Add(row);
-        foreach (MontajParcaSatiri row in _montajParcaRows) _tumSatirlar.Add(row);
+        if (_externalStepProfileRows.Count == 0 && _montajParcaRows.Count == 0) _satirYerleri.Clear();
+        var satirlar = _externalStepProfileRows.Cast<IAnalizSatiri>().Concat(_montajParcaRows).ToList();
+        foreach (IAnalizSatiri satir in satirlar)
+            if (!_satirYerleri.ContainsKey(SatirYeriAnahtari(satir)))
+                _satirYerleri[SatirYeriAnahtari(satir)] = _satirYerleri.Count;
+        foreach (IAnalizSatiri satir in satirlar.OrderBy(x => _satirYerleri[SatirYeriAnahtari(x)]))
+            _tumSatirlar.Add(satir);
         AnalizSekmeleriniGuncelle();
     }
 

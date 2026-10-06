@@ -88,6 +88,27 @@ public static class MacriaProjeSatirlari
     }
 
     /// <summary>
+    /// The run found what it was asked for: Profil olarak dene a profile, Sac
+    /// olarak dene a sheet. Yeniden Analiz Et always "finds" (its result is the
+    /// automatic one, recomputed). A trial that found nothing leaves the
+    /// automatic row as it is (docs/YENIDEN_ANALIZ_VE_DENEME_PLANI.md).
+    /// </summary>
+    public static bool DenemeBuldu(GeometryLabProcessAdapterResult ek, int localId, string mod)
+    {
+        if (mod is not (MacriaProje.DenemeProfil or MacriaProje.DenemeSac)) return true;
+        GeometryLabPartTransport? parca = ek.Analysis?.Parts.FirstOrDefault(x => x.LocalId == localId);
+        return parca?.Classification == (mod == MacriaProje.DenemeProfil ? "Profile" : "Sheet");
+    }
+
+    /// <summary>The run's short reason for a part (MotorGerekcesiMetni), or null when the part is not in it.</summary>
+    public static string? DenemeGerekcesi(GeometryLabProcessAdapterResult ek, int localId)
+    {
+        if (ek.Analysis is not { } analiz || analiz.Parts.FirstOrDefault(x => x.LocalId == localId) is not { } parca) return null;
+        (string kod, _) = MotorSinifKodu.Belirle(analiz, parca);
+        return MotorGerekcesiMetni.Kisa(kod, parca.ClassificationReasons);
+    }
+
+    /// <summary>
     /// A STEP's stored or returned analysis as its rows' source: only an
     /// automatic whole-STEP output; a run on selected parts is refused.
     /// </summary>

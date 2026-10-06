@@ -54,10 +54,16 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
     /// <summary>Built from a run on selected parts (Yeniden Analiz Et, Profil olarak dene).</summary>
     public SatirDenemesi? Deneme { get; private set; }
 
-    public void DenemeyiIsaretle(SatirDenemesi deneme)
+    /// <summary>The trial's reason when it found nothing (the row keeps the automatic result); null otherwise.</summary>
+    public string? DenemeGerekcesi { get; private set; }
+
+    /// <summary>`gerekce` null: this row is the run's result; otherwise the run found nothing and the row stays as it was.</summary>
+    public void DenemeyiIsaretle(SatirDenemesi deneme, string? gerekce = null)
     {
         Deneme = deneme;
-        foreach (string name in new[] { nameof(Deneme), nameof(KullaniciKarariMetni), nameof(DurumEtiketi) })
+        DenemeGerekcesi = gerekce;
+        foreach (string name in new[] { nameof(Deneme), nameof(KullaniciKarariMetni), nameof(DurumEtiketi), nameof(MotorGerekcesi),
+                     nameof(DenemeGerekcesi) })
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
     public string SourceFileName => PartName is null
@@ -704,7 +710,9 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
     string IAnalizSatiri.OlcuGosterimi => SectionDisplay;
     // A profile row from Profil olarak dene: the trial found a profile (an
     // unrecognized part stays a part row), so "(deneme)" is shown.
-    public string DurumEtiketi => Deneme is { Mod: MacriaProje.DenemeProfil } ? EffectiveStatusDisplay + " (deneme)" : EffectiveStatusDisplay;
+    public string DurumEtiketi => Deneme is { Mod: MacriaProje.DenemeProfil } && DenemeGerekcesi is null
+        ? EffectiveStatusDisplay + " (deneme)"
+        : EffectiveStatusDisplay;
     public string KararGosterimi => DecisionSource switch
     {
         GeometryLabDecisionSource.User => "Kullanıcı",
@@ -720,6 +728,7 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
     {
         get
         {
+            if (DenemeGerekcesi != null) return DenemeGerekcesi;
             if (_automaticPresentation is not { } p) return string.IsNullOrWhiteSpace(ExplanationDisplay) ? "—" : ExplanationDisplay;
             string metin = string.IsNullOrWhiteSpace(p.FailureReason) ? p.EvidenceStatus : p.FailureReason;
             return string.IsNullOrWhiteSpace(metin) ? "—" : metin;

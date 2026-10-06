@@ -203,8 +203,7 @@ public partial class MainWindow
         _projeKaynaklari[is_.Yol] = kayit with { Icerik = kayit.Icerik with { Ekler = ekler } };
 
         var once = SatirSekmeleri(is_.Yol, is_.Parcalar);
-        var (profil, montaj) = MacriaProjeSatirlari.EkSatirlari(is_.Yol, sonuc, _projeLazerMm, new SatirDenemesi(is_.Mod, ek.Id));
-        ParcaSatirlariniDegistir(is_.Yol, is_.Parcalar, profil, montaj);
+        DenemeSonucunuUygula(is_.Yol, is_.Parcalar, sonuc, new SatirDenemesi(is_.Mod, ek.Id));
         var sonra = SatirSekmeleri(is_.Yol, is_.Parcalar);
         int degisen = is_.Parcalar.Count(id => once.GetValueOrDefault(id) != sonra.GetValueOrDefault(id));
         LogSuccess(baslik + ": " + Path.GetFileName(is_.Yol) + " — " + is_.Parcalar.Count + " parça, " + degisen + " sekme değiştirdi, " +
@@ -216,6 +215,35 @@ public partial class MainWindow
             foreach (IAnalizSatiri satir in ParcaSatirlari(is_.Yol, is_.Parcalar)
                          .Where(x => once.GetValueOrDefault(x.ParcaLocalId!.Value) == x.Sekme))
                 LogInfo("   #" + satir.ParcaLocalId + " " + satir.ParcaAdi + ": tanınmadı — " + satir.MotorGerekcesi);
+    }
+
+    /// <summary>
+    /// A run's result on the parts' rows. Parts it found (a trial: what it
+    /// tried for; Yeniden Analiz Et: every part) take the result's rows in
+    /// place. A trial that found nothing leaves the automatic row as it is
+    /// (status, type, size, section, Seçili Parça) and only marks it: Kullanıcı
+    /// kararı and the reason say what was tried and why it did not take.
+    /// </summary>
+    private void DenemeSonucunuUygula(string yol, IReadOnlyCollection<int> idler, GeometryLabProcessAdapterResult ek, SatirDenemesi deneme)
+    {
+        var (profil, montaj) = MacriaProjeSatirlari.EkSatirlari(yol, ek, _projeLazerMm, deneme);
+        HashSet<int> bulunan = idler.Where(id => MacriaProjeSatirlari.DenemeBuldu(ek, id, deneme.Mod)).ToHashSet();
+        ParcaSatirlariniDegistir(yol, bulunan,
+            profil.Where(x => x.PartLocalId is int id && bulunan.Contains(id)).ToList(),
+            montaj.Where(x => bulunan.Contains(x.PartLocalId)).ToList());
+        foreach (int id in idler.Where(id => !bulunan.Contains(id)))
+        {
+            string gerekce = MacriaProjeSatirlari.DenemeGerekcesi(ek, id) ?? "—";
+            foreach (IAnalizSatiri satir in ParcaSatirlari(yol, new[] { id }).ToList())
+            {
+                switch (satir)
+                {
+                    case GeometryLabStepProfileListItem p: p.DenemeyiIsaretle(deneme, gerekce); break;
+                    case MontajParcaSatiri m: m.DenemeyiIsaretle(deneme, gerekce); break;
+                }
+                _degisenSatirlar.Add(satir);
+            }
+        }
     }
 
     /// <summary>Tab of each listed part of the STEP, by localId.</summary>
@@ -307,11 +335,7 @@ public partial class MainWindow
                 GeometryLabProcessAdapterResult ek = GeometryLabProcessAdapter.SonucuJsondanKur(json, acilis.EkDxfKlasoru.GetValueOrDefault(anahtar));
                 if (ek.IsSuccess && !ek.Analysis!.Otomatik)
                 {
-                    var deneme = new SatirDenemesi(grup.Key.Item3, grup.Key.Item2);
-                    var (profil, montaj) = MacriaProjeSatirlari.EkSatirlari(yol, ek, _projeLazerMm, deneme);
-                    ParcaSatirlariniDegistir(yol, idler,
-                        profil.Where(x => x.PartLocalId is int id && idler.Contains(id)).ToList(),
-                        montaj.Where(x => idler.Contains(x.PartLocalId)).ToList());
+                    DenemeSonucunuUygula(yol, idler, ek, new SatirDenemesi(grup.Key.Item3, grup.Key.Item2));
                     continue;
                 }
             }

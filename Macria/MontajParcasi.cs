@@ -105,10 +105,20 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
     /// <summary>Built from a run on selected parts (Yeniden Analiz Et, Sac olarak dene).</summary>
     public SatirDenemesi? Deneme { get; private set; }
 
-    public void DenemeyiIsaretle(SatirDenemesi deneme)
+    /// <summary>
+    /// The trial's reason when it found nothing: the row keeps the automatic
+    /// result and only says what was tried and why it did not take (null when
+    /// the row is the run's own result).
+    /// </summary>
+    public string? DenemeGerekcesi { get; private set; }
+
+    /// <summary>`gerekce` null: this row is the run's result; otherwise the run found nothing and the row stays as it was.</summary>
+    public void DenemeyiIsaretle(SatirDenemesi deneme, string? gerekce = null)
     {
         Deneme = deneme;
-        foreach (string name in new[] { nameof(Deneme), nameof(KullaniciKarariMetni), nameof(DurumEtiketi), nameof(StatusDisplay) })
+        DenemeGerekcesi = gerekce;
+        foreach (string name in new[] { nameof(Deneme), nameof(KullaniciKarariMetni), nameof(DurumEtiketi), nameof(StatusDisplay),
+                     nameof(MotorGerekcesi), nameof(DenemeGerekcesi) })
             Raise(name);
     }
     public string EngineReasonDisplay => EngineReasons.Count == 0 ? "" : string.Join(" ", EngineReasons);
@@ -170,7 +180,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
     /// (Sac olarak dene: a sheet). A trial that changed nothing says so in
     /// Kullanıcı kararı and the reason, not in the status.
     /// </summary>
-    public bool DenemeSonucuDegistirdi => Deneme is { Mod: MacriaProje.DenemeSac } && EngineCode == MotorSinifKodu.Sheet;
+    public bool DenemeSonucuDegistirdi => Deneme is { Mod: MacriaProje.DenemeSac } && DenemeGerekcesi is null && EngineCode == MotorSinifKodu.Sheet;
 
     public string DecisionDisplay => DecisionSource switch
     {
@@ -497,7 +507,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
     public string DurumEtiketi => StatusDisplay;
     public string KararGosterimi => DecisionDisplay;
     /// <summary>The engine's reason, result first and short (MotorGerekcesiMetni); its own text is in "Teknik ayrıntı".</summary>
-    public string MotorGerekcesi => MotorGerekcesiMetni.Kisa(EngineCode, EngineReasons);
+    public string MotorGerekcesi => DenemeGerekcesi ?? MotorGerekcesiMetni.Kisa(EngineCode, EngineReasons);
     public string KullaniciKarariMetni
     {
         get
