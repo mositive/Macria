@@ -213,7 +213,12 @@ public partial class MainWindow
         var rapor = new Rapor { SayfaAdi = sayfaAdi, TabloIlkSatirdanBaslar = true, IlkSatiriDondur = true, OtomatikFiltre = true };
         // (header, property, width) of every Excel column, a size column split in two.
         var sutunlar = new List<(string Baslik, string? Ozellik, double Genislik)>();
-        foreach (DataGridColumn sutun in grid.Columns.Where(c => c.Visibility == Visibility.Visible).OrderBy(c => c.DisplayIndex))
+        List<object> satirlar = grid.Items.Cast<object>().Where(x => x != CollectionView.NewItemPlaceholder).ToList();
+        // Rows of several STEP files: Excel names each row's file, also when the column is hidden.
+        bool cokluStep = satirlar.OfType<IAnalizSatiri>().Select(x => x.KaynakYolu).Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1;
+        foreach (DataGridColumn sutun in grid.Columns
+                     .Where(c => c.Visibility == Visibility.Visible || (cokluStep && SutunBasligi(c) == AnalizSutunDuzeni.StepSutunu))
+                     .OrderBy(c => c.Visibility == Visibility.Visible ? 0 : 1).ThenBy(c => c.DisplayIndex))
         {
             string? ozellik = SutunOzelligi(sutun);
             if (ozellik != null && ExcelBolunenSutunlar.TryGetValue(ozellik, out var parcalar))
@@ -221,8 +226,8 @@ public partial class MainWindow
             else
                 sutunlar.Add((SutunBasligi(sutun), ozellik, Math.Clamp(sutun.ActualWidth / 65.0, 0.8, 5.0)));
         }
-        List<object> satirlar = grid.Items.Cast<object>().Where(x => x != CollectionView.NewItemPlaceholder).ToList();
-        var degerler = satirlar.Select(satir => sutunlar.Select(sutun => ExcelDegeri(AnalizSutunDuzeni.Deger(satir, sutun.Ozellik))).ToArray()).ToList();
+        var degerler = satirlar.Select(satir => sutunlar.Select(sutun =>
+            AnalizSutunDuzeni.ExcelDegeri(sutun.Baslik, ExcelDegeri(AnalizSutunDuzeni.Deger(satir, sutun.Ozellik)))).ToArray()).ToList();
         for (int i = 0; i < sutunlar.Count; ++i)
         {
             List<double> sayilar = degerler.Select(d => d[i]).OfType<double>().ToList();

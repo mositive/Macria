@@ -21,6 +21,26 @@ public static class AnalizSutunDuzeni
     public static string VarsayilanYol => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Macria", "analiz-sutunlari.txt");
 
+    /// <summary>The column every tab has (hidden by default) with the row's STEP file.</summary>
+    public const string StepSutunu = "STEP dosyası";
+
+    // Quantity columns: a whole number in the cell goes to Excel as a number, not text.
+    private static readonly HashSet<string> AdetSutunlari = new(StringComparer.Ordinal) { "Adet", "CATIA Adedi" };
+
+    /// <summary>
+    /// A cell value as Excel writes it: "4" in a quantity column is the number
+    /// 4 ("—" stays empty); the STEP column holds the file name, not the path.
+    /// </summary>
+    public static object? ExcelDegeri(string baslik, object? deger)
+    {
+        if (deger is string metin && AdetSutunlari.Contains(baslik) &&
+            int.TryParse(metin.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int adet))
+            return (double)adet;
+        if (deger is string yol && baslik == StepSutunu && yol.Length > 0)
+            return Path.GetFileName(yol);
+        return deger;
+    }
+
     /// <summary>Where MainWindow keeps the layout; a test harness points it elsewhere.</summary>
     public static string Yol { get; set; } = VarsayilanYol;
 
