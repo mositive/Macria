@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text;
 
 namespace Macria
@@ -26,17 +27,22 @@ namespace Macria
         private const int StilToplamSayi = 7;
         private const int StilToplamMetin = 8;
 
-        public static void Yaz(Rapor rapor, string yol)
+        public static void Yaz(Rapor rapor, string yol) => Yaz(new[] { rapor }, yol);
+
+        /// <summary>One workbook, one sheet per report, in order.</summary>
+        public static void Yaz(IReadOnlyList<Rapor> sayfalar, string yol)
         {
+            if (sayfalar.Count == 0) throw new ArgumentException("En az bir sayfa gerekir.", nameof(sayfalar));
             using (var akis = new FileStream(yol, FileMode.Create, FileAccess.Write))
             using (var zip = new ZipArchive(akis, ZipArchiveMode.Create))
             {
-                DosyaEkle(zip, "[Content_Types].xml", IcerikTurleri());
+                DosyaEkle(zip, "[Content_Types].xml", IcerikTurleri(sayfalar.Count));
                 DosyaEkle(zip, "_rels/.rels", KokIliskiler());
-                DosyaEkle(zip, "xl/workbook.xml", CalismaKitabi(rapor.SayfaAdi));
-                DosyaEkle(zip, "xl/_rels/workbook.xml.rels", KitapIliskileri());
+                DosyaEkle(zip, "xl/workbook.xml", CalismaKitabi(sayfalar.Select(x => x.SayfaAdi).ToList()));
+                DosyaEkle(zip, "xl/_rels/workbook.xml.rels", KitapIliskileri(sayfalar.Count));
                 DosyaEkle(zip, "xl/styles.xml", Stiller());
-                DosyaEkle(zip, "xl/worksheets/sheet1.xml", Sayfa(rapor));
+                for (int i = 0; i < sayfalar.Count; ++i)
+                    DosyaEkle(zip, "xl/worksheets/sheet" + (i + 1) + ".xml", Sayfa(sayfalar[i]));
             }
         }
 
@@ -207,16 +213,19 @@ namespace Macria
 
         // ================= SABIT PARCALAR =================
 
-        private static string IcerikTurleri()
+        private static string IcerikTurleri(int sayfaSayisi)
         {
-            return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
-                   "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">" +
-                   "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>" +
-                   "<Default Extension=\"xml\" ContentType=\"application/xml\"/>" +
-                   "<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>" +
-                   "<Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>" +
-                   "<Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/>" +
-                   "</Types>";
+            var sb = new StringBuilder();
+            sb.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                      "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">" +
+                      "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>" +
+                      "<Default Extension=\"xml\" ContentType=\"application/xml\"/>" +
+                      "<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>");
+            for (int i = 1; i <= sayfaSayisi; ++i)
+                sb.Append("<Override PartName=\"/xl/worksheets/sheet" + i + ".xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>");
+            sb.Append("<Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/>" +
+                      "</Types>");
+            return sb.ToString();
         }
 
         private static string KokIliskiler()
@@ -227,14 +236,27 @@ namespace Macria
                    "</Relationships>";
         }
 
-        private static string CalismaKitabi(string sayfaAdi)
+        private static string CalismaKitabi(IReadOnlyList<string> sayfaAdlari)
         {
-            string guvenliSayfaAdi = ExcelSayfaAdi(sayfaAdi);
-            return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
-                   "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" " +
-                   "xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">" +
-                   "<sheets><sheet name=\"" + Kacir(guvenliSayfaAdi) +
-                   "\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>";
+            var sb = new StringBuilder();
+            sb.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                      "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" " +
+                      "xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets>");
+            // Sheet names are unique in a workbook (case ignored).
+            var kullanilan = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < sayfaAdlari.Count; ++i)
+            {
+                string kok = ExcelSayfaAdi(sayfaAdlari[i]);
+                string ad = kok;
+                for (int sira = 2; !kullanilan.Add(ad); ++sira)
+                {
+                    string ek = " (" + sira + ")";
+                    ad = (kok.Length + ek.Length > 31 ? kok.Substring(0, 31 - ek.Length) : kok) + ek;
+                }
+                sb.Append("<sheet name=\"" + Kacir(ad) + "\" sheetId=\"" + (i + 1) + "\" r:id=\"rId" + (i + 1) + "\"/>");
+            }
+            sb.Append("</sheets></workbook>");
+            return sb.ToString();
         }
 
         private static string ExcelSayfaAdi(string sayfaAdi)
@@ -249,13 +271,16 @@ namespace Macria
             return ad;
         }
 
-        private static string KitapIliskileri()
+        private static string KitapIliskileri(int sayfaSayisi)
         {
-            return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
-                   "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
-                   "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/>" +
-                   "<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>" +
-                   "</Relationships>";
+            var sb = new StringBuilder();
+            sb.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                      "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">");
+            for (int i = 1; i <= sayfaSayisi; ++i)
+                sb.Append("<Relationship Id=\"rId" + i + "\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet" + i + ".xml\"/>");
+            sb.Append("<Relationship Id=\"rId" + (sayfaSayisi + 1) + "\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>" +
+                      "</Relationships>");
+            return sb.ToString();
         }
 
         private static string Stiller()

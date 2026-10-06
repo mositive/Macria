@@ -92,6 +92,7 @@ internal static class Program
             CatiaLightInventorySyntheticTests();
             DxfDwgInventoryTests();
             ProductionPackageTests();
+            ProfilStepTests();
             PreviewCoreTests();
             PreviewInventoryTests();
             PreviewContentCheckTests();
@@ -2339,6 +2340,81 @@ internal static class Program
             Check(before.SequenceEqual(File.ReadAllBytes(dxf)), "6B1-09 inventory scan does not alter the DXF input");
         }
         finally { Directory.Delete(root, true); }
+    }
+
+    // C Aşama 2: "Profilleri STEP olarak yaz" names, quantities, clashes, results and the Excel sheets.
+    private static void ProfilStepTests()
+    {
+        // Part number: productId; the name when the productId is a CAD default; the file for a lone part.
+        Check(ProfilStepAdi.ParcaNo("236948", "236948") == ("236948", "productId"), "C2-01 productId is the part number");
+        Check(ProfilStepAdi.ParcaNo("3D Shape00000338A", "55RS100111-13 Kutu") == ("55RS100111-13 Kutu", "parça adı (productId anlamsız: 3D Shape00000338A)"),
+            "C2-02 a CAD default productId gives way to the part name");
+        Check(ProfilStepAdi.ParcaNo("", "Kutu 100") == ("Kutu 100", "parça adı (productId yok)"), "C2-03 no productId: the name");
+        Check(ProfilStepAdi.ParcaNo("3D Shape00000338A", "3D Shape00000338A", "55RS100111-13").No == "55RS100111-13" &&
+              ProfilStepAdi.ParcaNo("Part1", "Body", null) == ("Part1", "productId (ad da anlamsız)"),
+            "C2-04 both defaults: the lone part's file name, else the productId");
+        foreach (string anlamsiz in new[] { "3D Shape00000338A", "Part1", "Body", "Solid12", "Physical Product00000772", "PartBody", "  " })
+            Check(ProfilStepAdi.AnlamsizMi(anlamsiz), "C2-05 CAD default: \"" + anlamsiz + "\"");
+        Check(!ProfilStepAdi.AnlamsizMi("246501") && !ProfilStepAdi.AnlamsizMi("55RS100111-13") && !ProfilStepAdi.AnlamsizMi("Partition plate"),
+            "C2-06 real part numbers are kept");
+        // Windows file names.
+        Check(ProfilStepAdi.Temizle("A/B:C*D?\"E<F>G|H") == "A_B_C_D__E_F_G_H" && ProfilStepAdi.Temizle("CON") == "CON_" &&
+              ProfilStepAdi.Temizle("parça. ") == "parça" && ProfilStepAdi.Temizle("") == "parca",
+            "C2-07 forbidden characters, reserved names, trailing dot and space are cleaned");
+        Check(ProfilStepAdi.DosyaAdi("236948", 4) == "236948_4Adet.stp", "C2-08 ParçaNo_XAdet.stp");
+        Check(string.Join("|", ProfilStepAdi.Benzersiz(new[] { "A_4Adet.stp", "a_4adet.stp", "A_4Adet.stp", "B_2Adet.stp" })) ==
+              "A_4Adet.stp|a_4adet_2.stp|A_4Adet_3.stp|B_2Adet.stp", "C2-09 clashes get _2, _3 (case ignored)");
+
+        // Rows: STEP quantity when there is no CATIA quantity; quantities of different STEPs are not summed.
+        ProductionPackageItem Profil(string step, string no, int adet, int? catia = null) => new()
+        {
+            SourcePath = Path.Combine(_root, step), PartCode = no, ProfilStep = true, PartLocalId = 7, StepQuantity = adet,
+            CatiaQuantity = catia, Multiplier = 1
+        };
+        var wgrv = Profil("WGRV.stp", "236948", 4);
+        var baska = Profil("Baska.stp", "236948", 2);
+        var ayni = Profil("Ucuncu.stp", "236948", 4);
+        var catiali = Profil("WGRV.stp", "246501", 4, catia: 6);
+        foreach (ProductionPackageItem item in new[] { wgrv, baska, ayni, catiali }) item.Validate();
+        Check(wgrv.Status == "Hazır" && wgrv.QuantitySource == ProductionQuantitySource.Step && wgrv.QuantitySourceDisplay == "STEP montajı" &&
+              wgrv.TargetFileName == "236948_4Adet.stp" && !wgrv.ManualEntryAllowed, "C2-10 STEP assembly quantity, name 236948_4Adet.stp");
+        Check(catiali.QuantitySource == ProductionQuantitySource.Catia && catiali.TargetFileName == "246501_6Adet.stp", "C2-11 a CATIA quantity comes first");
+        ProductionPackageService.ResolveProfileNames(new[] { wgrv, baska, ayni, catiali });
+        Check(wgrv.PackageFileName == "236948_4Adet.stp" && baska.PackageFileName == "236948_2Adet.stp" && ayni.PackageFileName == "236948_4Adet_2.stp" &&
+              wgrv.NewFileDisplay == "Profil-STEP\\236948_4Adet.stp",
+            "C2-12 same number in other STEPs: own quantities, not summed; a full clash gets _2");
+        wgrv.Multiplier = 3; wgrv.Validate();
+        Check(wgrv.FinalQuantity == 12 && wgrv.TargetFileName == "236948_12Adet.stp", "C2-13 the multiplier is in the name");
+
+        // Engine results: written, failed read-back, skipped, no engine.
+        var yazildi = ProductionPackageService.StepResult(new GeometryLabPartStepTransport
+            { PartId = 7, Status = "Written", File = "part-7.stp", Aligned = true, LengthMm = 100, BoxLengthMm = 100, SourceVolumeMm3 = 1000, WrittenVolumeMm3 = 1000.5 }, null);
+        Check(yazildi.Durum == "Yazıldı" && yazildi.Hizali && yazildi.HacimFarkiYuzde is double f && Math.Abs(f - 0.05) < 1e-9, "C2-14 written: aligned, volume difference");
+        var basarisiz = ProductionPackageService.StepResult(new GeometryLabPartStepTransport
+            { PartId = 7, Status = "Failed", Reasons = new[] { "hacim farkı %2" } }, null);
+        Check(basarisiz.Durum == "Yazılamadı" && basarisiz.Aciklama == "hacim farkı %2", "C2-15 failed read-back: \"Yazılamadı\" with the reason");
+        var atlandi = ProductionPackageService.StepResult(new GeometryLabPartStepTransport
+            { PartId = 7, Status = "Skipped", Reasons = new[] { "geçersiz geometri; yazılmadı" } }, null);
+        Check(atlandi.Durum == "Atlandı" && atlandi.Aciklama.Contains("geçersiz geometri"), "C2-16 invalid geometry: skipped, not tried");
+        var motorsuz = ProductionPackageService.StepResult(null, "GeometryEngine bulunamadı.");
+        Check(motorsuz.Durum == "Yazılamadı" && motorsuz.Aciklama.Contains("GeometryEngine bulunamadı"), "C2-17 no engine result: \"Yazılamadı\"");
+        wgrv.SetStepResult(basarisiz);
+        Check(wgrv.StatusDisplay == "Yazılamadı — hacim farkı %2", "C2-18 the row shows the result");
+
+        // Excel: one workbook, the manifest and the "Profiller" sheet.
+        string excel = Path.Combine(_root, "iki-sayfa.xlsx");
+        var sayfa1 = new Rapor { SayfaAdi = "Üretim Paketi" }; sayfa1.Sutunlar.Add(new RaporSutun { Ad = "Yeni Dosya" }); sayfa1.Satirlar.Add(new object?[] { "a" });
+        var sayfa2 = new Rapor { SayfaAdi = "Profiller" }; sayfa2.Sutunlar.Add(new RaporSutun { Ad = "STEP dosyası" }); sayfa2.Satirlar.Add(new object?[] { "Profil-STEP\\236948_4Adet.stp" });
+        ExcelYazici.Yaz(new[] { sayfa1, sayfa2 }, excel);
+        using (var zip = System.IO.Compression.ZipFile.OpenRead(excel))
+        {
+            string kitap = new StreamReader(zip.GetEntry("xl/workbook.xml")!.Open()).ReadToEnd();
+            string ikinci = new StreamReader(zip.GetEntry("xl/worksheets/sheet2.xml")!.Open()).ReadToEnd();
+            string turler = new StreamReader(zip.GetEntry("[Content_Types].xml")!.Open()).ReadToEnd();
+            Check(kitap.Contains("name=\"Üretim Paketi\" sheetId=\"1\"") && kitap.Contains("name=\"Profiller\" sheetId=\"2\"") &&
+                  turler.Contains("/xl/worksheets/sheet2.xml") && ikinci.Contains("STEP dosyası") && ikinci.Contains("236948_4Adet.stp"),
+                "C2-19 the workbook has both sheets; Profiller has \"STEP dosyası\"");
+        }
     }
 
     private static void ProductionPackageTests()

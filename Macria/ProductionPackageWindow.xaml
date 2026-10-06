@@ -117,9 +117,15 @@
                                  ToolTip="Her parçanın temel adedi bu sayıyla çarpılır (pozitif tam sayı)"
                                  TextChanged="Ayar_Degisti"/>
                     </StackPanel>
-                    <!-- Sonraki secenekler (C Asama 2: "Profilleri STEP olarak yaz") bu sutuna gelir -->
+                    <!-- Secenekler: STEP analizinden acilinca "Profilleri STEP olarak yaz" -->
                     <StackPanel x:Name="pnlSecenekler" Grid.Column="2" Margin="0,0,24,0" VerticalAlignment="Bottom"
-                                Visibility="Collapsed"/>
+                                Visibility="Collapsed">
+                        <CheckBox x:Name="chkProfilStep" Content="Profilleri STEP olarak yaz" IsChecked="True"
+                                  local:DugmeIkonu.Ikon="{StaticResource Icon.ExportFile}" VerticalAlignment="Center" Margin="0,0,0,8"
+                                  AutomationProperties.Name="Profilleri STEP olarak yaz"
+                                  ToolTip="Profiller sekmesindeki her profil, kendi katısıyla ve boy ekseni X'te ayrı bir STEP olarak paketin Profil-STEP klasörüne yazılır (ParçaNo_XAdet.stp). Kapalıyken eski davranış: kaynak dosyalar kopyalanır."
+                                  Checked="Ayar_Degisti" Unchecked="Ayar_Degisti"/>
+                    </StackPanel>
 
                     <!-- Hedef klasor: tam yol okunur, tiklayinca kaynak klasor acilir -->
                     <TextBlock Grid.Row="1" Grid.ColumnSpan="4" Text="Hedef klasör" FontSize="12"
@@ -173,7 +179,14 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         <DataGridTextColumn Header="Parça kodu" Binding="{Binding PartCode}" IsReadOnly="True"
-                                            Width="Auto" MinWidth="110" MaxWidth="160" ElementStyle="{StaticResource KirpilanHucre}"/>
+                                            Width="Auto" MinWidth="110" MaxWidth="160">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                    <Setter Property="ToolTip" Value="{Binding PartCodeToolTip}"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
                         <DataGridTextColumn Header="Temel adet" Binding="{Binding DisplayedBaseQuantity, Mode=TwoWay}"
                                             Width="Auto" MinWidth="90"
                                             ElementStyle="{StaticResource SayiHucre}" HeaderStyle="{StaticResource SayiBaslik}">
@@ -193,7 +206,7 @@
                         <DataGridTextColumn Header="Üretim adedi" Binding="{Binding FinalQuantity}" IsReadOnly="True"
                                             Width="Auto" MinWidth="100"
                                             ElementStyle="{StaticResource SayiHucre}" HeaderStyle="{StaticResource SayiBaslik}"/>
-                        <DataGridTextColumn Header="Yeni dosya" Binding="{Binding TargetFileName}" IsReadOnly="True"
+                        <DataGridTextColumn Header="Yeni dosya" Binding="{Binding NewFileDisplay}" IsReadOnly="True"
                                             Width="Auto" MinWidth="110" MaxWidth="200" ElementStyle="{StaticResource KirpilanHucre}"/>
                         <DataGridTextColumn Header="Durum / Açıklama" Binding="{Binding StatusDisplay}" IsReadOnly="True"
                                             Width="*" MinWidth="170">

@@ -39,6 +39,10 @@ public sealed record GeometryLabProcessAdapterOptions
 
     // Engine --deneme: "Profil / Sac olarak dene" on the selected parts only.
     public MotorDenemesi Deneme { get; init; } = MotorDenemesi.Yok;
+
+    // Engine --step-yaz / --step-klasor (with SelectedPartIds): each selected
+    // part is also written here as part-<id>.stp and read back (Analysis.PartSteps).
+    public string? PartStepDirectory { get; init; }
 }
 
 /// <summary>The engine's trial modes (--deneme); Yok runs the automatic rules.</summary>
@@ -284,7 +288,14 @@ public sealed class GeometryLabProcessAdapter
             startInfo.ArgumentList.Add("--is-parcacigi");
             startInfo.ArgumentList.Add(Math.Max(0, threadCount).ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
-        if (SeciliParcalar.Count > 0)
+        if (SeciliParcalar.Count > 0 && !string.IsNullOrWhiteSpace(_options.PartStepDirectory))
+        {
+            startInfo.ArgumentList.Add("--step-yaz");
+            startInfo.ArgumentList.Add(string.Join(",", SeciliParcalar.Select(id => id.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+            startInfo.ArgumentList.Add("--step-klasor");
+            startInfo.ArgumentList.Add(_options.PartStepDirectory!);
+        }
+        else if (SeciliParcalar.Count > 0)
         {
             startInfo.ArgumentList.Add("--parcalar");
             startInfo.ArgumentList.Add(string.Join(",", SeciliParcalar.Select(id => id.ToString(System.Globalization.CultureInfo.InvariantCulture))));

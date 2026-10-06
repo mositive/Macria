@@ -81,6 +81,10 @@ public sealed record GeometryLabAnalysisTransport
     [JsonPropertyName("parts")]
     public IReadOnlyList<GeometryLabPartTransport> Parts { get; init; } = Array.Empty<GeometryLabPartTransport>();
 
+    // Engine 2026.10.6.6+ --step-yaz: one entry per part written as its own STEP.
+    [JsonPropertyName("partSteps")]
+    public IReadOnlyList<GeometryLabPartStepTransport> PartSteps { get; init; } = Array.Empty<GeometryLabPartStepTransport>();
+
     // Per-solid base stock (processed profiles inside an assembly); the fields
     // above keep their single-solid meaning.
     [JsonPropertyName("baseStockProfiles")]
@@ -269,6 +273,53 @@ public sealed record GeometryLabFlatSegmentTransport
 
     [JsonPropertyName("radiusMm")]
     public double? RadiusMm { get; init; }
+}
+
+/// <summary>--step-yaz: a part written to part-&lt;id&gt;.stp and read back (one solid, valid, same volume, box length = profile length).</summary>
+public sealed record GeometryLabPartStepTransport
+{
+    [JsonPropertyName("partId")]
+    public int PartId { get; init; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; init; }
+
+    [JsonPropertyName("productId")]
+    public string? ProductId { get; init; }
+
+    // "Written", "Failed" (the file was removed), "Skipped" (not tried: invalid geometry, several solids).
+    [JsonPropertyName("status")]
+    public string? Status { get; init; }
+
+    [JsonPropertyName("file")]
+    public string? File { get; init; }
+
+    [JsonPropertyName("aligned")]
+    public bool Aligned { get; init; }
+
+    [JsonPropertyName("axisSource")]
+    public string? AxisSource { get; init; }
+
+    [JsonPropertyName("lengthMm")]
+    public double? LengthMm { get; init; }
+
+    [JsonPropertyName("boxLengthMm")]
+    public double? BoxLengthMm { get; init; }
+
+    [JsonPropertyName("sourceVolumeMm3")]
+    public double? SourceVolumeMm3 { get; init; }
+
+    [JsonPropertyName("writtenVolumeMm3")]
+    public double? WrittenVolumeMm3 { get; init; }
+
+    [JsonPropertyName("readSolidCount")]
+    public int ReadSolidCount { get; init; }
+
+    [JsonPropertyName("readValid")]
+    public bool ReadValid { get; init; }
+
+    [JsonPropertyName("reasons")]
+    public IReadOnlyList<string> Reasons { get; init; } = Array.Empty<string>();
 }
 
 public sealed record GeometryLabFlatPointTransport
