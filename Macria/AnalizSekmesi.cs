@@ -127,24 +127,27 @@ public static class SekmeKurallari
 
     /// <summary>The search's terms: split at the separators, spaces removed, empty ones dropped.</summary>
     public static IReadOnlyList<string> AramaTerimleri(string? arama) =>
-        (arama ?? "").Split(AramaAyraclari).Select(BosluksuzMetin).Where(x => x.Length > 0).ToList();
+        (arama ?? "").Split(AramaAyraclari).Select(AramaBicimi).Where(x => x.Length > 0).ToList();
 
     private static string BosluksuzMetin(string metin) => new(metin.Where(c => !char.IsWhiteSpace(c)).ToArray());
+
+    // Case and the Turkish dotted / dotless i are one letter in the search:
+    // "baski" = "Baskı" = "BASKI" = "BASKİ".
+    private static string AramaBicimi(string metin) =>
+        BosluksuzMetin(metin).ToLower(System.Globalization.CultureInfo.GetCultureInfo("tr-TR")).Replace('ı', 'i');
 
     /// <summary>
     /// The tab search: a row matches when one of the terms (AramaTerimleri) is in
     /// the part name, the part column ("file › part") or the STEP file name;
-    /// case, Turkish letters and spaces ignored. No term matches all.
+    /// case, spaces and the Turkish i / ı difference ignored. No term matches all.
     /// </summary>
     public static bool AramayaUyar(IAnalizSatiri satir, string? arama)
     {
         IReadOnlyList<string> terimler = AramaTerimleri(arama);
         if (terimler.Count == 0) return true;
-        var tr = System.Globalization.CultureInfo.GetCultureInfo("tr-TR").CompareInfo;
-        const System.Globalization.CompareOptions secenek = System.Globalization.CompareOptions.IgnoreCase;
         string[] alanlar = new[] { satir.ParcaAdi, satir.ParcaGosterimi, System.IO.Path.GetFileName(satir.KaynakYolu) }
-            .Where(x => !string.IsNullOrEmpty(x)).Select(x => BosluksuzMetin(x!)).ToArray();
-        return terimler.Any(terim => alanlar.Any(alan => tr.IndexOf(alan, terim, secenek) >= 0));
+            .Where(x => !string.IsNullOrEmpty(x)).Select(x => AramaBicimi(x!)).ToArray();
+        return terimler.Any(terim => alanlar.Any(alan => alan.Contains(terim, StringComparison.Ordinal)));
     }
 
     /// <summary>

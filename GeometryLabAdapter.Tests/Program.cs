@@ -1561,6 +1561,12 @@ internal static class Program
         string Bulunan(string arama) => string.Join("|", hepsi.Where(x => SekmeKurallari.AramayaUyar(x, arama)).Select(x => x.PartName));
         Check(Bulunan("236948, m5 BASKI;55RS 100111-7") == "55RS100111-7|236948|M5 Baskı", "three terms, mixed separators: " + Bulunan("236948, m5 BASKI;55RS 100111-7"));
         Check(Bulunan("236948\r\n434865\t m5BASKI") == "236948|M5 Baskı|434865", "line breaks and tabs separate terms: " + Bulunan("236948\r\n434865\t m5BASKI"));
+        // Turkish i / ı and case are one letter: baski = Baskı = BASKI = BASKİ.
+        foreach (string baski in new[] { "m5 baski", "M5 BASKI", "m5 baskı", "M5 BASKİ" })
+            Check(Bulunan(baski) == "M5 Baskı", "search \"" + baski + "\" finds M5 Baskı (i / ı and case ignored)");
+        Check(SekmeKurallari.AramayaUyar(new GeometryLabStepProfileListItem { SourceStepPath = "C:\\w.stp", PartName = "DİREK", PartQuantity = 1 }, "direk") &&
+              SekmeKurallari.AramayaUyar(new GeometryLabStepProfileListItem { SourceStepPath = "C:\\w.stp", PartName = "kılıç", PartQuantity = 1 }, "KILIC") == false,
+            "İ / i are one letter; other Turkish letters stay (ç ≠ c)");
         Check(Bulunan("236948,, ;  ,") == "236948" && Bulunan(" , ; ") == "55RS100111-7|236948|M5 Baskı|434865" &&
               SekmeKurallari.AramaTerimleri(" , ;\n ").Count == 0, "empty terms are dropped; no term matches all");
         Check(SekmeKurallari.AramaYapistir("236948\r\n434865\r\n\r\nM5 Baskı\r\n") == "236948, 434865, M5 Baskı" &&
