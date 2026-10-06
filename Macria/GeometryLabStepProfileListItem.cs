@@ -683,7 +683,9 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
     string IAnalizSatiri.AdetGosterimi => QuantityDisplay;
     string IAnalizSatiri.TurGosterimi => EffectiveProfileTypeDisplay == "—" ? "Profil?" : EffectiveProfileTypeDisplay;
     string IAnalizSatiri.OlcuGosterimi => SectionDisplay;
-    public string DurumEtiketi => Deneme is { Deneme: true } ? EffectiveStatusDisplay + " (deneme)" : EffectiveStatusDisplay;
+    // A profile row from Profil olarak dene: the trial found a profile (an
+    // unrecognized part stays a part row), so "(deneme)" is shown.
+    public string DurumEtiketi => Deneme is { Mod: MacriaProje.DenemeProfil } ? EffectiveStatusDisplay + " (deneme)" : EffectiveStatusDisplay;
     public string KararGosterimi => DecisionSource switch
     {
         GeometryLabDecisionSource.User => "Kullanıcı",

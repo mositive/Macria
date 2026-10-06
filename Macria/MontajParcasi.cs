@@ -161,7 +161,14 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         MontajParcaKategorisi.Profil => "Profil",
         MontajParcaKategorisi.Tanimsiz => "Tanımsız",
         _ => "Kontrol gerekli"
-    }) + (Deneme is { Deneme: true } ? " (deneme)" : "");
+    }) + (DenemeSonucuDegistirdi ? " (deneme)" : "");
+
+    /// <summary>
+    /// A part row shows "(deneme)" only when its trial found what it tried for
+    /// (Sac olarak dene: a sheet). A trial that changed nothing says so in
+    /// Kullanıcı kararı and the reason, not in the status.
+    /// </summary>
+    public bool DenemeSonucuDegistirdi => Deneme is { Mod: MacriaProje.DenemeSac } && EngineCode == MotorSinifKodu.Sheet;
 
     public string DecisionDisplay => DecisionSource switch
     {

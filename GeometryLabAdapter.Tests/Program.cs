@@ -2958,6 +2958,14 @@ internal static class Program
             "a sheet trial's sheet is approved, marked \"(deneme)\", grouped by its thickness: " + sacMontaj[0].StatusDisplay + " / " +
             sacMontaj[0].KullaniciKarariMetni);
         Check(IslemeMetni.Kisa(true, new[] { "Machined" }) == "var (kabuk dışı)", "trial machining has its own text");
+        // (3) A trial that found nothing: no "(deneme)" in the status, the user column and reason say it.
+        var (_, denenmisDiger) = MacriaProjeSatirlari.EkSatirlari("C:\\m.stp", EkSonuc(5) with
+        {
+            Analysis = EkSonuc(5).Analysis! with { AnalysisMode = "TrialSheet" }
+        }, 20, new SatirDenemesi(MacriaProje.DenemeSac, "e5"));
+        Check(denenmisDiger.Count == 1 && !denenmisDiger[0].StatusDisplay.Contains("deneme") && !denenmisDiger[0].DenemeSonucuDegistirdi &&
+              denenmisDiger[0].KullaniciKarariMetni.StartsWith("Sac olarak denendi"),
+            "an unchanged trial row has no \"(deneme)\": " + denenmisDiger[0].StatusDisplay);
 
         // Decisions: a run is a "Dene" decision naming the run, with the part.
         List<MacriaProjeKarari> kararlar = MacriaProjeSatirlari.KararlariTopla(profil, montaj, _ => "k1");
