@@ -22,6 +22,8 @@ public static class MotorGerekcesiMetni
     {
         if (gerekceler.Count == 0) return "—";
         string ilk = gerekceler[0];
+        // Round tubes are not moved by Profil olarak dene: said as the engine says it.
+        if (ilk.StartsWith("Profil olarak denendi: yuvarlak boru", StringComparison.Ordinal)) return ilk.TrimEnd('.');
         // Trials: the trial's own line first, then what it found or why not.
         foreach (string deneme in new[] { "Profil olarak denendi", "Sac olarak denendi" })
         {

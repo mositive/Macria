@@ -43,6 +43,7 @@ internal static class Program
             KararSutunlariTests();
             SutunDuzeniTests();
             MotorGerekcesiTests();
+            ExcelDegeriTests();
             AramaTests();
             DxfYenidenAdlandirmaTests();
             AssemblyProcessedProfilePart();
@@ -1314,6 +1315,18 @@ internal static class Program
 
     // (34) "Sütunlar": per tab visible columns and order, remembered; new
     // columns of a later Macria join where they stand by default.
+    // (6) Excel: quantities are numbers; the STEP column names the file.
+    private static void ExcelDegeriTests()
+    {
+        Check(AnalizSutunDuzeni.ExcelDegeri("Adet", "4") is double adet && adet == 4 &&
+              AnalizSutunDuzeni.ExcelDegeri("CATIA Adedi", "12") is double catia && catia == 12 &&
+              AnalizSutunDuzeni.ExcelDegeri("Adet", "—") is "—" && AnalizSutunDuzeni.ExcelDegeri("Adet", null) is null,
+            "Adet and CATIA Adedi go to Excel as numbers; \"—\" is no number");
+        Check(AnalizSutunDuzeni.ExcelDegeri("Parça", "1") is "1", "a part named \"1\" stays text");
+        Check(AnalizSutunDuzeni.ExcelDegeri(AnalizSutunDuzeni.StepSutunu, @"C:\a\Montaj A.stp") is "Montaj A.stp",
+            "the STEP column holds the file name");
+    }
+
     // (1) Motor gerekçesi: the result first, a short reason; no face ids, no English.
     private static void MotorGerekcesiTests()
     {
@@ -1341,7 +1354,9 @@ internal static class Program
             (MotorSinifKodu.Sheet, new[] { "Sac olarak denendi (gevşetilmiş: levha değil kuralı uygulanmadı (kalınlık 44 mm > en dar ölçü 12,472 mm)): Sac: t=44 mm, 0 büküm." },
                 "Sac olarak denendi → Sac: t = 44 mm, 0 büküm (gevşetilen: levha değil kuralı, kalınlık 44 mm > en dar ölçü 12,5 mm)"),
             (MotorSinifKodu.Sheet, new[] { "Sac olarak denendi: Sac, açınım yok: Büküm F47 iki flanş arasında değil. t=2 mm." },
-                "Sac olarak denendi → Sac, açınım yok: uçta biten büküm; t = 2 mm")
+                "Sac olarak denendi → Sac, açınım yok: uçta biten büküm; t = 2 mm"),
+            (MotorSinifKodu.NotRecognized, new[] { "Profil olarak denendi: yuvarlak boru, boru tanıma henüz yok.", "Sac veya profil olarak tanınmadı." },
+                "Profil olarak denendi: yuvarlak boru, boru tanıma henüz yok")
         };
         foreach (var (kod, gerekce, beklenen) in ornekler)
         {
