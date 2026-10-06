@@ -375,7 +375,7 @@ public partial class MainWindow
     private static string ValueOrUnknown(string? value) =>
         string.IsNullOrWhiteSpace(value) ? "bilinmiyor" : value;
 
-    private static string Mm(double value) => value.ToString("0.###", CultureInfo.InvariantCulture) + " mm";
+    private static string Mm(double value) => value.ToString("0.###", CultureInfo.GetCultureInfo("tr-TR")) + " mm";
     private static string ValueMm(double? value) => value is double number ? Mm(number) : "bilinmiyor";
-    private static string Degrees(double value) => value.ToString("0.###", CultureInfo.InvariantCulture) + "°";
+    private static string Degrees(double value) => value.ToString("0.###", CultureInfo.GetCultureInfo("tr-TR")) + "°";
 }

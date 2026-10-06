@@ -76,6 +76,7 @@ internal static class Program
             MotorGerekcesiTests();
             ExcelDegeriTests();
             await UctanUcaBoyAsync();
+            ParcaAdiVeVirgulTests();
             AramaTests();
             DxfYenidenAdlandirmaTests();
             AssemblyProcessedProfilePart();
@@ -1370,6 +1371,31 @@ internal static class Program
               boru.MotorGerekcesi.Contains("uçtan uca boy 100 mm") && !boru.MotorGerekcesi.Contains("güvenilir profil boyu bulunamadı"),
             "a tube whose cuts are not proven: \"Boy\" is end to end, the reason agrees: " + boru.SectionDisplay + " / " +
             boru.LengthDisplay + " / " + boru.MotorGerekcesi);
+    }
+
+    // (4) Excel and the mixed tabs: a profile row's Parça is the part's name; numbers use the decimal comma.
+    private static void ParcaAdiVeVirgulTests()
+    {
+        GeometryLabAnalysisTransport analysis = AssemblyAnalysis();
+        var (profil, _) = MacriaProjeSatirlari.MontajSatirlari("C:\\WGRV004423 A.stp",
+            new GeometryLabProcessAdapterResult { Status = GeometryLabProcessAdapterStatus.Succeeded, Analysis = analysis }, 20);
+        IAnalizSatiri kutu = profil.First();
+        Check(kutu.ParcaGosterimi == "Kutu" && (string?)AnalizSutunDuzeni.Deger(kutu, nameof(IAnalizSatiri.ParcaGosterimi)) == "Kutu",
+            "a profile row's Parça (and its Excel cell) is the part's name: " + kutu.ParcaGosterimi);
+        var boru = new GeometryLabStepProfileListItem { SourceStepPath = "C:\\b.stp", PartName = "357184", PartQuantity = 4, PartLocalId = 1 };
+        boru.Apply(new GeometryLabProcessAdapterResult
+        {
+            Status = GeometryLabProcessAdapterStatus.Succeeded,
+            Analysis = analysis with
+            {
+                ProfileRecognitions = new[]
+                {
+                    new GeometryLabProfileRecognitionTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 1 }, Status = "Succeeded",
+                        SectionRecognitionStatus = "Recognized", ProfileType = "CircularHollowSection", OuterDiameterMm = 107.3171946826, WallThicknessMm = 4.947 }
+                }
+            }
+        });
+        Check(boru.SectionDisplay == "Ø107,317 × 4,947 mm", "section numbers use the decimal comma: " + boru.SectionDisplay);
     }
 
     // (6) Excel: quantities are numbers; the STEP column names the file.

@@ -569,7 +569,8 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
         _ => "—"
     };
 
-    private static string Number(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+    // Shown numbers use the Turkish decimal comma ("Ø107,317 × 3 mm").
+    private static string Number(double value) => value.ToString("0.###", CultureInfo.GetCultureInfo("tr-TR"));
 
     private static string TurkishTechnicalStatus(string? value) => value switch
     {
@@ -696,7 +697,8 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
     bool IAnalizSatiri.ProfilSatiri => true;
     string IAnalizSatiri.KaynakYolu => SourceStepPath;
     string? IAnalizSatiri.ParcaAdi => PartName;
-    string IAnalizSatiri.ParcaGosterimi => SourceFileName;
+    // The part's name only (Excel too); the file is in "STEP dosyası" and the tooltip.
+    string IAnalizSatiri.ParcaGosterimi => PartDisplay;
     string IAnalizSatiri.AdetGosterimi => QuantityDisplay;
     string IAnalizSatiri.TurGosterimi => EffectiveProfileTypeDisplay == "—" ? "Profil?" : EffectiveProfileTypeDisplay;
     string IAnalizSatiri.OlcuGosterimi => SectionDisplay;
