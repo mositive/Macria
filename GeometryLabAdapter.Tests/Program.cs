@@ -1445,7 +1445,17 @@ internal static class Program
                 "Sac olarak denendi, tanınmadı → Sac değil (çubuk/mil): kalınlık 44 mm > en dar ölçü 12,5 mm"),
             (MotorSinifKodu.NotRecognized, new[] { "Sac olarak denendi: sac tanınmadı (kapalı kesit (boru / kutu) sac değil).",
                 "Sac veya profil olarak tanınmadı (Kabuk kendi üzerine kapanıyor (kapalı kesit / boru); sac açınımı yok.)." },
-                "Sac olarak denendi, tanınmadı → Sac değil: kapalı kesit (boru)")
+                "Sac olarak denendi, tanınmadı → Sac değil: kapalı kesit (boru)"),
+            // Engine 2026.10.6.4: the material-width rule holds in the trial; a closed section says its shape.
+            (MotorSinifKodu.ThickerThanMaterial, new[] { "Sac olarak denendi: sac tanınmadı (kalınlık 30 mm > et genişliği 9,848 mm: levha değil (halka, burç, somun)).",
+                "Sac kabuğu bulundu ama kalınlık (30 mm) parçanın gerçek et genişliğinden (9,848 mm) büyük: levha değil (halka, somun ya da mil)." },
+                "Sac olarak denendi, tanınmadı → Sac değil (halka/somun/mil): kalınlık 30 mm > et genişliği 9,8 mm"),
+            (MotorSinifKodu.NotRecognized, new[] { "Sac olarak denendi: sac tanınmadı (kapalı kesit (kutu profil) sac değil).",
+                "Sac veya profil olarak tanınmadı (Kabuk kendi üzerine kapanıyor (kapalı kesit / boru); sac açınımı yok.)." },
+                "Sac olarak denendi, tanınmadı: kapalı kesit (kutu profil)"),
+            (MotorSinifKodu.NotRecognized, new[] { "Sac olarak denendi: sac tanınmadı (kapalı kesit (boru) sac değil).",
+                "Sac veya profil olarak tanınmadı (Kabuk kendi üzerine kapanıyor (kapalı kesit / boru); sac açınımı yok.)." },
+                "Sac olarak denendi, tanınmadı: kapalı kesit (boru)")
         };
         foreach (var (kod, gerekce, beklenen) in ornekler)
         {

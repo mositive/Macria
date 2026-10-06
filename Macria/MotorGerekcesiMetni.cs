@@ -33,10 +33,13 @@ public static class MotorGerekcesiMetni
             if (tanimadi.Success)
             {
                 string neden = DenemeNedeni(tanimadi.Groups[1].Value);
+                // A closed section is said with its shape (engine 2026.10.6.4+); the
+                // automatic text cannot tell a box from a tube.
+                if (neden is "kapalı kesit (kutu profil)" or "kapalı kesit (boru)") return deneme + ", tanınmadı: " + neden;
                 string otomatik = gerekceler.Count > 1 ? Kisa(kod, gerekceler.Skip(1).ToList()) : "";
                 // The trial's reason is often the automatic one: said once.
                 bool ayni = otomatik.Contains(neden, StringComparison.Ordinal) ||
-                            neden == "levha değil" && otomatik.StartsWith("Sac değil", StringComparison.Ordinal) ||
+                            neden.StartsWith("levha değil", StringComparison.Ordinal) && otomatik.StartsWith("Sac değil", StringComparison.Ordinal) ||
                             neden.StartsWith("kapalı kesit", StringComparison.Ordinal) && otomatik.Contains("kapalı kesit", StringComparison.Ordinal);
                 return otomatik.Length == 0 ? deneme + ", tanınmadı: " + neden
                     : ayni ? deneme + ", tanınmadı → " + otomatik
@@ -143,7 +146,11 @@ public static class MotorGerekcesiMetni
     private static string DenemeNedeni(string metin)
     {
         // Sac olarak dene kept the plate rule: the part is thicker than its outline is narrow.
+        if (metin.Contains("et genişliği", StringComparison.Ordinal) && metin.Contains("levha değil", StringComparison.Ordinal))
+            return "levha değil (halka, burç, somun)";
         if (metin.Contains("küçük değil: levha değil", StringComparison.Ordinal)) return "levha değil";
+        foreach (string sekil in new[] { "kapalı kesit (kutu profil)", "kapalı kesit (boru)" })
+            if (metin.StartsWith(sekil, StringComparison.Ordinal)) return sekil;
         if (metin.StartsWith("kapalı kesit", StringComparison.Ordinal)) return "kapalı kesit (boru / kutu)";
         int iki = metin.IndexOf(':');
         string kisa = iki > 0 && metin.Take(iki).All(c => c < 128 || char.IsLetter(c)) ? metin[..iki] : metin;

@@ -49,7 +49,7 @@ public partial class MainWindow
     private const string ProfilDeneIpucu =
         "Seçili parçalara yalnız profil tanıyıcısını gevşetilmiş kurallarla uygular (kısa boy, tek tutarlı içi boş eksen); kesit, et, boy ve uç kesimini motor ölçer";
     private const string SacDeneIpucu =
-        "Seçili parçalara yalnız sac tanıyıcısını gevşetilmiş kurallarla uygular (et genişliği kuralı yok, alanın en çok %10'u kabuk dışı yüz işleme; kalınlık açınımın en dar ölçüsünden küçük olmalı, kapalı kesit sac değil); tanınan parça onaylı sac olur";
+        "Seçili parçalara yalnız sac tanıyıcısını gevşetilmiş kurallarla uygular (alanın en çok %10'u kabuk dışı yüz işleme); levha kuralları geçerli: kalınlık açınımın en dar ölçüsünden ve et genişliğinden küçük olmalı, kapalı kesit sac değil. Tanınan parça onaylı sac olur, tanınmayanın otomatik sonucu kalır";
 
     private async void btnAnalizProfilDene_Click(object sender, RoutedEventArgs e) =>
         await SeciliParcalariCalistirAsync(SeciliAnalizSatirlari(), MacriaProje.DenemeProfil);

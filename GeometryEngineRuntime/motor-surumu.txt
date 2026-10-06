@@ -1,4 +1,4 @@
 # Kurulu Macria.GeometryEngine.exe surumu (README: "Motor surumu").
 # 1. satir: yil.ay.gun.n   2. satir: GeometryLab commit
-2026.10.6.3
-03fc9da
+2026.10.6.4
+e299fbf
