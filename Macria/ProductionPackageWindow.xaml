@@ -1,0 +1,243 @@
+<Window x:Class="Macria.ProductionPackageWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Macria"
+        Title="Macria — Üretim Paketi Hazırla"
+        Icon="Assets/macria-logo.png"
+        Width="1100" Height="650"
+        MinWidth="820" MinHeight="460"
+        ResizeMode="CanResize"
+        Background="{StaticResource BgBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}"
+        FontFamily="{StaticResource AppFont}"
+        UseLayoutRounding="True"
+        WindowStartupLocation="CenterOwner">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="38"
+                      ResizeBorderThickness="6"
+                      GlassFrameThickness="0"
+                      CornerRadius="0"
+                      UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <Border Background="{StaticResource BgBrush}">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="Margin" Value="0"/>
+                <Setter Property="CornerRadius" Value="4"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}"
+                                 Value="Maximized">
+                        <Setter Property="Margin" Value="7"/>
+                        <Setter Property="CornerRadius" Value="0"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="38"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- ======== BASLIK CUBUGU ======== -->
+            <Grid Grid.Row="0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
+                    <Image Source="Assets/macria-logo.png" Width="18" Height="18"
+                           RenderOptions.BitmapScalingMode="HighQuality" VerticalAlignment="Center"/>
+                    <TextBlock Text="Üretim Paketi Hazırla" FontSize="12" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               VerticalAlignment="Center" Margin="9,0,0,0"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                    <Button x:Name="btnMin" Style="{StaticResource WindowButton}" Content="&#xE921;" Click="btnMin_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Simge durumuna küçült"/>
+                    <Button x:Name="btnMax" Click="btnMax_Click" WindowChrome.IsHitTestVisibleInChrome="True"
+                            AutomationProperties.Name="Ekranı kapla">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource WindowButton}">
+                                <Setter Property="Content" Value="&#xE922;"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                 Value="Maximized">
+                                        <Setter Property="Content" Value="&#xE923;"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button x:Name="btnClose" Style="{StaticResource WindowCloseButton}" Content="&#xE8BB;" Click="btnIptal_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Kapat"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- ======== SAYFA BASLIGI ======== -->
+            <StackPanel Grid.Row="1" Margin="20,4,20,0">
+                <TextBlock Text="Üretim Paketi Hazırla" FontSize="18" FontWeight="SemiBold"
+                           FontFamily="{StaticResource AppFontDisplay}"/>
+                <TextBlock x:Name="txtAltBaslik" FontSize="12.5" Margin="0,3,0,0" TextWrapping="Wrap"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Text="Hazır dosyalar kaynak klasörde yeni bir üretim klasörüne, üretim adedini taşıyan adlarla kopyalanır; orijinal dosyalar değişmez."/>
+            </StackPanel>
+
+            <!-- ======== AYARLAR: kapsam, carpan, hedef klasor (ve sonraki secenekler) ======== -->
+            <Border Grid.Row="2" Margin="20,12,20,0" Padding="14,10" CornerRadius="6"
+                    Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,24,0">
+                        <TextBlock Text="Paket kapsamı" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,5"/>
+                        <ComboBox x:Name="cmbKapsam" Style="{StaticResource AppCombo}" Width="190"
+                                  AutomationProperties.Name="Paket kapsamı" SelectionChanged="Ayar_Degisti">
+                            <ComboBoxItem Content="Seçili satırlar"/>
+                            <ComboBoxItem Content="Görünür satırlar"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="0,0,24,0">
+                        <TextBlock Text="Üretim çarpanı" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,5"/>
+                        <TextBox x:Name="txtCarpan" Style="{StaticResource FieldBox}" Width="90" Text="1"
+                                 AutomationProperties.Name="Üretim çarpanı" HorizontalContentAlignment="Right"
+                                 ToolTip="Her parçanın temel adedi bu sayıyla çarpılır (pozitif tam sayı)"
+                                 TextChanged="Ayar_Degisti"/>
+                    </StackPanel>
+                    <!-- Sonraki secenekler (C Asama 2: "Profilleri STEP olarak yaz") bu sutuna gelir -->
+                    <StackPanel x:Name="pnlSecenekler" Grid.Column="2" Margin="0,0,24,0" VerticalAlignment="Bottom"
+                                Visibility="Collapsed"/>
+
+                    <!-- Hedef klasor: tam yol okunur, tiklayinca kaynak klasor acilir -->
+                    <TextBlock Grid.Row="1" Grid.ColumnSpan="4" Text="Hedef klasör" FontSize="12"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,12,0,5"/>
+                    <Grid Grid.Row="2" Grid.ColumnSpan="4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="txtHedef" Style="{StaticResource FieldBox}" IsReadOnly="True"
+                                 AutomationProperties.Name="Hedef klasör" VerticalContentAlignment="Center"
+                                 Cursor="Hand" PreviewMouseLeftButtonUp="txtHedef_Tiklandi"/>
+                        <Button x:Name="btnKlasoruAc" Grid.Column="1" Style="{StaticResource SecondaryButton}"
+                                local:DugmeIkonu.Ikon="{StaticResource Icon.OpenProject}" Content="Klasörü Aç" Margin="8,0,0,0"
+                                ToolTip="Kaynak klasörü Windows Gezgini'nde açar; üretim klasörü onun içinde oluşturulur"
+                                Click="btnKlasoruAc_Click"/>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- ======== TABLO ======== -->
+            <Border Grid.Row="3" Margin="20,12,20,0" CornerRadius="6" ClipToBounds="True"
+                    Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                <DataGrid x:Name="gridPaket" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                          CanUserResizeRows="False" SelectionMode="Extended" GridLinesVisibility="Horizontal"
+                          HeadersVisibility="Column" RowHeight="NaN" MinRowHeight="36" FontSize="13"
+                          HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                          CellEditEnding="gridPaket_CellEditEnding">
+                    <!-- Sekiz sutun 1100 px'e sigsin: hucre boslugu 10 px (genel tablo stili 16) -->
+                    <DataGrid.CellStyle>
+                        <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="DataGridCell">
+                                        <Border Background="{TemplateBinding Background}" Padding="10,0">
+                                            <ContentPresenter VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </DataGrid.CellStyle>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Dosya" Binding="{Binding SourceFileName}" IsReadOnly="True"
+                                            Width="Auto" MinWidth="110" MaxWidth="220">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                    <Setter Property="ToolTip" Value="{Binding SourcePath}"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Parça kodu" Binding="{Binding PartCode}" IsReadOnly="True"
+                                            Width="Auto" MinWidth="110" MaxWidth="160" ElementStyle="{StaticResource KirpilanHucre}"/>
+                        <DataGridTextColumn Header="Temel adet" Binding="{Binding DisplayedBaseQuantity, Mode=TwoWay}"
+                                            Width="Auto" MinWidth="90"
+                                            ElementStyle="{StaticResource SayiHucre}" HeaderStyle="{StaticResource SayiBaslik}">
+                            <DataGridTextColumn.EditingElementStyle>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="IsEnabled" Value="{Binding ManualEntryAllowed}"/>
+                                    <Setter Property="HorizontalContentAlignment" Value="Right"/>
+                                    <Setter Property="ToolTip" Value="CATIA veya dosya adı adedi bulunamadı. Üretim için temel adedi girin."/>
+                                </Style>
+                            </DataGridTextColumn.EditingElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Adet kaynağı" Binding="{Binding QuantitySourceDisplay}" IsReadOnly="True"
+                                            Width="Auto" MinWidth="110" ElementStyle="{StaticResource KirpilanHucre}"/>
+                        <DataGridTextColumn Header="Çarpan" Binding="{Binding Multiplier}" IsReadOnly="True"
+                                            Width="Auto" MinWidth="70"
+                                            ElementStyle="{StaticResource SayiHucre}" HeaderStyle="{StaticResource SayiBaslik}"/>
+                        <DataGridTextColumn Header="Üretim adedi" Binding="{Binding FinalQuantity}" IsReadOnly="True"
+                                            Width="Auto" MinWidth="100"
+                                            ElementStyle="{StaticResource SayiHucre}" HeaderStyle="{StaticResource SayiBaslik}"/>
+                        <DataGridTextColumn Header="Yeni dosya" Binding="{Binding TargetFileName}" IsReadOnly="True"
+                                            Width="Auto" MinWidth="110" MaxWidth="200" ElementStyle="{StaticResource KirpilanHucre}"/>
+                        <DataGridTextColumn Header="Durum / Açıklama" Binding="{Binding StatusDisplay}" IsReadOnly="True"
+                                            Width="*" MinWidth="170">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="Margin" Value="0,6"/>
+                                    <Setter Property="ToolTip" Value="{Binding StatusDisplay}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Status}" Value="Hazır">
+                                            <Setter Property="Foreground" Value="{StaticResource LogSuccessBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+
+            <!-- ======== UYARI: Paketi Olustur neden pasif / ne disarida kalir ======== -->
+            <Border x:Name="pnlUyari" Grid.Row="4" Margin="20,10,20,0" Padding="12,8" CornerRadius="4"
+                    Background="{StaticResource HamSacReminderBrush}" BorderBrush="{StaticResource HamSacReminderBorderBrush}"
+                    BorderThickness="1" Visibility="Collapsed">
+                <TextBlock x:Name="txtUyari" TextWrapping="Wrap" FontSize="12.5"
+                           Foreground="{StaticResource HamSacReminderTextBrush}"/>
+            </Border>
+
+            <!-- ======== ALT SERIT ======== -->
+            <Border Grid.Row="5" Margin="0,12,0,0" Padding="20,12" Background="{StaticResource CardBrush}" CornerRadius="0,0,4,4">
+                <Grid>
+                    <TextBlock x:Name="txtOzet" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button x:Name="btnOlustur" Style="{StaticResource PrimaryButton}"
+                                local:DugmeIkonu.Ikon="{StaticResource Icon.ProductionPackage}" Content="Paketi Oluştur"
+                                ToolTip="Hazır satırları yeni üretim klasörüne kopyalar ve Excel manifestini yazar"
+                                Click="btnOlustur_Click"/>
+                        <Button x:Name="btnIptal" Style="{StaticResource SecondaryButton}" Content="İptal" Margin="8,0,0,0"
+                                Height="{DynamicResource DugmeYuksekligi}" Padding="16,0" MinWidth="80"
+                                AutomationProperties.Name="İptal" ToolTip="Paket oluşturmadan kapatır"
+                                Click="btnIptal_Click"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

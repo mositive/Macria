@@ -2358,6 +2358,23 @@ internal static class Program
             var conflict = new ProductionPackageItem { SourcePath = source, PartCode = "part", CatiaQuantity = 4, FileNameQuantity = 2, Multiplier = 2 }; conflict.Validate(); Check(conflict.QuantitySource == ProductionQuantitySource.Conflict, "6C-05 quantity conflict");
             var zero = new ProductionPackageItem { SourcePath = source, PartCode = "part", ManualQuantity = 1, Multiplier = 0 }; zero.Validate(); Check(zero.Status == "Geçersiz", "6C-06 zero multiplier rejected");
             var overflow = new ProductionPackageItem { SourcePath = source, PartCode = "part", ManualQuantity = int.MaxValue, Multiplier = 2 }; overflow.Validate(); Check(overflow.Status == "Geçersiz", "6C-07 overflow rejected");
+            // Üretim Paketi window: why "Paketi Oluştur" is off, or what stays out (the button's rule is unchanged).
+            string klasor = Path.GetDirectoryName(source)!;
+            var eksik = new ProductionPackageItem { SourcePath = Path.Combine(klasor, "a.dxf"), PartCode = "a", Multiplier = 1 }; eksik.Validate();
+            var hazir = new ProductionPackageItem { SourcePath = Path.Combine(klasor, "b_2adet.dxf"), PartCode = "b", FileNameQuantity = 2, Multiplier = 1 }; hazir.Validate();
+            var (pasif, pasifMetni) = ProductionPackageService.PackageState(new[] { eksik }, ProductionPackageService.ValidateCommonFolder(new[] { eksik }));
+            Check(!pasif && pasifMetni == "Paketi Oluştur pasif — Temel adet eksik: 1 satır", "6C-09 off: reason shown: " + pasifMetni);
+            var (acik, acikMetni) = ProductionPackageService.PackageState(new[] { eksik, hazir, conflict }, klasor);
+            Check(acik && acikMetni == "Pakete girmeyecek (2 satır) — Adet çelişkisi (CATIA ≠ dosya adı): 1 satır; Temel adet eksik: 1 satır",
+                "6C-10 on: rows left out are named: " + acikMetni);
+            var baska = new ProductionPackageItem { SourcePath = @"C:\Baska\c_2adet.dxf", PartCode = "c", FileNameQuantity = 2, Multiplier = 1 }; baska.Validate();
+            var (farkli, farkliMetni) = ProductionPackageService.PackageState(new[] { hazir, baska }, ProductionPackageService.ValidateCommonFolder(new[] { hazir, baska }));
+            Check(!farkli && farkliMetni == "Paketi Oluştur pasif — Kaynak dosyalar aynı klasörde olmalı: 2 farklı klasör", "6C-11 different folders: " + farkliMetni);
+            Check(ProductionPackageService.PackageState(new[] { hazir }, klasor) == (true, null) &&
+                  ProductionPackageService.PackageState(Array.Empty<ProductionPackageItem>(), null).Message == "Paketi Oluştur pasif: pakete alınacak satır yok.",
+                "6C-12 all ready: no message; no rows: said");
+            Check(eksik.StatusDisplay == "Üretime hazır değil — Temel adet kaynağı bulunamadı." && hazir.StatusDisplay == "Hazır" && hazir.SourceFileName == "b_2adet.dxf",
+                "6C-13 Durum / Açıklama and file name columns");
             Check(ProductionPackageService.PartCode("55RS125394-5_Rep.stp") == "55RS125394-5", "6C-08 STEP Rep removed");
             Check(!ProductionPackageService.IsSupported("bad.pdf"), "6C-09 unsupported extension rejected");
             string before = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(source)));

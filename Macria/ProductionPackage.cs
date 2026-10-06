@@ -25,6 +25,10 @@ public sealed class ProductionPackageItem : INotifyPropertyChanged
     public string Status { get; private set; } = "Bekliyor";
     public string Explanation { get; private set; } = "";
     public bool ManualEntryAllowed => CatiaQuantity is not > 0 && FileNameQuantity is not > 0;
+    /// <summary>The source's file name (the window shows it; the full path is in its tooltip).</summary>
+    public string SourceFileName => Path.GetFileName(SourcePath);
+    /// <summary>"Durum / Açıklama": the status, and why when it is not ready.</summary>
+    public string StatusDisplay => Explanation.Length == 0 ? Status : Status + " — " + Explanation;
     public int? DisplayedBaseQuantity
     {
         get => BaseQuantity;
@@ -47,6 +51,13 @@ public sealed class ProductionPackageItem : INotifyPropertyChanged
 
     public void Validate()
     {
+        try { ValidateCore(); }
+        // Every displayed value may change: the rows show the new state at once.
+        finally { Raise(string.Empty); }
+    }
+
+    private void ValidateCore()
+    {
         BaseQuantity = null; FinalQuantity = null; TargetFileName = "";
         if (!ProductionPackageService.IsSupported(SourcePath)) { Status = "Geçersiz"; Explanation = "Desteklenmeyen dosya uzantısı."; return; }
         if (Multiplier <= 0) { Status = "Geçersiz"; Explanation = "Üretim çarpanı pozitif tam sayı olmalıdır."; return; }
@@ -59,7 +70,6 @@ public sealed class ProductionPackageItem : INotifyPropertyChanged
         catch (OverflowException) { Status = "Geçersiz"; Explanation = "Üretim adedi taşması."; return; }
         TargetFileName = $"{PartCode}_{FinalQuantity} Adet{Path.GetExtension(SourcePath)}";
         Status = "Hazır"; Explanation = "";
-        Raise();
     }
     private void Raise([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
@@ -74,6 +84,38 @@ public static class ProductionPackageService
         Match match = QuantitySuffix.Match(Path.GetFileNameWithoutExtension(path));
         return match.Success && int.TryParse(match.Groups[1].Value, out int quantity) && quantity > 0 ? quantity : null;
     }
+    /// <summary>
+    /// Why "Paketi Oluştur" is off, or what stays out of the package; null
+    /// when every row is ready. `common` is ValidateCommonFolder's result.
+    /// The button is on exactly when the folder is common and a row is ready.
+    /// </summary>
+    public static (bool CanCreate, string? Message) PackageState(IReadOnlyCollection<ProductionPackageItem> rows, string? common)
+    {
+        if (rows.Count == 0) return (false, "Paketi Oluştur pasif: pakete alınacak satır yok.");
+        int ready = rows.Count(item => item.Status == "Hazır");
+        bool canCreate = common != null && ready > 0;
+        var reasons = new List<string>();
+        if (common == null)
+            reasons.Add("Kaynak dosyalar aynı klasörde olmalı: " +
+                        rows.Select(item => Path.GetDirectoryName(item.SourcePath) ?? "").Distinct(StringComparer.OrdinalIgnoreCase).Count() + " farklı klasör");
+        foreach (var group in rows.Where(item => item.Status != "Hazır").GroupBy(Reason).OrderBy(g => g.Key, StringComparer.Ordinal))
+            reasons.Add(group.Key + ": " + group.Count() + " satır");
+        if (reasons.Count == 0) return (canCreate, null);
+        return (canCreate, canCreate
+            ? "Pakete girmeyecek (" + (rows.Count - ready) + " satır) — " + string.Join("; ", reasons)
+            : "Paketi Oluştur pasif — " + string.Join("; ", reasons));
+    }
+
+    private static string Reason(ProductionPackageItem item) => item.QuantitySource switch
+    {
+        _ when item.Explanation.StartsWith("Desteklenmeyen", StringComparison.Ordinal) => "Desteklenmeyen dosya",
+        _ when item.Explanation.StartsWith("Üretim çarpanı", StringComparison.Ordinal) => "Üretim çarpanı pozitif tam sayı olmalı",
+        _ when item.Explanation.StartsWith("Üretim adedi taşması", StringComparison.Ordinal) => "Üretim adedi taşması",
+        ProductionQuantitySource.Conflict => "Adet çelişkisi (CATIA ≠ dosya adı)",
+        ProductionQuantitySource.Missing => "Temel adet eksik",
+        _ => item.Status
+    };
+
     public static string? ValidateCommonFolder(IEnumerable<ProductionPackageItem> items)
     {
         string[] folders = items.Select(item => Path.GetDirectoryName(item.SourcePath) ?? "").Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
