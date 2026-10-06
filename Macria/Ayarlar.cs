@@ -79,6 +79,10 @@ namespace Macria
         // hic uretilmez; acikken yalniz konsola yazilir (kart olarak cikmaz).
         public static bool GomuluTeshisKaydi;
 
+        // "Buton görünümü": Dosya Analiz Merkezi butonlarinda yalniz ikon
+        // (false = ikon ve ad). DugmeIkonu.YalnizIkon ile aninda uygulanir.
+        public static bool DugmeYalnizIkon;
+
         // TimeSpan.Zero: no whole-run limit.
         public static TimeSpan GeometryLabZamanAsimi()
         {
@@ -153,6 +157,7 @@ namespace Macria
                             MotorIsParcacigi = Math.Max(0, Sayi(deger, MotorIsParcacigi)); break;
                         case "BukumBilgisiDxf": BukumBilgisiDxf = deger != "0"; break;
                         case "GomuluTeshisKaydi": GomuluTeshisKaydi = deger == "1"; break;
+                        case "DugmeGorunumu": DugmeYalnizIkon = deger == "YalnizIkon"; break;
                         case "LazerAzamiKalinlikMm":
                             double lazer = Ondalik(deger, LazerAzamiKalinlikMm);
                             if (lazer > 0) LazerAzamiKalinlikMm = lazer;
@@ -207,7 +212,8 @@ namespace Macria
                     "MotorIsParcacigi=" + MotorIsParcacigi,
                     "LazerAzamiKalinlikMm=" + LazerAzamiKalinlikMm.ToString(CultureInfo.InvariantCulture),
                     "BukumBilgisiDxf=" + (BukumBilgisiDxf ? "1" : "0"),
-                    "GomuluTeshisKaydi=" + (GomuluTeshisKaydi ? "1" : "0")
+                    "GomuluTeshisKaydi=" + (GomuluTeshisKaydi ? "1" : "0"),
+                    "DugmeGorunumu=" + (DugmeYalnizIkon ? "YalnizIkon" : "IkonVeAd")
                 };
 
                 File.WriteAllLines(DosyaYolu(), satirlar);

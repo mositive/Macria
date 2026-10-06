@@ -30,6 +30,7 @@ namespace Macria
             txtMotorIsParcacigi.Text = Ayarlar.MotorIsParcacigi.ToString(CultureInfo.InvariantCulture);
             chkFareUyarisi.IsChecked = !Ayarlar.FareUyarisiGizle;
             chkBukumKapat.IsChecked = Ayarlar.BukumKapat;
+            cmbDugmeGorunumu.SelectedIndex = Ayarlar.DugmeYalnizIkon ? 1 : 0;
 
             KonumYaz();
             BukumYaz();
@@ -288,7 +289,10 @@ namespace Macria
             Ayarlar.GomuluTeshisKaydi = chkGomuluTeshis.IsChecked == true;
             Ayarlar.ParcaSureSiniriSaniye = Sayi(txtParcaSureSiniri.Text, Ayarlar.ParcaSureSiniriSaniye, 0, 86400);
             Ayarlar.MotorIsParcacigi = Sayi(txtMotorIsParcacigi.Text, Ayarlar.MotorIsParcacigi, 0, 256);
+            Ayarlar.DugmeYalnizIkon = cmbDugmeGorunumu.SelectedIndex == 1;
             Ayarlar.Kaydet();
+            // No restart: every icon button follows at once.
+            DugmeIkonu.YalnizIkon = Ayarlar.DugmeYalnizIkon;
 
             DialogResult = true;
             Close();
