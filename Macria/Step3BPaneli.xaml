@@ -20,18 +20,18 @@
         </StackPanel>
 
         <WrapPanel x:Name="aracCubugu" Grid.Row="1" Margin="0,0,0,3">
-            <Button x:Name="btnBuyukAc" Style="{StaticResource SecondaryButton}" Content="Büyük Aç" IsEnabled="False" Click="btnBuyukAc_Click"/>
-            <Button x:Name="btnParcaGorunumu" Style="{StaticResource SecondaryButton}" Content="Montaj içinde göster"
+            <Button x:Name="btnBuyukAc" local:DugmeIkonu.Ikon="{StaticResource Icon.ExpandPreview}" Style="{StaticResource SecondaryButton}" Content="Büyük Aç" IsEnabled="False" Click="btnBuyukAc_Click"/>
+            <Button x:Name="btnParcaGorunumu" local:DugmeIkonu.Ikon="{StaticResource Icon.ShowInAssembly}" Style="{StaticResource SecondaryButton}" Content="Montaj içinde göster"
                     Visibility="Collapsed" IsEnabled="False" Click="btnParcaGorunumu_Click"
                     ToolTip="Seçili parçayı tek başına ya da montajın içinde (diğerleri soluk) gösterir"/>
-            <Button x:Name="btnIzometrik" Style="{StaticResource SecondaryButton}" Content="İzometrik" IsEnabled="False" Click="btnIzometrik_Click"/>
-            <Button x:Name="btnOn" Style="{StaticResource SecondaryButton}" Content="Ön" IsEnabled="False" Click="btnOn_Click"/>
-            <Button x:Name="btnArka" Style="{StaticResource SecondaryButton}" Content="Arka" IsEnabled="False" Click="btnArka_Click"/>
-            <Button x:Name="btnSol" Style="{StaticResource SecondaryButton}" Content="Sol" IsEnabled="False" Click="btnSol_Click"/>
-            <Button x:Name="btnSag" Style="{StaticResource SecondaryButton}" Content="Sağ" IsEnabled="False" Click="btnSag_Click"/>
-            <Button x:Name="btnUst" Style="{StaticResource SecondaryButton}" Content="Üst" IsEnabled="False" Click="btnUst_Click"/>
-            <Button x:Name="btnAlt" Style="{StaticResource SecondaryButton}" Content="Alt" IsEnabled="False" Click="btnAlt_Click"/>
-            <Button x:Name="btnSigdir" Style="{StaticResource SecondaryButton}" Content="Sığdır" IsEnabled="False" Click="btnSigdir_Click"/>
+            <Button x:Name="btnIzometrik" local:DugmeIkonu.Ikon="{StaticResource Icon.Isometric}" Style="{StaticResource SecondaryButton}" Content="İzometrik" IsEnabled="False" Click="btnIzometrik_Click"/>
+            <Button x:Name="btnOn" local:DugmeIkonu.Ikon="{StaticResource Icon.ViewFront}" Style="{StaticResource SecondaryButton}" Content="Ön" IsEnabled="False" Click="btnOn_Click"/>
+            <Button x:Name="btnArka" local:DugmeIkonu.Ikon="{StaticResource Icon.ViewBack}" Style="{StaticResource SecondaryButton}" Content="Arka" IsEnabled="False" Click="btnArka_Click"/>
+            <Button x:Name="btnSol" local:DugmeIkonu.Ikon="{StaticResource Icon.ViewLeft}" Style="{StaticResource SecondaryButton}" Content="Sol" IsEnabled="False" Click="btnSol_Click"/>
+            <Button x:Name="btnSag" local:DugmeIkonu.Ikon="{StaticResource Icon.ViewRight}" Style="{StaticResource SecondaryButton}" Content="Sağ" IsEnabled="False" Click="btnSag_Click"/>
+            <Button x:Name="btnUst" local:DugmeIkonu.Ikon="{StaticResource Icon.ViewTop}" Style="{StaticResource SecondaryButton}" Content="Üst" IsEnabled="False" Click="btnUst_Click"/>
+            <Button x:Name="btnAlt" local:DugmeIkonu.Ikon="{StaticResource Icon.ViewBottom}" Style="{StaticResource SecondaryButton}" Content="Alt" IsEnabled="False" Click="btnAlt_Click"/>
+            <Button x:Name="btnSigdir" local:DugmeIkonu.Ikon="{StaticResource Icon.FitView}" Style="{StaticResource SecondaryButton}" Content="Sığdır" IsEnabled="False" Click="btnSigdir_Click"/>
         </WrapPanel>
 
         <Border Grid.Row="2" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Background="#1B2028">

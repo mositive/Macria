@@ -4,6 +4,11 @@
              xmlns:local="clr-namespace:Macria"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
+        <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <!-- Buton ikonlari (Tasarim/Macria_Tum_Butonlar_WPF): DrawingImage "Icon.*" anahtarlari -->
+            <ResourceDictionary Source="Ikonlar/MacriaAllIcons.xaml"/>
+        </ResourceDictionary.MergedDictionaries>
 
         <!-- ======== FONTLAR ======== -->
         <FontFamily x:Key="AppFont">Segoe UI Variable Text, Segoe UI</FontFamily>
@@ -32,6 +37,36 @@
         <SolidColorBrush x:Key="LogInfoBrush" Color="#6CB2FF"/>
         <SolidColorBrush x:Key="LogSuccessBrush" Color="#4CC38A"/>
         <SolidColorBrush x:Key="LogErrorBrush" Color="#F05B50"/>
+
+        <!-- ======== BUTON IKONLARI ======== -->
+        <!-- Ikonlarin ana cizgi rengi: tema metin rengiyle ayni. IkonluDugmeIcerigi bunu
+             DynamicResource ile okur ve ikonu boyar (DugmeIkonu.Boyayici); acik bir tema bu
+             fircayi koyu bir renkle degistirir. Vurgu renkleri ikonun kendisinde kalir. -->
+        <SolidColorBrush x:Key="MacriaIconForeground" Color="#ECEAE2"/>
+        <!-- "Buton gorunumu" (Ayarlar): DugmeIkonu.YalnizIkon bu ikisini degistirir -->
+        <Visibility x:Key="DugmeYazisiGorunurlugu">Visible</Visibility>
+        <Thickness x:Key="DugmeIkonBoslugu">0,0,6,0</Thickness>
+        <!-- local:DugmeIkonu.Ikon verilen butonun icerigi: ikon + metin (Content metin kalir) -->
+        <DataTemplate x:Key="IkonluDugmeIcerigi">
+            <StackPanel Orientation="Horizontal">
+                <Image x:Name="ikon" Width="16" Height="16" Stretch="Uniform" VerticalAlignment="Center"
+                       Margin="{DynamicResource DugmeIkonBoslugu}"
+                       local:DugmeIkonu.CizgiFircasi="{DynamicResource MacriaIconForeground}">
+                    <Image.Source>
+                        <MultiBinding Converter="{x:Static local:DugmeIkonu.Boyayici}">
+                            <Binding Path="(local:DugmeIkonu.Ikon)" RelativeSource="{RelativeSource AncestorType=ButtonBase}"/>
+                            <Binding Path="(local:DugmeIkonu.CizgiFircasi)" RelativeSource="{RelativeSource Self}"/>
+                        </MultiBinding>
+                    </Image.Source>
+                </Image>
+                <TextBlock Text="{Binding}" VerticalAlignment="Center" Visibility="{DynamicResource DugmeYazisiGorunurlugu}"/>
+            </StackPanel>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsEnabled, RelativeSource={RelativeSource AncestorType=ButtonBase}}" Value="False">
+                    <Setter TargetName="ikon" Property="Opacity" Value="0.38"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
 
         <!-- Ince, yuvarlak ilerleme cubugu: sayili asamada vurgu renginde dolar;
              sayisiz asamada iz boyunca yumusak bir isik kayar (genislikten bagimsiz,
@@ -536,8 +571,18 @@
                         <Border Background="{StaticResource SurfaceBrush}"
                                 BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                                 CornerRadius="4" Padding="12,8">
-                            <ContentPresenter/>
+                            <StackPanel>
+                                <!-- Yalniz ikon modunda butonun adi (DugmeIkonu.IpucuBasligi) -->
+                                <TextBlock x:Name="ipucuBasligi" FontWeight="SemiBold" Margin="0,0,0,4"
+                                           Text="{Binding PlacementTarget.(local:DugmeIkonu.IpucuBasligi), RelativeSource={RelativeSource TemplatedParent}}"/>
+                                <ContentPresenter/>
+                            </StackPanel>
                         </Border>
+                        <ControlTemplate.Triggers>
+                            <DataTrigger Binding="{Binding PlacementTarget.(local:DugmeIkonu.IpucuBasligi), RelativeSource={RelativeSource Self}}" Value="{x:Null}">
+                                <Setter TargetName="ipucuBasligi" Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -894,5 +939,6 @@
             </Style.Triggers>
         </Style>
 
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

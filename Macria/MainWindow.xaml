@@ -2059,25 +2059,25 @@
                         Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
                     <!-- Dar pencerede ogeler alt satira gecer -->
                     <WrapPanel Orientation="Horizontal">
-                        <Button Style="{StaticResource SecondaryButton}" Content="← Dosya Analiz Merkezi" Height="30" Padding="12,0" Click="btnFileAnalysisHome_Click" Margin="0,0,14,0"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Dosya Analiz Merkezi" Height="30" local:DugmeIkonu.Ikon="{StaticResource Icon.BackAnalysis}" Padding="12,0" ToolTip="Dosya Analiz Merkezi ana sayfasına döner" Click="btnFileAnalysisHome_Click" Margin="0,0,14,0"/>
                         <TextBlock Text="STEP / STP Analizi" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,14,0"/>
-                        <Button x:Name="btnExternalStepProfilAnaliz" Style="{StaticResource PrimaryButton}"
+                        <Button x:Name="btnExternalStepProfilAnaliz" local:DugmeIkonu.Ikon="{StaticResource Icon.AnalyzeStep}" Style="{StaticResource PrimaryButton}"
                                 Content="STEP / STP Dosyalarını Seç ve Analiz Et" Height="30" Padding="14,0"
                                 ToolTip="CATIA bağlantısı gerektirmez; seçilen STEP dosyalarını yalnız GeometryLab ile analiz eder"
                                 Click="btnExternalStepProfilAnaliz_Click"/>
-                        <Button x:Name="btnExternalStepTemizle" Style="{StaticResource SecondaryButton}"
+                        <Button x:Name="btnExternalStepTemizle" local:DugmeIkonu.Ikon="{StaticResource Icon.ClearTable}" Style="{StaticResource SecondaryButton}"
                                 Content="Tabloyu Temizle" Height="30" Padding="12,0" Margin="10,0,0,0" IsEnabled="False"
                                 ToolTip="Profiller, Saclar ve Kontrol gerekli listelerini boşaltır (onay ister)"
                                 Click="btnExternalStepTemizle_Click"/>
                         <!-- .macria proje: Ac / Kaydet / Farkli Kaydet ve proje adi (* kaydedilmemis) -->
                         <Border Width="1" Height="22" Margin="14,0" Background="{StaticResource BorderBrush}" VerticalAlignment="Center"/>
-                        <Button x:Name="btnProjeAc" Style="{StaticResource SecondaryButton}" Content="Proje Aç" Height="30" Padding="12,0"
+                        <Button x:Name="btnProjeAc" local:DugmeIkonu.Ikon="{StaticResource Icon.OpenProject}" Style="{StaticResource SecondaryButton}" Content="Proje Aç" Height="30" Padding="12,0"
                                 ToolTip="Kaydedilmiş bir .macria projesini açar (Ctrl+O); STEP değişmemişse motor çalışmaz"
                                 Click="btnProjeAc_Click"/>
-                        <Button x:Name="btnProjeKaydet" Style="{StaticResource SecondaryButton}" Content="Kaydet" Height="30" Padding="12,0" Margin="6,0,0,0"
+                        <Button x:Name="btnProjeKaydet" local:DugmeIkonu.Ikon="{StaticResource Icon.Save}" Style="{StaticResource SecondaryButton}" Content="Kaydet" Height="30" Padding="12,0" Margin="6,0,0,0"
                                 ToolTip="Analiz sonuçlarını, motor DXF'lerini ve kararlarınızı .macria projesine kaydeder (Ctrl+S)"
                                 IsEnabled="False" Click="btnProjeKaydet_Click"/>
-                        <Button x:Name="btnProjeFarkliKaydet" Style="{StaticResource SecondaryButton}" Content="Farklı Kaydet" Height="30" Padding="12,0" Margin="6,0,0,0"
+                        <Button x:Name="btnProjeFarkliKaydet" local:DugmeIkonu.Ikon="{StaticResource Icon.SaveAs}" Style="{StaticResource SecondaryButton}" Content="Farklı Kaydet" Height="30" Padding="12,0" Margin="6,0,0,0"
                                 ToolTip="Projeyi başka bir ad ya da yere kaydeder (Ctrl+Shift+S)"
                                 IsEnabled="False" Click="btnProjeFarkliKaydet_Click"/>
                         <TextBlock x:Name="txtProjeDurumu" VerticalAlignment="Center" Margin="10,0,0,0"
@@ -2165,36 +2165,36 @@
                         <TextBox x:Name="txtAnalizArama" Style="{StaticResource SearchBox}" Width="230" Height="28" Margin="0,0,12,6"
                                  ToolTip="Parça adına göre bütün sekmeleri ve Lazer / Şalama alt sekmelerini süzer; Esc temizler"
                                  TextChanged="txtAnalizArama_TextChanged" KeyDown="txtAnalizArama_KeyDown"/>
-                        <Button x:Name="btnAnalizExcel" Style="{StaticResource SecondaryButton}" Content="Excel'e Aktar" Height="28" Padding="10,0" Margin="0,0,6,6"
+                        <Button x:Name="btnAnalizExcel" local:DugmeIkonu.Ikon="{StaticResource Icon.ExcelExport}" Style="{StaticResource SecondaryButton}" Content="Excel'e Aktar" Height="28" Padding="10,0" Margin="0,0,6,6"
                                 ToolTip="Açık sekmenin görünen sütunlarını ve satırlarını Excel'e yazar" Click="btnAnalizExcel_Click"/>
-                        <Button x:Name="btnAnalizSutunlar" Style="{StaticResource SecondaryButton}" Content="Sütunlar" Height="28" Padding="10,0" Margin="0,0,6,6"
+                        <Button x:Name="btnAnalizSutunlar" local:DugmeIkonu.Ikon="{StaticResource Icon.Columns}" Style="{StaticResource SecondaryButton}" Content="Sütunlar" Height="28" Padding="10,0" Margin="0,0,6,6"
                                 ToolTip="Açık sekmenin görünen sütunlarını ve sırasını düzenler; sekme başına hatırlanır" Click="btnAnalizSutunlar_Click"/>
-                        <Button x:Name="btnAnalizUretimPaketi" Style="{StaticResource SecondaryButton}" Content="Üretim Paketi Hazırla" Height="28" Padding="10,0" Margin="0,0,6,6"
+                        <Button x:Name="btnAnalizUretimPaketi" local:DugmeIkonu.Ikon="{StaticResource Icon.ProductionPackage}" Style="{StaticResource SecondaryButton}" Content="Üretim Paketi Hazırla" Height="28" Padding="10,0" Margin="0,0,6,6"
                                 ToolTip="Kesin profillerden üretim paketi hazırlar" Click="btnExternalStepUretimPaketi_Click"/>
-                        <Button x:Name="btnAnalizCatia" Style="{StaticResource SecondaryButton}" Content="CATIA ile Karşılaştır" Height="28" Padding="10,0" Margin="0,0,6,6"
+                        <Button x:Name="btnAnalizCatia" local:DugmeIkonu.Ikon="{StaticResource Icon.CompareCatia}" Style="{StaticResource SecondaryButton}" Content="CATIA ile Karşılaştır" Height="28" Padding="10,0" Margin="0,0,6,6"
                                 ToolTip="Ana ekrandaki son CATIA taramasıyla adet ve sac unsurunu karşılaştırır" Click="btnExternalStepCatiaKarsilastir_Click"/>
-                        <Button x:Name="btnAnalizDosyayiAc" Style="{StaticResource SecondaryButton}" Content="Dosyayı Aç" Height="28" Padding="10,0" Margin="0,0,6,6"
+                        <Button x:Name="btnAnalizDosyayiAc" local:DugmeIkonu.Ikon="{StaticResource Icon.OpenFile}" Style="{StaticResource SecondaryButton}" Content="Dosyayı Aç" Height="28" Padding="10,0" Margin="0,0,6,6"
                                 ToolTip="Seçili satırın STEP dosyasını Windows'un varsayılan uygulamasıyla açar" Click="btnAnalizDosyayiAc_Click"/>
-                        <Button x:Name="btnAnalizDxfUret" Style="{StaticResource SecondaryButton}" Content="DXF Üret" Height="28" Padding="10,0" Margin="0,0,6,6"
+                        <Button x:Name="btnAnalizDxfUret" local:DugmeIkonu.Ikon="{StaticResource Icon.GenerateDxf}" Style="{StaticResource SecondaryButton}" Content="DXF Üret" Height="28" Padding="10,0" Margin="0,0,6,6"
                                 ToolTip="Açık alt sekmedeki (Lazer ya da Şalama/Kütük) onaylı sacların motor DXF'ini hedef klasörün altındaki Motor-DXF klasörüne yazar" Click="btnSacDxfUret_Click"/>
                         <Border Width="1" Height="22" Margin="8,0,14,6" VerticalAlignment="Center" Background="{StaticResource BorderBrush}"/>
-                        <Button x:Name="btnAnalizProfilOnayla" Style="{StaticResource SecondaryButton}" Content="Profil Olarak Onayla" Height="28" Padding="10,0" Margin="0,0,6,6"
+                        <Button x:Name="btnAnalizProfilOnayla" local:DugmeIkonu.Ikon="{StaticResource Icon.ApproveProfile}" Style="{StaticResource SecondaryButton}" Content="Profil Olarak Onayla" Height="28" Padding="10,0" Margin="0,0,6,6"
                                 ToolTip="Seçili profil satırlarını kesin profil olarak Profiller'e alır; kesiti olmayan tek satır için tür ve kesit sorulur" Click="btnAnalizProfilOnayla_Click"/>
-                        <Button x:Name="btnAnalizSacOnayla" Style="{StaticResource SecondaryButton}" Content="Sac Olarak Onayla" Height="28" Padding="10,0" Margin="0,0,6,6"
+                        <Button x:Name="btnAnalizSacOnayla" local:DugmeIkonu.Ikon="{StaticResource Icon.ApproveSheet}" Style="{StaticResource SecondaryButton}" Content="Sac Olarak Onayla" Height="28" Padding="10,0" Margin="0,0,6,6"
                                 ToolTip="Seçili parçaları Saclar'a alır; motor açınımı yoksa DXF sütununda 'açınım yok – CATIA'dan' yazar" Click="btnAnalizSacOnayla_Click"/>
-                        <Button x:Name="btnAnalizKontrole" Style="{StaticResource SecondaryButton}" Content="Kontrol Gerekliye Al" Height="28" Padding="10,0" Margin="0,0,6,6"
+                        <Button x:Name="btnAnalizKontrole" local:DugmeIkonu.Ikon="{StaticResource Icon.NeedsReview}" Style="{StaticResource SecondaryButton}" Content="Kontrol Gerekliye Al" Height="28" Padding="10,0" Margin="0,0,6,6"
                                 ToolTip="Seçili satırları Kontrol gerekli sekmesine alır" Click="btnAnalizKontrole_Click"/>
-                        <Button x:Name="btnAnalizListeDisi" Style="{StaticResource SecondaryButton}" Content="Liste Dışına Çıkar" Height="28" Padding="10,0" Margin="0,0,6,6"
+                        <Button x:Name="btnAnalizListeDisi" local:DugmeIkonu.Ikon="{StaticResource Icon.ExcludeFromList}" Style="{StaticResource SecondaryButton}" Content="Liste Dışına Çıkar" Height="28" Padding="10,0" Margin="0,0,6,6"
                                 ToolTip="Seçili satırları bütün listelerden çıkarır; Liste dışı sekmesinde Geri Al ile döner" Click="btnAnalizListeDisi_Click"/>
-                        <Button x:Name="btnAnalizYenidenAnaliz" Style="{StaticResource SecondaryButton}" Content="Yeniden Analiz Et" Height="28" Padding="10,0" Margin="0,0,6,6"
+                        <Button x:Name="btnAnalizYenidenAnaliz" local:DugmeIkonu.Ikon="{StaticResource Icon.Reanalyze}" Style="{StaticResource SecondaryButton}" Content="Yeniden Analiz Et" Height="28" Padding="10,0" Margin="0,0,6,6"
                                 ToolTip="Seçili parçaları motorla süre sınırı olmadan yeniden analiz eder (otomatik kurallar); çoklu seçimde STEP başına tek çalıştırma" Click="btnAnalizYenidenAnaliz_Click"/>
-                        <Button x:Name="btnAnalizProfilDene" Style="{StaticResource SecondaryButton}" Content="Profil Olarak Dene" Height="28" Padding="10,0" Margin="0,0,6,6" ToolTipService.ShowOnDisabled="True"
+                        <Button x:Name="btnAnalizProfilDene" local:DugmeIkonu.Ikon="{StaticResource Icon.TryProfile}" Style="{StaticResource SecondaryButton}" Content="Profil Olarak Dene" Height="28" Padding="10,0" Margin="0,0,6,6" ToolTipService.ShowOnDisabled="True"
                                 ToolTip="Seçili parçalara yalnız profil tanıyıcısını gevşetilmiş kurallarla uygular (kısa boy, tek tutarlı içi boş eksen); kesit, et, boy ve uç kesimini motor ölçer" Click="btnAnalizProfilDene_Click"/>
-                        <Button x:Name="btnAnalizSacDene" Style="{StaticResource SecondaryButton}" Content="Sac Olarak Dene" Height="28" Padding="10,0" Margin="0,0,6,6" ToolTipService.ShowOnDisabled="True"
+                        <Button x:Name="btnAnalizSacDene" local:DugmeIkonu.Ikon="{StaticResource Icon.TrySheet}" Style="{StaticResource SecondaryButton}" Content="Sac Olarak Dene" Height="28" Padding="10,0" Margin="0,0,6,6" ToolTipService.ShowOnDisabled="True"
                                 ToolTip="Seçili parçalara yalnız sac tanıyıcısını gevşetilmiş kurallarla uygular (levha değil kuralları yok, alanın en çok %10'u artık yüz işleme); tanınan parça onaylı sac olur, açınım yoksa DXF CATIA'dan" Click="btnAnalizSacDene_Click"/>
-                        <Button x:Name="btnAnalizOtomatik" Style="{StaticResource SecondaryButton}" Content="Otomatik Karara Dön" Height="28" Padding="10,0" Margin="0,0,6,6"
+                        <Button x:Name="btnAnalizOtomatik" local:DugmeIkonu.Ikon="{StaticResource Icon.RestoreAuto}" Style="{StaticResource SecondaryButton}" Content="Otomatik Karara Dön" Height="28" Padding="10,0" Margin="0,0,6,6"
                                 ToolTip="Seçili satırlardaki kullanıcı kararını ve yeniden analiz / deneme sonucunu kaldırır" Click="btnAnalizOtomatik_Click"/>
-                        <Button x:Name="btnAnalizGeriAl" Style="{StaticResource SecondaryButton}" Content="Geri Al" Height="28" Padding="10,0" Margin="0,0,6,6"
+                        <Button x:Name="btnAnalizGeriAl" local:DugmeIkonu.Ikon="{StaticResource Icon.RestoreToList}" Style="{StaticResource SecondaryButton}" Content="Geri Al" Height="28" Padding="10,0" Margin="0,0,6,6"
                                 ToolTip="Seçili satırları geldikleri sekmeye döndürür" Click="btnAnalizGeriAl_Click"/>
                     </WrapPanel>
                     <Grid Grid.Row="1">
@@ -2421,9 +2421,9 @@
                             </Grid.RowDefinitions>
                             <DockPanel Grid.Row="0" Margin="0,0,0,7">
                                 <StackPanel x:Name="pnlSacGecis" DockPanel.Dock="Right" Orientation="Horizontal" Visibility="Collapsed">
-                                    <Button x:Name="btnSacOnizleme2B" Style="{StaticResource PrimaryButton}" Content="Açınım (2B)" Height="25" Padding="9,0" Margin="0,0,4,0"
+                                    <Button x:Name="btnSacOnizleme2B" local:DugmeIkonu.Ikon="{StaticResource Icon.View2D}" Style="{StaticResource PrimaryButton}" Content="Açınım (2B)" Height="25" Padding="9,0" Margin="0,0,4,0"
                                             Click="btnSacOnizleme2B_Click" ToolTip="Motorun ürettiği DXF açınımını gösterir"/>
-                                    <Button x:Name="btnSacOnizleme3B" Style="{StaticResource SecondaryButton}" Content="3B" Height="25" Padding="12,0"
+                                    <Button x:Name="btnSacOnizleme3B" local:DugmeIkonu.Ikon="{StaticResource Icon.View3D}" Style="{StaticResource SecondaryButton}" Content="3B" Height="25" Padding="12,0"
                                             Click="btnSacOnizleme3B_Click" ToolTip="Seçili sac parçayı STEP'ten 3B gösterir"/>
                                 </StackPanel>
                                 <TextBlock x:Name="txtSagBaslik" Text="3B Önizleme" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
