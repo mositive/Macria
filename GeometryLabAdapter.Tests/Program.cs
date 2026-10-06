@@ -1667,6 +1667,24 @@ internal static class Program
         };
         MontajParcaSatiri mil = MontajParcaSatiri.Olustur("C:\\m.stp", milAnalizi,
             analysis.Parts[4] with { ClassificationCode = MotorSinifKodu.SolidBar, RecognitionEvidence = true }, null, 20);
+        // 330031: the length stage found no proof, the only reliable axis spans 204 mm.
+        MontajParcaSatiri milEksenli = MontajParcaSatiri.Olustur("C:\\m.stp", milAnalizi with
+        {
+            ProfileRecognitions = new[]
+            {
+                new GeometryLabProfileRecognitionTransport { SolidId = new GeometryLabLocalIdTransport { LocalId = 5 }, SectionRecognitionStatus = "Recognized",
+                    ProfileType = "SolidCircularBar", OuterDiameterMm = 20.0, LengthRecognitionStatus = "InsufficientEvidence" }
+            },
+            ProfileGeometryAnalysis = new GeometryLabProfileGeometryAnalysisTransport
+            {
+                AxisCandidates = new[]
+                {
+                    new GeometryLabProfileAxisCandidateTransport { LocalId = 1, SolidId = new GeometryLabLocalIdTransport { LocalId = 5 }, ProjectionSpanMm = 20, Reliable = false },
+                    new GeometryLabProfileAxisCandidateTransport { LocalId = 2, SolidId = new GeometryLabLocalIdTransport { LocalId = 5 }, ProjectionSpanMm = 204, Reliable = true }
+                }
+            }
+        }, analysis.Parts[4] with { ClassificationCode = MotorSinifKodu.SolidBar, RecognitionEvidence = true }, null, 20);
+        Check(milEksenli.OlcuGosterimiMetni == "Ø20 × 204 mm", "a shaft without a proven length takes its axis span: " + milEksenli.OlcuGosterimiMetni);
         Check(mil.OlcuGosterimiMetni == "Ø12 × 80 mm" && mil.ThicknessDisplay == "—" && mil.AcinimOlcusuDisplay == "—" &&
               ((IAnalizSatiri)mil).Ayrintilar.Any(x => x.Key == "Ölçü" && x.Value == "Ø12 × 80 mm"),
             "a shaft shows Ø × length: " + mil.OlcuGosterimiMetni);

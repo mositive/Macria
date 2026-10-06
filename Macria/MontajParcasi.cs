@@ -263,7 +263,13 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         static string N(double mm) => FormatNumber(Math.Round(mm, 1));
         if (solidId is null) return "—";
         GeometryLabProfileRecognitionTransport? profil = analysis.ProfileRecognitions.FirstOrDefault(x => x.SolidId?.LocalId == solidId);
-        double? boy = profil?.LengthSummary?.UniformLengthMm ?? profil?.LengthSummary?.LongLengthMm;
+        // The length: the profile's measured length, otherwise the span of the
+        // solid's only reliable axis (end to end; a shaft whose ends the
+        // length stage could not prove still has it).
+        var eksenler = analysis.ProfileGeometryAnalysis?.AxisCandidates
+            .Where(x => x.SolidId?.LocalId == solidId && x.Reliable && x.ProjectionSpanMm > 0).ToList();
+        double? boy = profil?.LengthSummary?.UniformLengthMm ?? profil?.LengthSummary?.LongLengthMm
+                      ?? (eksenler is { Count: 1 } ? eksenler[0].ProjectionSpanMm : null);
         if (profil?.SectionRecognitionStatus == "Recognized")
         {
             if (profil.ProfileType == "SolidCircularBar" && profil.OuterDiameterMm is double d)
