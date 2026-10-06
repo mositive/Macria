@@ -1406,6 +1406,13 @@ internal static class Program
               AnalizSutunDuzeni.ExcelDegeri("Adet", "—") is "—" && AnalizSutunDuzeni.ExcelDegeri("Adet", null) is null,
             "Adet and CATIA Adedi go to Excel as numbers; \"—\" is no number");
         Check(AnalizSutunDuzeni.ExcelDegeri("Parça", "1") is "1", "a part named \"1\" stays text");
+        Check(AnalizSutunDuzeni.ExcelDegeri("Ham sac kalınlığı (mm)", 8.000000000017916) is double t && t == 8 &&
+              AnalizSutunDuzeni.ExcelDegeri("Tespit edilen kalınlık", 12.345678) is double t2 && t2 == 12.35 &&
+              AnalizSutunDuzeni.ExcelDegeri("Açınım eni (mm)", 45.000000000003865) is double en && en == 45 &&
+              AnalizSutunDuzeni.ExcelDegeri("En küçük dikdörtgen boyu (mm)", 229.46) is double boy && boy == 229.5,
+            "Excel: thickness to 0,01 mm, flat sizes to 0,1 mm");
+        Check(AnalizSutunDuzeni.ExcelDegeri("Büküm", "4") is double bukum && bukum == 4 && AnalizSutunDuzeni.ExcelDegeri("Büküm", "—") is "—",
+            "Excel: Büküm is a number");
         Check(AnalizSutunDuzeni.ExcelDegeri(AnalizSutunDuzeni.StepSutunu, @"C:\a\Montaj A.stp") is "Montaj A.stp",
             "the STEP column holds the file name");
     }

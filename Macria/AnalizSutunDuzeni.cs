@@ -24,15 +24,26 @@ public static class AnalizSutunDuzeni
     /// <summary>The column every tab has (hidden by default) with the row's STEP file.</summary>
     public const string StepSutunu = "STEP dosyası";
 
-    // Quantity columns: a whole number in the cell goes to Excel as a number, not text.
-    private static readonly HashSet<string> AdetSutunlari = new(StringComparer.Ordinal) { "Adet", "CATIA Adedi" };
+    // Whole-number columns: a whole number in the cell goes to Excel as a number, not text.
+    private static readonly HashSet<string> AdetSutunlari = new(StringComparer.Ordinal) { "Adet", "CATIA Adedi", "Büküm" };
+
+    // The engine's sizes carry float noise (8.000000000017916): a thickness
+    // goes to Excel to 0,01 mm, a flat size to 0,1 mm, as the cells show them.
+    private static readonly HashSet<string> KalinlikSutunlari = new(StringComparer.Ordinal) { "Ham sac kalınlığı (mm)", "Tespit edilen kalınlık" };
+    private static readonly HashSet<string> AcinimSutunlari = new(StringComparer.Ordinal)
+    {
+        "Açınım eni (mm)", "Açınım boyu (mm)", "En küçük dikdörtgen eni (mm)", "En küçük dikdörtgen boyu (mm)"
+    };
 
     /// <summary>
-    /// A cell value as Excel writes it: "4" in a quantity column is the number
-    /// 4 ("—" stays empty); the STEP column holds the file name, not the path.
+    /// A cell value as Excel writes it: "4" in a quantity or bend column is the
+    /// number 4 ("—" stays empty); thicknesses rounded to 0,01 mm and flat
+    /// sizes to 0,1 mm; the STEP column holds the file name, not the path.
     /// </summary>
     public static object? ExcelDegeri(string baslik, object? deger)
     {
+        if (deger is double sayi && KalinlikSutunlari.Contains(baslik)) return Math.Round(sayi, 2);
+        if (deger is double olcu && AcinimSutunlari.Contains(baslik)) return Math.Round(olcu, 1);
         if (deger is string metin && AdetSutunlari.Contains(baslik) &&
             int.TryParse(metin.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int adet))
             return (double)adet;
