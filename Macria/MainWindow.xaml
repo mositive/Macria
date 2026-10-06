@@ -2241,7 +2241,7 @@
                                 </Setter>
                             </Style>
                         </TabControl.Resources>
-                        <TabItem x:Name="tabExternalStepProfiller" Header="Profiller (0)">
+                        <TabItem x:Name="tabExternalStepProfiller" Header="Profiller (0)" local:DugmeIkonu.Ikon="{StaticResource TabIcon.Profiles}">
                             <DataGrid x:Name="gridExternalStepProfil" AutoGenerateColumns="False" IsReadOnly="True"
                                       CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False"
                                       SelectionMode="Extended" SelectionChanged="gridExternalStepProfil_SelectionChanged"
@@ -2276,16 +2276,16 @@
                                 </DataGrid.Columns>
                             </DataGrid>
                         </TabItem>
-                        <TabItem x:Name="tabExternalStepSaclar" Header="Saclar (0)">
+                        <TabItem x:Name="tabExternalStepSaclar" Header="Saclar (0)" local:DugmeIkonu.Ikon="{StaticResource TabIcon.Sheets}">
                             <Grid>
                                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                                 <!-- Uretim grubu alt sekmeleri: ayni liste, Lazer ya da Salama/Kutuk suzgeci -->
                                 <TabControl x:Name="tabSacGrubu" Grid.Row="0" Margin="0,0,0,4" VerticalAlignment="Top"
                                             Background="Transparent" BorderThickness="0" Padding="0"
                                             SelectionChanged="tabSacGrubu_SelectionChanged">
-                                    <TabItem x:Name="tabSacLazer" Header="Lazer (0)" FontSize="13" Padding="20,7" MinWidth="130" Margin="0,0,8,6"
+                                    <TabItem x:Name="tabSacLazer" Header="Lazer (0)" local:DugmeIkonu.Ikon="{StaticResource TabIcon.Laser}" FontSize="13" Padding="20,7" MinWidth="130" Margin="0,0,8,6"
                                              ToolTip="Ayarlardaki lazer azami kalınlığına eşit ve daha ince saclar"/>
-                                    <TabItem x:Name="tabSacSalama" Header="Şalama/Kütük (0)" FontSize="13" Padding="20,7" MinWidth="130" Margin="0,0,8,6"
+                                    <TabItem x:Name="tabSacSalama" Header="Şalama/Kütük (0)" local:DugmeIkonu.Ikon="{StaticResource TabIcon.Stock}" FontSize="13" Padding="20,7" MinWidth="130" Margin="0,0,8,6"
                                              ToolTip="Ayarlardaki lazer azami kalınlığından kalın saclar"/>
                                 </TabControl>
                                 <TextBlock x:Name="txtSacOzet" Grid.Row="1" Margin="0,0,0,6" TextWrapping="Wrap"
@@ -2389,19 +2389,19 @@
                                 </DataGrid>
                             </Grid>
                         </TabItem>
-                        <TabItem x:Name="tabExternalStepKontrol" Header="Kontrol gerekli (0)"
+                        <TabItem x:Name="tabExternalStepKontrol" Header="Kontrol gerekli (0)" local:DugmeIkonu.Ikon="{StaticResource TabIcon.Review}"
                                  ToolTip="Motorun bir şey bulduğu ama karar veremediği parçalar ve Diğer (mil, halka, somun, burç)">
                             <DataGrid x:Name="gridKontrolParcalar" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
                                       CanUserDeleteRows="False" CanUserResizeRows="False" SelectionMode="Extended"
                                       GridLinesVisibility="All" HeadersVisibility="Column" FontSize="13" RowHeight="34"/>
                         </TabItem>
-                        <TabItem x:Name="tabExternalStepTanimsiz" Header="Tanımsız (0)"
+                        <TabItem x:Name="tabExternalStepTanimsiz" Header="Tanımsız (0)" local:DugmeIkonu.Ikon="{StaticResource TabIcon.Unknown}"
                                  ToolTip="Hiçbir kanıt bulunamayan, geçersiz geometrili, süresi aşılan ya da analizi başarısız parçalar">
                             <DataGrid x:Name="gridTanimsiz" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
                                       CanUserDeleteRows="False" CanUserResizeRows="False" SelectionMode="Extended"
                                       GridLinesVisibility="All" HeadersVisibility="Column" FontSize="13" RowHeight="34"/>
                         </TabItem>
-                        <TabItem x:Name="tabExternalStepListeDisi" Header="Liste dışı (0)"
+                        <TabItem x:Name="tabExternalStepListeDisi" Header="Liste dışı (0)" local:DugmeIkonu.Ikon="{StaticResource TabIcon.Excluded}"
                                  ToolTip="Bütün sekmelerden çıkarılan satırlar; Geri Al ile geldikleri sekmeye dönerler">
                             <DataGrid x:Name="gridListeDisi" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
                                       CanUserDeleteRows="False" CanUserResizeRows="False" SelectionMode="Extended"
