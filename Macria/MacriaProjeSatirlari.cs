@@ -51,7 +51,8 @@ public static class MacriaProjeSatirlari
                     PartLocalId = part.LocalId,
                     PartProductId = row.ProductId,
                     PartMachiningPresent = part.MachiningPresent == true,
-                    PartMachiningKinds = part.MachiningKinds
+                    PartMachiningKinds = part.MachiningKinds,
+                    PartEngineReasons = part.ClassificationReasons
                 };
                 profileRow.Apply(MontajParcaSatiri.ResultForPart(result, part));
                 profil.Add(profileRow);

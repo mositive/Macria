@@ -15,6 +15,7 @@
     <Compile Include="../Macria/DxfAdi.cs" Link="Macria/DxfAdi.cs" />
     <Compile Include="../Macria/MontajParcasi.cs" Link="Macria/MontajParcasi.cs" />
     <Compile Include="../Macria/IslemeMetni.cs" Link="Macria/IslemeMetni.cs" />
+    <Compile Include="../Macria/MotorGerekcesiMetni.cs" Link="Macria/MotorGerekcesiMetni.cs" />
     <Compile Include="../Macria/MotorDxfAktarici.cs" Link="Macria/MotorDxfAktarici.cs" />
     <Compile Include="../Macria/CatiaLightInventory.cs" Link="Macria/CatiaLightInventory.cs" />
     <Compile Include="../Macria/DxfDwgFileInventory.cs" Link="Macria/DxfDwgFileInventory.cs" />

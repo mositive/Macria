@@ -56,6 +56,12 @@ public interface IAnalizSatiri
     void RestoreAutomaticDecision();
 }
 
+/// <summary>"Seçili Parça" line shown folded: the engine's own reason text (face ids, inner steps).</summary>
+public static class TeknikAyrinti
+{
+    public const string Anahtar = "Teknik ayrıntı";
+}
+
 /// <summary>
 /// A row built from an engine run on selected parts (docs/YENIDEN_ANALIZ_VE_DENEME_PLANI.md):
 /// the run's mode (MacriaProje.Deneme*) and its id among the source's EkAnalizler.

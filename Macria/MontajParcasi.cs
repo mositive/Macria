@@ -177,7 +177,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
                 MontajParcaKategorisi.OnayGerekli when CatiaSheetMetalFeature == false =>
                     "CATIA'da sac unsuru yok; motor geometrik sac buldu.",
                 MontajParcaKategorisi.OnayGerekli => "CATIA ile doğrulanmadı; motor geometrik sac buldu.",
-                _ => EngineReasonDisplay
+                _ => MotorGerekcesi
             };
         }
     }
@@ -437,7 +437,8 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         : "—";
     public string DurumEtiketi => StatusDisplay;
     public string KararGosterimi => DecisionDisplay;
-    public string MotorGerekcesi => EngineReasonDisplay.Length == 0 ? "—" : EngineReasonDisplay;
+    /// <summary>The engine's reason, result first and short (MotorGerekcesiMetni); its own text is in "Teknik ayrıntı".</summary>
+    public string MotorGerekcesi => MotorGerekcesiMetni.Kisa(EngineCode, EngineReasons);
     public string KullaniciKarariMetni
     {
         get
@@ -478,6 +479,7 @@ public sealed class MontajParcaSatiri : INotifyPropertyChanged, IAnalizSatiri
         new("Eşleşme", CatiaMatchDisplay),
         new("Karar", DecisionDisplay),
         new("Motor gerekçesi", MotorGerekcesi),
+        new(TeknikAyrinti.Anahtar, MotorGerekcesiMetni.Teknik(EngineReasons)),
         new("Kullanıcı kararı", KullaniciKarariMetni)
     };
     void IAnalizSatiri.KontrolGerekliyeAl() => MoveToReview();

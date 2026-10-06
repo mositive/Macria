@@ -42,6 +42,7 @@ internal static class Program
             KalinlikDuzeltmeTests();
             KararSutunlariTests();
             SutunDuzeniTests();
+            MotorGerekcesiTests();
             AramaTests();
             DxfYenidenAdlandirmaTests();
             AssemblyProcessedProfilePart();
@@ -1266,11 +1267,14 @@ internal static class Program
     {
         GeometryLabAnalysisTransport analysis = AssemblyAnalysis();
         MontajParcaSatiri sac = MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[1], "C:\\x.dxf", 20);
-        Check(sac.MotorGerekcesi == "gerekçe 2" && sac.KullaniciKarariMetni == "—", "no decision: engine reason, user column empty");
+        string sacGerekcesi = sac.MotorGerekcesi;
+        Check(sacGerekcesi == "Sac" && sac.KullaniciKarariMetni == "—" &&
+              ((IAnalizSatiri)sac).Ayrintilar.Any(x => x.Key == TeknikAyrinti.Anahtar && x.Value == "gerekçe 2"),
+            "no decision: engine reason (short; its own text in Teknik ayrıntı), user column empty: " + sacGerekcesi);
         sac.ApproveAsSheet();
         sac.KalinligiDuzelt(25);
         sac.ListeDisinaCikar("fason");
-        Check(sac.MotorGerekcesi == "gerekçe 2", "the engine reason stays after the user's decisions");
+        Check(sac.MotorGerekcesi == sacGerekcesi, "the engine reason stays after the user's decisions");
         Check(sac.KullaniciKarariMetni == "Sac olarak onaylandı; Ham sac kalınlığı 25 mm (tespit edilen 20 mm); Liste dışı: fason",
             "the user column lists every decision: " + sac.KullaniciKarariMetni);
         sac.RestoreAutomaticDecision();
@@ -1278,7 +1282,8 @@ internal static class Program
             "Otomatik Karara Dön drops the category decision only: " + sac.KullaniciKarariMetni);
         MontajParcaSatiri acinimsiz = MontajParcaSatiri.Olustur("C:\\m.stp", analysis, analysis.Parts[4], null, 20);
         acinimsiz.ApproveAsSheet();
-        Check(acinimsiz.KullaniciKarariMetni == "Sac olarak onaylandı (açınım yok, DXF CATIA'dan)" && acinimsiz.MotorGerekcesi == "gerekçe 5",
+        Check(acinimsiz.KullaniciKarariMetni == "Sac olarak onaylandı (açınım yok, DXF CATIA'dan)" &&
+              ((IAnalizSatiri)acinimsiz).Ayrintilar.Any(x => x.Key == TeknikAyrinti.Anahtar && x.Value == "gerekçe 5"),
             "an approved part without a flat pattern says where its DXF comes from");
 
         var full = new GeometryLabProcessAdapterResult { Status = GeometryLabProcessAdapterStatus.Succeeded, Analysis = analysis };
@@ -1309,6 +1314,45 @@ internal static class Program
 
     // (34) "Sütunlar": per tab visible columns and order, remembered; new
     // columns of a later Macria join where they stand by default.
+    // (1) Motor gerekçesi: the result first, a short reason; no face ids, no English.
+    private static void MotorGerekcesiTests()
+    {
+        string K(string kod, params string[] g) => MotorGerekcesiMetni.Kisa(kod, g);
+        var ornekler = new (string Kod, string[] Gerekce, string Beklenen)[]
+        {
+            (MotorSinifKodu.ThickerThanOutline, new[] { "Sac kabuğu bulundu ama kalınlık (30 mm) açınımın en dar ölçüsünden (11,876 mm) büyük: levha değil, çubuk.",
+                "Sac veya profil olarak tanınmadı." }, "Sac değil (çubuk/mil): kalınlık 30 mm > en dar ölçü 11,9 mm"),
+            (MotorSinifKodu.ThickerThanMaterial, new[] { "Sac kabuğu bulundu ama kalınlık (58 mm) parçanın gerçek et genişliğinden (49,108 mm) büyük: levha değil (halka, somun ya da mil)." },
+                "Sac değil (halka/somun/mil): kalınlık 58 mm > et genişliği 49,1 mm"),
+            (MotorSinifKodu.UnsupportedFaces, new[] { "Tanıyıcıların desteklemediği yüz tipleri var (Torus): Kabuklar arasında kalmayan yüzler var: F4088, F4089." },
+                "Tanınamadı: yuvarlatılmış (torus) yüzler var"),
+            (MotorSinifKodu.SheetAnalysisIncomplete, new[] { "Sac analizi Unsupported: Kalınlık çiftleri arasında düzlem yüz yok." }, "Sac değil: paralel düz yüz çifti yok"),
+            (MotorSinifKodu.FlatPatternFailed, new[] { "Sac tanındı ama açınım üretilemedi: Büküm F3177 iki flanş arasında değil." }, "Sac, açınım yok: uçta biten büküm"),
+            (MotorSinifKodu.Sheet, new[] { "Sac: t=20 mm, 0 büküm. İşleme var (cep, basamak, havşa / imbus başı); DXF'te yalnız dış hat ve boydan boya delikler." },
+                "Sac: t = 20 mm, 0 büküm; işleme var"),
+            (MotorSinifKodu.HollowProfile, new[] { "Profil: SquareHollowSection." }, "Profil: kare kutu"),
+            (MotorSinifKodu.NotRecognized, new[] { "Sac veya profil olarak tanınmadı (Sabit ofsetli karşılıklı yüz çifti bulunamadı.)." },
+                "Tanınamadı: karşılıklı paralel yüz yok"),
+            (MotorSinifKodu.HollowProfile, new[] { "Profil olarak denendi (gevşetilmiş: kesiti tutarlı içi boş tek eksen seçildi (3 güvenilir eksenden)): Profil: SquareHollowSection." },
+                "Profil olarak denendi → Profil: kare kutu (gevşetilen: tek eksen)"),
+            (MotorSinifKodu.SolidBar, new[] { "Profil olarak denendi: profil tanınmadı (kesit kanıtı yetersiz: No reliable profile axis exists for this solid.).",
+                "Dolu kesit (SolidCircularBar); içi boş olmadığı için profil sayılmaz, sac da değil." },
+                "Profil olarak denendi, tanınmadı (kesit kanıtı yetersiz) → Profil değil: dolu yuvarlak çubuk (mil)"),
+            (MotorSinifKodu.Sheet, new[] { "Sac olarak denendi (gevşetilmiş: levha değil kuralı uygulanmadı (kalınlık 44 mm > en dar ölçü 12,472 mm)): Sac: t=44 mm, 0 büküm." },
+                "Sac olarak denendi → Sac: t = 44 mm, 0 büküm (gevşetilen: levha değil kuralı, kalınlık 44 mm > en dar ölçü 12,5 mm)"),
+            (MotorSinifKodu.Sheet, new[] { "Sac olarak denendi: Sac, açınım yok: Büküm F47 iki flanş arasında değil. t=2 mm." },
+                "Sac olarak denendi → Sac, açınım yok: uçta biten büküm; t = 2 mm")
+        };
+        foreach (var (kod, gerekce, beklenen) in ornekler)
+        {
+            string kisa = K(kod, gerekce);
+            Check(kisa == beklenen, "motor gerekçesi " + kod + ": " + kisa);
+            Check(!System.Text.RegularExpressions.Regex.IsMatch(kisa, @"\bF[0-9]+") && !kisa.Contains("Unsupported") && !kisa.Contains("reliable") &&
+                  !kisa.Contains("Sac kabuğu bulundu"), "no face ids, English or inner steps: " + kisa);
+        }
+        Check(K(MotorSinifKodu.Sheet) == "—" && MotorGerekcesiMetni.Teknik(new[] { "a", "b" }) == "a b", "no reason: \"—\"; Teknik ayrıntı keeps the text");
+    }
+
     private static void SutunDuzeniTests()
     {
         AnalizSutunu S(string baslik, bool gorunur = true) => new(baslik, gorunur);

@@ -249,6 +249,19 @@ public partial class MainWindow
         txtSeciliParcaMesaj.Visibility = Visibility.Collapsed;
         foreach (KeyValuePair<string, string> satir in secili[0].Ayrintilar)
         {
+            if (satir.Key == TeknikAyrinti.Anahtar)
+            {
+                // The engine's own text, folded: face ids and inner steps stay out of sight.
+                pnlSeciliParca.Children.Add(new Expander
+                {
+                    Header = TeknikAyrinti.Anahtar,
+                    IsExpanded = false,
+                    Margin = new Thickness(0, 6, 0, 0),
+                    Foreground = (System.Windows.Media.Brush)FindResource("TextSecondaryBrush"),
+                    Content = new TextBlock { Text = satir.Value, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) }
+                });
+                continue;
+            }
             var metin = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) };
             metin.Inlines.Add(new System.Windows.Documents.Run(satir.Key + ": ")
             {

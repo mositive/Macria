@@ -45,6 +45,8 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
     // The part's machining features (engraving, pockets ...), shown on every tab.
     public bool PartMachiningPresent { get; init; }
     public IReadOnlyList<string> PartMachiningKinds { get; init; } = Array.Empty<string>();
+    // The part's engine reasons, for "Teknik ayrıntı" of Seçili Parça.
+    public IReadOnlyList<string> PartEngineReasons { get; init; } = Array.Empty<string>();
     public string IslemeGosterimi => IslemeMetni.Kisa(PartMachiningPresent, PartMachiningKinds);
     int? IAnalizSatiri.ParcaLocalId => PartLocalId;
     /// <summary>Built from a run on selected parts (Yeniden Analiz Et, Profil olarak dene).</summary>
@@ -731,6 +733,7 @@ public sealed class GeometryLabStepProfileListItem : INotifyPropertyChanged, IAn
         new("Eşleşme", CatiaMatchDisplay),
         new("Karar", KararGosterimi),
         new("Motor gerekçesi", MotorGerekcesi),
+        new(TeknikAyrinti.Anahtar, MotorGerekcesiMetni.Teknik(PartEngineReasons)),
         new("Kullanıcı kararı", KullaniciKarariMetni)
     };
     void IAnalizSatiri.KontrolGerekliyeAl() => MoveToReview();
