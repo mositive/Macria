@@ -49,3 +49,6 @@ $RECYCLE.BIN/
 
 # Serena MCP yerel durumu
 .serena/
+
+# Is yeri test paketleri (dotnet publish ciktisi, zip, sha256)
+publish/
